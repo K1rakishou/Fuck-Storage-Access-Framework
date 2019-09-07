@@ -155,6 +155,15 @@ class FastFileSearchTreeTest {
     assertFalse(fastFileSearchTree.containsSegment(listOf("123", "456", "111.txt")))
   }
 
+  @Test
+  fun `test contains existing returns true`() {
+    val fastFileSearchTree = FastFileSearchTree()
+    val segments = listOf("123", "456", "111.txt")
+
+    assertTrue(fastFileSearchTree.insertSegments(segments))
+    assertTrue(fastFileSearchTree.containsSegment(segments))
+  }
+
   private fun nodeTypesCheck(fastFileSearchTree: FastFileSearchTree) {
     val collectedNodes = mutableListOf<FastFileSearchTreeNode>()
     fastFileSearchTree.visit { node ->

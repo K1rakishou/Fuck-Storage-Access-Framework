@@ -213,14 +213,11 @@ class FastFileSearchTreeNode(
     segmentNames: List<String>,
     index: Int
   ): Boolean {
-    if (nodeType == NodeType.Leaf) {
-      return false
-    }
-
     val currentNodeType = segmentNames.getOrNull(index)
-    if (currentNodeType == null) {
-      val parentNodeType = checkNotNull(checkNotNull(parent).nodeType)
-      return this.nodeType == parentNodeType
+      ?: return false
+
+    if (currentNodeType == nodeType.name) {
+      return true
     }
 
     val nextNode = children[currentNodeType]

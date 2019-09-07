@@ -192,9 +192,7 @@ class ExternalFile(
     }
 
     val documentFile = clone().toDocumentFile()
-    if (documentFile == null) {
-      throw IllegalStateException("getName() toDocumentFile() returned null")
-    }
+      ?: throw IllegalStateException("getName() toDocumentFile() returned null")
 
     return documentFile.name
       ?: throw IllegalStateException("Could not extract file name from document file")
