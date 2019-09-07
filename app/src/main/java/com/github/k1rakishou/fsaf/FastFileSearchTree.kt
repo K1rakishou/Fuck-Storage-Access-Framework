@@ -10,7 +10,7 @@ import java.io.File
  *
  * NOTE: Only use this when dealing with SAF files, i.e. ExternalFile. RawFile is backed by the
  * Java File so it doesn't need this at all. That's because ExternalFile is really slow when you
- * want to search for something.
+ * want to search for many files.
  * */
 class FastFileSearchTree(
   val root: FastFileSearchTreeNode = FastFileSearchTreeNode(FastFileSearchTreeNode.NodeType.Root)
