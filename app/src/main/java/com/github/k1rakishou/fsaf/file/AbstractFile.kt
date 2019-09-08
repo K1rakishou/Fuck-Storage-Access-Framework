@@ -4,9 +4,8 @@ import com.github.k1rakishou.fsaf.annotation.ImmutableMethod
 import com.github.k1rakishou.fsaf.annotation.MutableMethod
 import com.github.k1rakishou.fsaf.extensions.extension
 import java.io.File
-import java.io.InputStream
-import java.io.OutputStream
 
+// TODO: rewrite
 /**
  * An abstraction class over both the Java File and the new Storage Access Framework DocumentFile.
  *
@@ -102,11 +101,22 @@ import java.io.OutputStream
  *  to take a look at [FastFileSearchTree]
  * */
 abstract class AbstractFile(
+  protected val root: Root<*>,
+
   /**
    * /test/123/test2/filename.txt -> 4 segments
    * */
   protected val segments: MutableList<Segment>
-) {
+) : HasFileManagerId {
+
+  fun getFileSegments(): List<Segment> {
+    return segments
+  }
+
+  fun <T> getFileRoot(): Root<T> {
+    return root as Root<T>
+  }
+
   /**
    * Appends a new subdirectory (or couple of subdirectories, e.g. "dir1/dir2/dir3")
    * to the root directory
@@ -133,6 +143,9 @@ abstract class AbstractFile(
     return createNew() != null
   }
 
+  @ImmutableMethod
+  abstract fun getFullPath(): String
+
   /**
    * When doing something with an [AbstractFile] (like appending a subdir or a filename) the
    * [AbstractFile] will change because it's mutable. So if you don't want to change the original
@@ -141,51 +154,6 @@ abstract class AbstractFile(
    * [AbstractFile] and then append the filename to those copies)
    * */
   abstract fun clone(): AbstractFile
-
-  @ImmutableMethod
-  abstract fun exists(): Boolean
-
-  @ImmutableMethod
-  abstract fun isFile(): Boolean
-
-  @ImmutableMethod
-  abstract fun isDirectory(): Boolean
-
-  @ImmutableMethod
-  abstract fun canRead(): Boolean
-
-  @ImmutableMethod
-  abstract fun canWrite(): Boolean
-
-  @ImmutableMethod
-  abstract fun getFullPath(): String
-
-  @ImmutableMethod
-  abstract fun getSegmentNames(): List<String>
-
-  @ImmutableMethod
-  abstract fun delete(): Boolean
-
-  @ImmutableMethod
-  abstract fun getInputStream(): InputStream?
-
-  @ImmutableMethod
-  abstract fun getOutputStream(): OutputStream?
-
-  @ImmutableMethod
-  abstract fun getName(): String
-
-  @ImmutableMethod
-  abstract fun findFile(fileName: String): AbstractFile?
-
-  @ImmutableMethod
-  abstract fun getLength(): Long
-
-  @ImmutableMethod
-  abstract fun listFiles(): List<AbstractFile>
-
-  @ImmutableMethod
-  abstract fun lastModified(): Long
 
   protected fun appendSubDirSegmentInner(name: String): AbstractFile {
     check(!isFilenameAppended()) { "Cannot append anything after file name has been appended" }
@@ -302,3 +270,9 @@ abstract class AbstractFile(
     const val ENCODED_SEPARATOR = "%2F"
   }
 }
+
+interface HasFileManagerId {
+  fun getFileManagerId(): FileManagerId
+}
+
+inline class FileManagerId(val id: String)

@@ -2,12 +2,12 @@ package com.github.k1rakishou.fsaf.file
 
 import android.util.Log
 import com.github.k1rakishou.fsaf.extensions.appendMany
-import java.io.*
+import java.io.File
 
 class RawFile(
-  private val root: Root<File>,
+  root: Root<File>,
   segments: MutableList<Segment> = mutableListOf()
-) : AbstractFile(segments) {
+) : AbstractFile(root, segments) {
 
   override fun appendSubDirSegment(name: String): RawFile {
     check(root !is Root.FileRoot) { "root is already FileRoot, cannot append anything anymore" }
@@ -23,6 +23,8 @@ class RawFile(
     check(root !is Root.FileRoot) {
       "root is already FileRoot, cannot append anything anymore"
     }
+
+    root.holder as File
 
     if (segments.isEmpty()) {
       if (!root.holder.exists()) {
@@ -42,8 +44,7 @@ class RawFile(
       return this
     }
 
-    var newFile = root.holder
-
+    var newFile = root.holder as File
     for (segment in segments) {
       newFile = File(newFile, segment.name)
 
@@ -68,124 +69,22 @@ class RawFile(
   }
 
   override fun clone(): RawFile = RawFile(
-    root.clone(),
+    root.clone() as Root<File>,
     segments.toMutableList()
   )
 
-  override fun exists(): Boolean = clone().toFile().exists()
-  override fun isFile(): Boolean = clone().toFile().isFile
-  override fun isDirectory(): Boolean = clone().toFile().isDirectory
-  override fun canRead(): Boolean = clone().toFile().canRead()
-  override fun canWrite(): Boolean = clone().toFile().canWrite()
-
   override fun getFullPath(): String {
+    root.holder as File
+
     return File(root.holder.absolutePath)
       .appendMany(segments.map { segment -> segment.name })
       .absolutePath
   }
 
-  override fun getSegmentNames(): List<String> {
-    return getFullPath()
-      .split(File.separatorChar)
-  }
-
-  override fun delete(): Boolean {
-    return clone().toFile().delete()
-  }
-
-  override fun getInputStream(): InputStream? {
-    val file = clone().toFile()
-
-    if (!file.exists()) {
-      Log.e(TAG, "getInputStream() file does not exist, path = ${file.absolutePath}")
-      return null
-    }
-
-    if (!file.isFile) {
-      Log.e(TAG, "getInputStream() file is not a file, path = ${file.absolutePath}")
-      return null
-    }
-
-    if (!file.canRead()) {
-      Log.e(TAG, "getInputStream() cannot read from file, path = ${file.absolutePath}")
-      return null
-    }
-
-    return file.inputStream()
-  }
-
-  override fun getOutputStream(): OutputStream? {
-    val file = clone().toFile()
-
-    if (!file.exists()) {
-      Log.e(TAG, "getOutputStream() file does not exist, path = ${file.absolutePath}")
-      return null
-    }
-
-    if (!file.isFile) {
-      Log.e(TAG, "getOutputStream() file is not a file, path = ${file.absolutePath}")
-      return null
-    }
-
-    if (!file.canWrite()) {
-      Log.e(TAG, "getOutputStream() cannot write to file, path = ${file.absolutePath}")
-      return null
-    }
-
-    return file.outputStream()
-  }
-
-  override fun getName(): String {
-    return clone().toFile().name
-  }
-
-  override fun findFile(fileName: String): RawFile? {
-    check(root !is Root.FileRoot) { "Cannot use FileRoot as directory" }
-
-    val copy = File(root.holder.absolutePath)
-    if (segments.isNotEmpty()) {
-      copy.appendMany(segments.map { segment -> segment.name })
-    }
-
-    val resultFile = File(copy.absolutePath, fileName)
-    if (!resultFile.exists()) {
-      return null
-    }
-
-    val newRoot = if (resultFile.isFile) {
-      Root.FileRoot(resultFile, resultFile.name)
-    } else {
-      Root.DirRoot(resultFile)
-    }
-
-    return RawFile(newRoot)
-  }
-
-  override fun getLength(): Long = clone().toFile().length()
-
-  override fun lastModified(): Long {
-    return clone().toFile().lastModified()
-  }
-
-  override fun listFiles(): List<RawFile> {
-    check(root !is Root.FileRoot) { "Cannot use listFiles with FileRoot" }
-
-    return clone()
-      .toFile()
-      .listFiles()
-      ?.map { file -> RawFile(Root.DirRoot(file)) }
-      ?: emptyList()
-  }
-
-  private fun toFile(): File {
-    return if (segments.isEmpty()) {
-      root.holder
-    } else {
-      root.holder.appendMany(segments.map { segment -> segment.name })
-    }
-  }
+  override fun getFileManagerId(): FileManagerId = FILE_MANAGER_ID
 
   companion object {
     private const val TAG = "RawFile"
+    val FILE_MANAGER_ID = FileManagerId(TAG)
   }
 }

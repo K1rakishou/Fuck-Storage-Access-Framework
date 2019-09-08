@@ -17,7 +17,7 @@ class FastFileSearchTree(
 ) {
 
   fun insertFile(file: ExternalFile): Boolean {
-    val segmentNames = file.getSegmentNames()
+    val segmentNames = file.getFileSegments().map { segment -> segment.name }
     require(segmentNames.isNotEmpty()) { "file segments must not be empty" }
 
     return root.insert(segmentNames)
@@ -28,7 +28,7 @@ class FastFileSearchTree(
   }
 
   fun contains(file: ExternalFile): Boolean {
-    val segmentNames = file.getSegmentNames()
+    val segmentNames = file.getFileSegments().map { segment -> segment.name }
     require(segmentNames.isNotEmpty()) { "file segments must not be empty" }
 
     return root.find(segmentNames)

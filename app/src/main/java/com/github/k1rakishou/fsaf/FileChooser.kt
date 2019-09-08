@@ -8,10 +8,8 @@ import android.util.Log
 import android.webkit.MimeTypeMap
 import com.github.k1rakishou.fsaf.callback.*
 import com.github.k1rakishou.fsaf.extensions.getMimeFromFilename
-import java.lang.Exception
-import java.lang.IllegalArgumentException
 
-internal class FileChooser(
+class FileChooser(
   private val appContext: Context
 ) {
   private val callbacksMap = hashMapOf<Int, ChooserCallback>()

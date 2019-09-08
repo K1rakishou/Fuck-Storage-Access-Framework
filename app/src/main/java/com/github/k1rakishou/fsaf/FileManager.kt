@@ -5,53 +5,34 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
-import com.github.k1rakishou.fsaf.callback.DirectoryChooserCallback
-import com.github.k1rakishou.fsaf.callback.FileChooserCallback
-import com.github.k1rakishou.fsaf.callback.FileCreateCallback
-import com.github.k1rakishou.fsaf.callback.StartActivityCallbacks
 import com.github.k1rakishou.fsaf.extensions.copyInto
 import com.github.k1rakishou.fsaf.file.AbstractFile
 import com.github.k1rakishou.fsaf.file.ExternalFile
+import com.github.k1rakishou.fsaf.file.FileManagerId
 import com.github.k1rakishou.fsaf.file.RawFile
+import com.github.k1rakishou.fsaf.manager.BaseFileManager
+import com.github.k1rakishou.fsaf.manager.ExternalFileManager
+import com.github.k1rakishou.fsaf.manager.RawFileManager
 import java.io.File
 import java.io.IOException
-import java.lang.IllegalStateException
+import java.io.InputStream
+import java.io.OutputStream
 import java.util.*
 
 class FileManager(
-  private val appContext: Context
-) {
-  private val fileChooser = FileChooser(appContext)
+  private val appContext: Context,
+  externalFileManager: ExternalFileManager = ExternalFileManager(appContext),
+  rawFileManager: RawFileManager = RawFileManager()
+) : BaseFileManager {
+  private val managers = mutableMapOf<FileManagerId, BaseFileManager>()
 
-  /**
-   * Used for calling Android File picker
-   * */
-  fun setCallbacks(startActivityCallbacks: StartActivityCallbacks) {
-    fileChooser.setCallbacks(startActivityCallbacks)
+  init {
+    addCustomFileManager(ExternalFile.FILE_MANAGER_ID, externalFileManager)
+    addCustomFileManager(RawFile.FILE_MANAGER_ID, rawFileManager)
   }
 
-  fun removeCallbacks() {
-    fileChooser.removeCallbacks()
-  }
-
-  //=======================================================
-  // Api to open file/directory chooser and handling the result
-  //=======================================================
-
-  fun openChooseDirectoryDialog(callback: DirectoryChooserCallback) {
-    fileChooser.openChooseDirectoryDialog(callback)
-  }
-
-  fun openChooseFileDialog(callback: FileChooserCallback) {
-    fileChooser.openChooseFileDialog(callback)
-  }
-
-  fun openCreateFileDialog(filename: String, callback: FileCreateCallback) {
-    fileChooser.openCreateFileDialog(filename, callback)
-  }
-
-  fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
-    return fileChooser.onActivityResult(requestCode, resultCode, data)
+  fun addCustomFileManager(fileManagerId: FileManagerId, customManager: BaseFileManager) {
+    managers[fileManagerId] = customManager
   }
 
   //=======================================================
@@ -201,8 +182,8 @@ class FileManager(
    * */
   fun copyFileContents(source: AbstractFile, destination: AbstractFile): Boolean {
     return try {
-      source.getInputStream()?.use { inputStream ->
-        destination.getOutputStream()?.use { outputStream ->
+      getInputStream(source)?.use { inputStream ->
+        getOutputStream(destination)?.use { outputStream ->
           inputStream.copyInto(outputStream)
           true
         }
@@ -222,27 +203,27 @@ class FileManager(
     includeEmptyDirectories: Boolean,
     updateFunc: (Int, Int) -> Unit
   ): Boolean {
-    if (!sourceDir.exists()) {
+    if (!exists(sourceDir)) {
       Log.e(TAG, "Source directory does not exists, path = ${sourceDir.getFullPath()}")
       return false
     }
 
-    if (sourceDir.listFiles().isEmpty()) {
+    if (listFiles(sourceDir).isEmpty()) {
       Log.d(TAG, "Source directory is empty, nothing to copy")
       return true
     }
 
-    if (!destDir.exists()) {
+    if (!exists(destDir)) {
       Log.e(TAG, "Destination directory does not exists, path = ${sourceDir.getFullPath()}")
       return false
     }
 
-    if (!sourceDir.isDirectory()) {
+    if (!isDirectory(sourceDir)) {
       Log.e(TAG, "Source directory is not a directory, path = ${sourceDir.getFullPath()}")
       return false
     }
 
-    if (!destDir.isDirectory()) {
+    if (!isDirectory(destDir)) {
       Log.e(TAG, "Destination directory is not a directory, path = ${destDir.getFullPath()}")
       return false
     }
@@ -283,7 +264,7 @@ class FileManager(
         .createNew()
 
       if (fileInNewDirectory == null) {
-        Log.e(TAG, "Couldn't create inner file with name ${file.getName()}")
+        Log.e(TAG, "Couldn't create inner file with name ${getName(file)}")
         return false
       }
 
@@ -299,17 +280,17 @@ class FileManager(
   }
 
   fun countAllFilesInDirTree(sourceDir: AbstractFile): Int {
-    if (!sourceDir.exists()) {
+    if (!exists(sourceDir)) {
       Log.e(TAG, "Source directory does not exists, path = ${sourceDir.getFullPath()}")
       return 0
     }
 
-    if (sourceDir.listFiles().isEmpty()) {
+    if (listFiles(sourceDir).isEmpty()) {
       Log.d(TAG, "Source directory is empty")
       return 0
     }
 
-    if (!sourceDir.isDirectory()) {
+    if (!isDirectory(sourceDir)) {
       Log.e(TAG, "Source directory is not a directory, path = ${sourceDir.getFullPath()}")
       return 0
     }
@@ -321,17 +302,17 @@ class FileManager(
     sourceDir: AbstractFile,
     includeEmptyDirs: Boolean = false
   ): List<AbstractFile> {
-    if (!sourceDir.exists()) {
+    if (!exists(sourceDir)) {
       Log.e(TAG, "Source directory does not exists, path = ${sourceDir.getFullPath()}")
       return emptyList()
     }
 
-    if (sourceDir.listFiles().isEmpty()) {
+    if (listFiles(sourceDir).isEmpty()) {
       Log.d(TAG, "Source directory is empty, nothing to copy")
       return emptyList()
     }
 
-    if (!sourceDir.isDirectory()) {
+    if (!isDirectory(sourceDir)) {
       Log.e(TAG, "Source directory is not a directory, path = ${sourceDir.getFullPath()}")
       return emptyList()
     }
@@ -342,9 +323,9 @@ class FileManager(
 
     // Collect all of the inner files in the source directory
     while (queue.isNotEmpty()) {
-      val file = queue.poll()
-      if (file.isDirectory()) {
-        val innerFiles = file.listFiles()
+      val file = queue.poll()!!
+      if (isDirectory(file)) {
+        val innerFiles = listFiles(file)
         if (innerFiles.isEmpty() && includeEmptyDirs) {
           files.add(file)
         }
@@ -366,7 +347,7 @@ class FileManager(
 
     val uri = Uri.parse(directory.getFullPath())
 
-    if (!directory.exists()) {
+    if (!exists(directory)) {
       Log.e(
         TAG,
         "Couldn't revoke permissions from directory because it does not exist, path = $uri"
@@ -374,7 +355,7 @@ class FileManager(
       return false
     }
 
-    if (!directory.isDirectory()) {
+    if (!isDirectory(directory)) {
       Log.e(TAG, "Couldn't revoke permissions from directory it is not a directory, path = $uri")
       return false
     }
@@ -394,26 +375,74 @@ class FileManager(
     }
   }
 
-  // TODO: comment
-  fun emptyFastFileSearchTree(): FastFileSearchTree {
-    return FastFileSearchTree()
+  override fun exists(file: AbstractFile): Boolean {
+    return managers[file.getFileManagerId()]?.exists(file)
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
   }
 
-  // TODO: comment
-  fun newFastFileSearchTree(sourceDir: ExternalFile): FastFileSearchTree? {
-    val files = collectAllFilesInDirTree(sourceDir)
-    if (files.isEmpty()) {
-      Log.e(TAG, "No files in the directory to build FastFileSearchTree from")
-      return null
-    }
+  override fun isFile(file: AbstractFile): Boolean {
+    return managers[file.getFileManagerId()]?.isFile(file)
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+  }
 
-    check(files.all { file -> file is ExternalFile }) {
-      "collectAllFilesInDirTree() returned at least one file that is not an instance of ExternalFile"
-    }
+  override fun isDirectory(file: AbstractFile): Boolean {
+    return managers[file.getFileManagerId()]?.isDirectory(file)
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+  }
 
-    return FastFileSearchTree().apply {
-      insertFiles(files as List<ExternalFile>)
-    }
+  override fun canRead(file: AbstractFile): Boolean {
+    return managers[file.getFileManagerId()]?.canRead(file)
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+  }
+
+  override fun canWrite(file: AbstractFile): Boolean {
+    return managers[file.getFileManagerId()]?.canWrite(file)
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+  }
+
+  override fun getSegmentNames(file: AbstractFile): List<String> {
+    return managers[file.getFileManagerId()]?.getSegmentNames(file)
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+  }
+
+  override fun delete(file: AbstractFile): Boolean {
+    return managers[file.getFileManagerId()]?.delete(file)
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+  }
+
+  override fun getInputStream(file: AbstractFile): InputStream? {
+    return managers[file.getFileManagerId()]?.getInputStream(file)
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+  }
+
+  override fun getOutputStream(file: AbstractFile): OutputStream? {
+    return managers[file.getFileManagerId()]?.getOutputStream(file)
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+  }
+
+  override fun getName(file: AbstractFile): String {
+    return managers[file.getFileManagerId()]?.getName(file)
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+  }
+
+  override fun findFile(dir: AbstractFile, fileName: String): AbstractFile? {
+    return managers[dir.getFileManagerId()]?.findFile(dir, fileName)
+      ?: throw NotImplementedError("Not implemented for ${dir.javaClass.name}")
+  }
+
+  override fun getLength(file: AbstractFile): Long {
+    return managers[file.getFileManagerId()]?.getLength(file)
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+  }
+
+  override fun listFiles(dir: AbstractFile): List<AbstractFile> {
+    return managers[dir.getFileManagerId()]?.listFiles(dir)
+      ?: throw NotImplementedError("Not implemented for ${dir.javaClass.name}")
+  }
+
+  override fun lastModified(file: AbstractFile): Long {
+    return managers[file.getFileManagerId()]?.lastModified(file)
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
   }
 
   private fun toDocumentFile(uri: Uri): DocumentFile? {
