@@ -13,14 +13,14 @@ import java.io.File
  * want to search for many files.
  * */
 class FastFileSearchTree<T>(
-  val root: FastFileSearchTreeNode<T> = FastFileSearchTreeNode(nodeType = FastFileSearchTreeNode.NodeType.Root)
+  val root: FastFileSearchTreeNode<T> = FastFileSearchTreeNode(segmentName = FastFileSearchTreeNode.ROOT)
 ) {
 
   fun insertFile(file: ExternalFile, value: T): Boolean {
-    val segmentNames = file.getFileSegments().map { segment -> segment.name }
-    require(segmentNames.isNotEmpty()) { "file segments must not be empty" }
+    val segments = file.getFileSegments().map { segment -> segment.name }
+    require(segments.isNotEmpty()) { "Segments must not be empty" }
 
-    return root.insert(segmentNames, value)
+    return root.insert(segments, value)
   }
 
   fun insertFiles(files: List<Pair<ExternalFile, T>>) {
@@ -28,25 +28,22 @@ class FastFileSearchTree<T>(
   }
 
   fun contains(file: ExternalFile): Boolean {
-    val segmentNames = file.getFileSegments().map { segment -> segment.name }
-    require(segmentNames.isNotEmpty()) { "file segments must not be empty" }
+    val segments = file.getFileSegments().map { segment -> segment.name }
+    require(segments.isNotEmpty()) { "Segments must not be empty" }
 
-    return root.contains(segmentNames)
+    return root.contains(segments)
   }
 
   fun find(file: ExternalFile): T? {
-    val segmentNames = file.getFileSegments().map { segment -> segment.name }
-    require(segmentNames.isNotEmpty()) { "file segments must not be empty" }
+    val segments = file.getFileSegments().map { segment -> segment.name }
+    require(segments.isNotEmpty()) { "Segments must not be empty" }
 
-    return root.find(segmentNames)
+    return root.find(segments)
   }
 
-  fun visitPath(segmentNames: List<String>, func: (Int, FastFileSearchTreeNode<T>) -> Boolean) {
-    require(segmentNames.isNotEmpty()) {
-      "segments to visit list must not be empty"
-    }
-
-    root.visitPath(segmentNames, 0, func)
+  fun visitPath(segments: List<String>, func: (Int, FastFileSearchTreeNode<T>) -> Boolean) {
+    require(segments.isNotEmpty()) { "Segments to visit list must not be empty" }
+    root.visitPath(segments, 0, func)
   }
 
   fun visit(func: (FastFileSearchTreeNode<T>) -> Unit) {
@@ -64,14 +61,28 @@ class FastFileSearchTree<T>(
     clear()
   }
 
+  fun insertSegments(segments: List<String>, value: T): Boolean {
+    require(segments.isNotEmpty()) { "Segments must not be empty" }
+    return root.insert(segments, value)
+  }
+
   /**
-   * ===================================
-   * For tests
-   * ===================================
+   * Removes a node with the innermost segment name, i.e:
+   * Let's say we have the following segment:
+   *    ROOT/123/456/111.txt
+   *
+   * If we call this method with these arguments:
+   *    removeSegments(listOf("123"))
+   * Then the sub-tree will be removed leaving only the ROOT node.
+   *
+   * But if we call this method with there arguments instead:
+   *    removeSegments(listOf("123", "456", "111.txt"))
+   * Then only the "111.txt" node will be removed leaving the following:
+   *    ROOT/123/456
    * */
-  fun insertSegments(segmentNames: List<String>, value: T): Boolean {
-    require(segmentNames.isNotEmpty()) { "file segments must not be empty" }
-    return root.insert(segmentNames, value)
+  fun removeSegments(segmentNames: List<String>): Boolean {
+    require(segmentNames.isNotEmpty()) { "Segments must not be empty" }
+    return root.remove(segmentNames)
   }
 
   fun insertManySegments(manySegmentNames: List<Pair<List<String>, T>>): Boolean {
@@ -79,16 +90,14 @@ class FastFileSearchTree<T>(
   }
 
   fun containsSegment(segmentNames: List<String>): Boolean {
-    require(segmentNames.isNotEmpty()) { "file segments must not be empty" }
+    require(segmentNames.isNotEmpty()) { "Segments must not be empty" }
     return root.contains(segmentNames)
   }
 
   fun findSegment(segmentNames: List<String>): T? {
-    require(segmentNames.isNotEmpty()) { "file segments must not be empty" }
+    require(segmentNames.isNotEmpty()) { "Segments must not be empty" }
     return root.find(segmentNames)
   }
-
-  // ===================================
 
   override fun toString(): String {
     return root.toString()
@@ -97,7 +106,7 @@ class FastFileSearchTree<T>(
 
 class FastFileSearchTreeNode<V>(
   // Current directory segment
-  private var nodeType: NodeType = NodeType.Leaf,
+  private var segmentName: String? = null,
   // Parent directory
   private var parent: FastFileSearchTreeNode<V>? = null,
   private var value: V? = null,
@@ -105,12 +114,12 @@ class FastFileSearchTreeNode<V>(
   private val children: MutableMap<String, FastFileSearchTreeNode<V>> = mutableMapOf()
 ) {
 
-  fun getNodeName(): String = nodeType.name
+  fun getNodeName(): String? = segmentName
   fun getNodeParent(): FastFileSearchTreeNode<V>? = parent
   fun getNodeChildren(): MutableMap<String, FastFileSearchTreeNode<V>> = children
   fun getNodeValue(): V? = value
 
-  fun insert(segments: List<String>, value: V): Boolean {
+  internal fun insert(segments: List<String>, value: V): Boolean {
     if (segments.isEmpty()) {
       return false
     }
@@ -121,19 +130,28 @@ class FastFileSearchTreeNode<V>(
       children[firstSegment] = FastFileSearchTreeNode(parent = this)
     }
 
-    return children[firstSegment]?.insertInternal(segments, value, 1)
+    return children[firstSegment]!!.insertInternal(segments, value, 0)
+  }
+
+  internal fun remove(segments: List<String>): Boolean {
+    if (segments.isEmpty()) {
+      return false
+    }
+
+    val firstSegment = segments.first()
+    return children[firstSegment]?.removeInternal(segments, 0)
       ?: false
   }
 
-  fun contains(segmentNames: List<String>): Boolean {
-    return findInternal(segmentNames, 0) != null
+  internal fun contains(segmentNames: List<String>): Boolean {
+    return containsInternal(segmentNames, 0)
   }
 
-  fun find(segmentNames: List<String>): V? {
+  internal fun find(segmentNames: List<String>): V? {
     return findInternal(segmentNames, 0)
   }
 
-  fun clear() {
+  internal fun clear() {
     children.values.forEach { node ->
       node.clear()
       node.children.clear()
@@ -142,18 +160,18 @@ class FastFileSearchTreeNode<V>(
 
   fun getFullPath(): String {
     if (parent == null) {
-      return nodeType.name
+      return segmentName!!
     }
 
-    return checkNotNull(parent).getFullPath() + File.separatorChar + nodeType.name
+    return checkNotNull(parent).getFullPath() + File.separatorChar + segmentName!!
   }
 
   fun isRoot(): Boolean {
-    return nodeType == NodeType.Root
+    return parent == null
   }
 
   fun isLeaf(): Boolean {
-    return nodeType == NodeType.Leaf
+    return children.isEmpty()
   }
 
   fun isNode(): Boolean {
@@ -161,85 +179,120 @@ class FastFileSearchTreeNode<V>(
   }
 
   private fun insertInternal(
-    segmentNames: List<String>,
+    segments: List<String>,
     value: V,
     index: Int
   ): Boolean {
-    val newSegmentName = segmentNames.getOrNull(index)
+    val currentSegment = segments.getOrNull(index)
       ?: return false
+    val nextSegment = segments.getOrNull(index + 1)
+    val isLastSegment = nextSegment == null
+    this.segmentName = currentSegment
 
-    if (nodeType != NodeType.Leaf && nodeType.name != newSegmentName) {
-      // Not found
-      return false
-    }
-
-    if (nodeType == NodeType.Leaf) {
-      check(!children.containsKey(newSegmentName)) {
-        "children already contain segment name $newSegmentName even " +
-          "though current node doesn't have a segmentName"
-      }
-
-      nodeType = NodeType.Node(newSegmentName)
-    } else {
-      if (children.containsKey(newSegmentName)) {
-        // Already exists
-        return true
-      }
-    }
-
-    val newNode = FastFileSearchTreeNode(NodeType.Leaf, this)
-    children[newSegmentName] = newNode
-
-    val nextSegment = segmentNames.getOrNull(index + 1)
-    if (nextSegment == null) {
+    if (isLastSegment || nextSegment == null) {
       this.value = value
       return true
     }
 
-    return newNode.insertInternal(
-      segmentNames,
+    if (!children.containsKey(nextSegment)) {
+      val newNode = FastFileSearchTreeNode(parent = this)
+      children[nextSegment] = newNode
+    }
+
+    return children[nextSegment]!!.insertInternal(
+      segments,
       value,
       index + 1
     )
   }
 
+  private fun removeInternal(segments: List<String>, index: Int): Boolean {
+    val segment = segments.getOrNull(index)
+    val isLastSegment = segments.getOrNull(index + 1) == null
+
+    if (segmentName != segment) {
+      return false
+    }
+
+    if (segmentName == segment && isLastSegment) {
+      parent!!.children.remove(segment)
+      return true
+    }
+
+    val nextSegmentName = segments.getOrNull(index + 1)
+      ?: return false
+
+    return children[nextSegmentName]?.removeInternal(segments, index + 1)
+      ?: false
+  }
+
+  private fun containsInternal(
+    segments: List<String>,
+    index: Int
+  ): Boolean {
+    val currentSegmentName = segments.getOrNull(index)
+      ?: return isLeaf()
+
+    if (isRoot()) {
+      val nextNode = children[currentSegmentName]
+        ?: return false
+
+      return nextNode.containsInternal(segments, index)
+    }
+
+    if (currentSegmentName != segmentName) {
+      return false
+    }
+
+    val nextSegmentName = segments.getOrNull(index + 1)
+      ?: return true
+
+    val nextNode = children[nextSegmentName]
+      ?: return false
+
+    return nextNode.containsInternal(segments, index + 1)
+  }
+
   private fun findInternal(
-    segmentNames: List<String>,
+    segments: List<String>,
     index: Int
   ): V? {
-    val currentNodeType = segmentNames.getOrNull(index)
+    val currentSegmentName = segments.getOrNull(index)
       ?: return null
 
     if (isRoot()) {
-      val nextNode = children[currentNodeType]
+      val nextNode = children[currentSegmentName]
         ?: return null
 
-      return nextNode.findInternal(segmentNames, index + 1)
+      return nextNode.findInternal(segments, index)
     }
 
-    if (currentNodeType != nodeType.name) {
+    if (currentSegmentName != segmentName) {
       return null
     }
 
-    val nextNode = children[currentNodeType]
+    val nextSegmentName = segments.getOrNull(index + 1)
+      ?: return null
+
+    val nextNode = children[nextSegmentName]
       ?: return null
 
     if (nextNode.isLeaf()) {
-      return value
+      return nextNode.value
     }
 
-    return nextNode.findInternal(segmentNames, index + 1)
+    return nextNode.findInternal(segments, index + 1)
   }
 
   fun visitPath(
-    segmentNames: List<String>,
+    segments: List<String>,
     index: Int,
     func: (Int, FastFileSearchTreeNode<V>) -> Boolean
   ) {
-    val currentSegment = segmentNames.getOrNull(index)
+    val currentSegmentName = segments.getOrNull(index)
       ?: return
 
-    if (nodeType == NodeType.Leaf || nodeType.name != currentSegment) {
+    if (currentSegmentName != segmentName) {
       return
     }
 
@@ -247,7 +300,7 @@ class FastFileSearchTreeNode<V>(
       return
     }
 
-    children[currentSegment]?.visitPath(segmentNames, index + 1, func)
+    children[currentSegmentName]?.visitPath(segments, index + 1, func)
   }
 
   fun visit(func: (FastFileSearchTreeNode<V>) -> Unit) {
@@ -279,17 +332,10 @@ class FastFileSearchTreeNode<V>(
   }
 
   override fun toString(): String {
-    return nodeType.name
-  }
-
-  sealed class NodeType(val name: String) {
-    object Root : NodeType(ROOT)
-    class Node(name: String) : NodeType(name)
-    object Leaf : NodeType(LEAF)
+    return "segmentName = ${segmentName}, value = ${value}, children = ${children.size}"
   }
 
   companion object {
     const val ROOT = "<ROOT>"
-    const val LEAF = "<LEAF>"
   }
 }
