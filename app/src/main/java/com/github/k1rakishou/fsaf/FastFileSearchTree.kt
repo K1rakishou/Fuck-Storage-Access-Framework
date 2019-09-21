@@ -12,29 +12,36 @@ import java.io.File
  * Java File so it doesn't need this at all. That's because ExternalFile is really slow when you
  * want to search for many files.
  * */
-class FastFileSearchTree(
-  val root: FastFileSearchTreeNode = FastFileSearchTreeNode(FastFileSearchTreeNode.NodeType.Root)
+class FastFileSearchTree<T>(
+  val root: FastFileSearchTreeNode<T> = FastFileSearchTreeNode(nodeType = FastFileSearchTreeNode.NodeType.Root)
 ) {
 
-  fun insertFile(file: ExternalFile): Boolean {
+  fun insertFile(file: ExternalFile, value: T): Boolean {
     val segmentNames = file.getFileSegments().map { segment -> segment.name }
     require(segmentNames.isNotEmpty()) { "file segments must not be empty" }
 
-    return root.insert(segmentNames)
+    return root.insert(segmentNames, value)
   }
 
-  fun insertFiles(files: List<ExternalFile>) {
-    files.forEach { file -> insertFile(file) }
+  fun insertFiles(files: List<Pair<ExternalFile, T>>) {
+    files.forEach { (file, value) -> insertFile(file, value) }
   }
 
   fun contains(file: ExternalFile): Boolean {
     val segmentNames = file.getFileSegments().map { segment -> segment.name }
     require(segmentNames.isNotEmpty()) { "file segments must not be empty" }
 
+    return root.contains(segmentNames)
+  }
+
+  fun find(file: ExternalFile): T? {
+    val segmentNames = file.getFileSegments().map { segment -> segment.name }
+    require(segmentNames.isNotEmpty()) { "file segments must not be empty" }
+
     return root.find(segmentNames)
   }
 
-  fun visitPath(segmentNames: List<String>, func: (Int, FastFileSearchTreeNode) -> Boolean) {
+  fun visitPath(segmentNames: List<String>, func: (Int, FastFileSearchTreeNode<T>) -> Boolean) {
     require(segmentNames.isNotEmpty()) {
       "segments to visit list must not be empty"
     }
@@ -42,7 +49,7 @@ class FastFileSearchTree(
     root.visitPath(segmentNames, 0, func)
   }
 
-  fun visit(func: (FastFileSearchTreeNode) -> Boolean) {
+  fun visit(func: (FastFileSearchTreeNode<T>) -> Unit) {
     func(root)
     root.visit(func)
   }
@@ -52,7 +59,7 @@ class FastFileSearchTree(
     root.clear()
   }
 
-  fun withTree(func: FastFileSearchTree.() -> Unit) {
+  fun withTree(func: FastFileSearchTree<T>.() -> Unit) {
     func(this)
     clear()
   }
@@ -62,16 +69,21 @@ class FastFileSearchTree(
    * For tests
    * ===================================
    * */
-  fun insertSegments(segmentNames: List<String>): Boolean {
+  fun insertSegments(segmentNames: List<String>, value: T): Boolean {
     require(segmentNames.isNotEmpty()) { "file segments must not be empty" }
-    return root.insert(segmentNames)
+    return root.insert(segmentNames, value)
   }
 
-  fun insertManySegments(manySegmentNames: List<List<String>>): Boolean {
-    return manySegmentNames.all { segments -> insertSegments(segments) }
+  fun insertManySegments(manySegmentNames: List<Pair<List<String>, T>>): Boolean {
+    return manySegmentNames.all { (segments, value) -> insertSegments(segments, value) }
   }
 
   fun containsSegment(segmentNames: List<String>): Boolean {
+    require(segmentNames.isNotEmpty()) { "file segments must not be empty" }
+    return root.contains(segmentNames)
+  }
+
+  fun findSegment(segmentNames: List<String>): T? {
     require(segmentNames.isNotEmpty()) { "file segments must not be empty" }
     return root.find(segmentNames)
   }
@@ -83,20 +95,22 @@ class FastFileSearchTree(
   }
 }
 
-class FastFileSearchTreeNode(
+class FastFileSearchTreeNode<V>(
   // Current directory segment
   private var nodeType: NodeType = NodeType.Leaf,
   // Parent directory
-  private var parent: FastFileSearchTreeNode? = null,
+  private var parent: FastFileSearchTreeNode<V>? = null,
+  private var value: V? = null,
   // Files inside this directory
-  private val children: MutableMap<String, FastFileSearchTreeNode> = mutableMapOf()
+  private val children: MutableMap<String, FastFileSearchTreeNode<V>> = mutableMapOf()
 ) {
 
-  fun getCurrentNodeName(): String = nodeType.name
-  fun getCurrentParent(): FastFileSearchTreeNode? = parent
-  fun getCurrentChildren(): MutableMap<String, FastFileSearchTreeNode> = children
+  fun getNodeName(): String = nodeType.name
+  fun getNodeParent(): FastFileSearchTreeNode<V>? = parent
+  fun getNodeChildren(): MutableMap<String, FastFileSearchTreeNode<V>> = children
+  fun getNodeValue(): V? = value
 
-  fun insert(segments: List<String>): Boolean {
+  fun insert(segments: List<String>, value: V): Boolean {
     if (segments.isEmpty()) {
       return false
     }
@@ -107,11 +121,15 @@ class FastFileSearchTreeNode(
       children[firstSegment] = FastFileSearchTreeNode(parent = this)
     }
 
-    return children[firstSegment]?.insertInternal(segments, 1)
+    return children[firstSegment]?.insertInternal(segments, value, 1)
       ?: false
   }
 
-  fun find(segmentNames: List<String>): Boolean {
+  fun contains(segmentNames: List<String>): Boolean {
+    return findInternal(segmentNames, 0) != null
+  }
+
+  fun find(segmentNames: List<String>): V? {
     return findInternal(segmentNames, 0)
   }
 
@@ -144,6 +162,7 @@ class FastFileSearchTreeNode(
 
   private fun insertInternal(
     segmentNames: List<String>,
+    value: V,
     index: Int
   ): Boolean {
     val newSegmentName = segmentNames.getOrNull(index)
@@ -171,19 +190,51 @@ class FastFileSearchTreeNode(
     val newNode = FastFileSearchTreeNode(NodeType.Leaf, this)
     children[newSegmentName] = newNode
 
-    segmentNames.getOrNull(index + 1)
-      ?: return true // end reached
+    val nextSegment = segmentNames.getOrNull(index + 1)
+    if (nextSegment == null) {
+      this.value = value
+      return true
+    }
 
     return newNode.insertInternal(
       segmentNames,
+      value,
       index + 1
     )
+  }
+
+  private fun findInternal(
+    segmentNames: List<String>,
+    index: Int
+  ): V? {
+    val currentNodeType = segmentNames.getOrNull(index)
+      ?: return null
+
+    if (isRoot()) {
+      val nextNode = children[currentNodeType]
+        ?: return null
+
+      return nextNode.findInternal(segmentNames, index + 1)
+    }
+
+    if (currentNodeType != nodeType.name) {
+      return null
+    }
+
+    val nextNode = children[currentNodeType]
+      ?: return null
+
+    if (nextNode.isLeaf()) {
+      return value
+    }
+
+    return nextNode.findInternal(segmentNames, index + 1)
   }
 
   fun visitPath(
     segmentNames: List<String>,
     index: Int,
-    func: (Int, FastFileSearchTreeNode) -> Boolean
+    func: (Int, FastFileSearchTreeNode<V>) -> Boolean
   ) {
     val currentSegment = segmentNames.getOrNull(index)
       ?: return
@@ -199,31 +250,11 @@ class FastFileSearchTreeNode(
     children[currentSegment]?.visitPath(segmentNames, index + 1, func)
   }
 
-  fun visit(func: (FastFileSearchTreeNode) -> Boolean) {
+  fun visit(func: (FastFileSearchTreeNode<V>) -> Unit) {
     children.forEach { (_, node) ->
-      if (!func(node)) {
-        return@forEach
-      }
-
+      func(node)
       node.visit(func)
     }
-  }
-
-  private fun findInternal(
-    segmentNames: List<String>,
-    index: Int
-  ): Boolean {
-    val currentNodeType = segmentNames.getOrNull(index)
-      ?: return false
-
-    if (currentNodeType == nodeType.name) {
-      return true
-    }
-
-    val nextNode = children[currentNodeType]
-      ?: return false
-
-    return nextNode.findInternal(segmentNames, index + 1)
   }
 
   override fun equals(other: Any?): Boolean {
@@ -239,7 +270,7 @@ class FastFileSearchTreeNode(
       return false
     }
 
-    other as FastFileSearchTreeNode
+    other as FastFileSearchTreeNode<V>
     return this.getFullPath() == other.getFullPath()
   }
 

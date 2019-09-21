@@ -17,7 +17,7 @@ class ExternalFileManager(
   private val appContext: Context
 ) : BaseFileManager {
   // TODO: supa search speed
-  private val fastFileSearchTree: FastFileSearchTree = FastFileSearchTree()
+  private val fastFileSearchTree: FastFileSearchTree<DocumentFile> = FastFileSearchTree()
 
   override fun exists(file: AbstractFile): Boolean = toDocumentFile(file.clone())?.exists() ?: false
   override fun isFile(file: AbstractFile): Boolean = toDocumentFile(file.clone())?.isFile ?: false

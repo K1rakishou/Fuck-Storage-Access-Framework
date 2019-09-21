@@ -17,158 +17,137 @@ class FastFileSearchTreeTest {
     listOf("8", "88", "888.txt"),
     listOf("9", "99", "999.txt")
   )
+  private val valuesList = listOf(
+    0,
+    111,
+    222,
+    333,
+    444,
+    555,
+    666,
+    777,
+    888,
+    999
+  )
 
   @Test
   fun `Empty FastFileSearchTree must only have Root node`() {
-    val fastFileSearchTree = FastFileSearchTree()
-    assertEquals(FastFileSearchTreeNode.ROOT, fastFileSearchTree.root.getCurrentNodeName())
+    val fastFileSearchTree = FastFileSearchTree<Int>()
+    assertEquals(FastFileSearchTreeNode.ROOT, fastFileSearchTree.root.getNodeName())
   }
 
   @Test
   fun `test insert many unique nodes`() {
-    val fastFileSearchTree = FastFileSearchTree()
+    val fastFileSearchTree = FastFileSearchTree<Int>()
+    val pairs = segmentsList.zip(valuesList) { first, second -> Pair(first, second) }
 
-    assertTrue(fastFileSearchTree.insertManySegments(segmentsList))
-    assertEquals(10, fastFileSearchTree.root.getCurrentChildren().size)
+    assertTrue(fastFileSearchTree.insertManySegments(pairs))
+    assertEquals(10, fastFileSearchTree.root.getNodeChildren().size)
 
     segmentsList.forEach { pathToVisit ->
       fastFileSearchTree.visitPath(pathToVisit) { index, node ->
-        assertEquals(pathToVisit[index], node.getCurrentNodeName())
-        assertEquals(1, node.getCurrentChildren().size)
+        assertEquals(pathToVisit[index], node.getNodeName())
+        assertEquals(1, node.getNodeChildren().size)
+        assertEquals(valuesList[index], node.getNodeChildren())
 
         return@visitPath true
       }
     }
 
-    val children = fastFileSearchTree.root.getCurrentChildren()
+    val children = fastFileSearchTree.root.getNodeChildren()
 
-    assertEquals(
-      FastFileSearchTreeNode.LEAF,
-      children["0"]!!.getCurrentChildren()["00"]!!.getCurrentChildren()["000.txt"]!!.getCurrentNodeName()
-    )
-    assertEquals(
-      FastFileSearchTreeNode.LEAF,
-      children["1"]!!.getCurrentChildren()["11"]!!.getCurrentChildren()["111.txt"]!!.getCurrentNodeName()
-    )
-    assertEquals(
-      FastFileSearchTreeNode.LEAF,
-      children["2"]!!.getCurrentChildren()["22"]!!.getCurrentChildren()["222.txt"]!!.getCurrentNodeName()
-    )
-    assertEquals(
-      FastFileSearchTreeNode.LEAF,
-      children["3"]!!.getCurrentChildren()["33"]!!.getCurrentChildren()["333.txt"]!!.getCurrentNodeName()
-    )
-    assertEquals(
-      FastFileSearchTreeNode.LEAF,
-      children["4"]!!.getCurrentChildren()["44"]!!.getCurrentChildren()["444.txt"]!!.getCurrentNodeName()
-    )
-    assertEquals(
-      FastFileSearchTreeNode.LEAF,
-      children["5"]!!.getCurrentChildren()["55"]!!.getCurrentChildren()["555.txt"]!!.getCurrentNodeName()
-    )
-    assertEquals(
-      FastFileSearchTreeNode.LEAF,
-      children["6"]!!.getCurrentChildren()["66"]!!.getCurrentChildren()["666.txt"]!!.getCurrentNodeName()
-    )
-    assertEquals(
-      FastFileSearchTreeNode.LEAF,
-      children["7"]!!.getCurrentChildren()["77"]!!.getCurrentChildren()["777.txt"]!!.getCurrentNodeName()
-    )
-    assertEquals(
-      FastFileSearchTreeNode.LEAF,
-      children["8"]!!.getCurrentChildren()["88"]!!.getCurrentChildren()["888.txt"]!!.getCurrentNodeName()
-    )
-    assertEquals(
-      FastFileSearchTreeNode.LEAF,
-      children["9"]!!.getCurrentChildren()["99"]!!.getCurrentChildren()["999.txt"]!!.getCurrentNodeName()
-    )
-
+    assertChildrenAreLeafs(children)
     nodeTypesCheck(fastFileSearchTree)
   }
 
   @Test
   fun `test many not unique nodes`() {
-    val fastFileSearchTree = FastFileSearchTree()
+    val fastFileSearchTree = FastFileSearchTree<Int>()
+    val pairs = segmentsList.zip(valuesList) { first, second -> Pair(first, second) }
 
-    assertTrue(fastFileSearchTree.insertManySegments(segmentsList))
-    assertTrue(fastFileSearchTree.insertManySegments(segmentsList))
-    assertEquals(10, fastFileSearchTree.root.getCurrentChildren().size)
+    assertTrue(fastFileSearchTree.insertManySegments(pairs))
+    assertTrue(fastFileSearchTree.insertManySegments(pairs))
+    assertEquals(10, fastFileSearchTree.root.getNodeChildren().size)
 
     segmentsList.forEach { pathToVisit ->
       fastFileSearchTree.visitPath(pathToVisit) { index, node ->
-        assertEquals(pathToVisit[index], node.getCurrentNodeName())
-        assertEquals(1, node.getCurrentChildren().size)
+        assertEquals(pathToVisit[index], node.getNodeName())
+        assertEquals(1, node.getNodeChildren().size)
+        assertEquals(valuesList[index], node.getNodeChildren())
 
         return@visitPath true
       }
     }
 
-    val children = fastFileSearchTree.root.getCurrentChildren()
+    val children = fastFileSearchTree.root.getNodeChildren()
 
-    assertEquals(
-      FastFileSearchTreeNode.LEAF,
-      children["0"]!!.getCurrentChildren()["00"]!!.getCurrentChildren()["000.txt"]!!.getCurrentNodeName()
-    )
-    assertEquals(
-      FastFileSearchTreeNode.LEAF,
-      children["1"]!!.getCurrentChildren()["11"]!!.getCurrentChildren()["111.txt"]!!.getCurrentNodeName()
-    )
-    assertEquals(
-      FastFileSearchTreeNode.LEAF,
-      children["2"]!!.getCurrentChildren()["22"]!!.getCurrentChildren()["222.txt"]!!.getCurrentNodeName()
-    )
-    assertEquals(
-      FastFileSearchTreeNode.LEAF,
-      children["3"]!!.getCurrentChildren()["33"]!!.getCurrentChildren()["333.txt"]!!.getCurrentNodeName()
-    )
-    assertEquals(
-      FastFileSearchTreeNode.LEAF,
-      children["4"]!!.getCurrentChildren()["44"]!!.getCurrentChildren()["444.txt"]!!.getCurrentNodeName()
-    )
-    assertEquals(
-      FastFileSearchTreeNode.LEAF,
-      children["5"]!!.getCurrentChildren()["55"]!!.getCurrentChildren()["555.txt"]!!.getCurrentNodeName()
-    )
-    assertEquals(
-      FastFileSearchTreeNode.LEAF,
-      children["6"]!!.getCurrentChildren()["66"]!!.getCurrentChildren()["666.txt"]!!.getCurrentNodeName()
-    )
-    assertEquals(
-      FastFileSearchTreeNode.LEAF,
-      children["7"]!!.getCurrentChildren()["77"]!!.getCurrentChildren()["777.txt"]!!.getCurrentNodeName()
-    )
-    assertEquals(
-      FastFileSearchTreeNode.LEAF,
-      children["8"]!!.getCurrentChildren()["88"]!!.getCurrentChildren()["888.txt"]!!.getCurrentNodeName()
-    )
-    assertEquals(
-      FastFileSearchTreeNode.LEAF,
-      children["9"]!!.getCurrentChildren()["99"]!!.getCurrentChildren()["999.txt"]!!.getCurrentNodeName()
-    )
-
+    assertChildrenAreLeafs(children)
     nodeTypesCheck(fastFileSearchTree)
   }
 
   @Test
   fun `test contains not existing node returns false`() {
-    val fastFileSearchTree = FastFileSearchTree()
+    val fastFileSearchTree = FastFileSearchTree<Int>()
     assertFalse(fastFileSearchTree.containsSegment(listOf("123", "456", "111.txt")))
   }
 
   @Test
   fun `test contains existing returns true`() {
-    val fastFileSearchTree = FastFileSearchTree()
+    val fastFileSearchTree = FastFileSearchTree<Int>()
     val segments = listOf("123", "456", "111.txt")
 
-    assertTrue(fastFileSearchTree.insertSegments(segments))
+    assertTrue(fastFileSearchTree.insertSegments(segments, 1))
     assertTrue(fastFileSearchTree.containsSegment(segments))
+    assertEquals(1, fastFileSearchTree.findSegment(segments))
   }
 
-  private fun nodeTypesCheck(fastFileSearchTree: FastFileSearchTree) {
-    val collectedNodes = mutableListOf<FastFileSearchTreeNode>()
+  private fun assertChildrenAreLeafs(children: MutableMap<String, FastFileSearchTreeNode<Int>>) {
+    assertEquals(
+      FastFileSearchTreeNode.LEAF,
+      children["0"]!!.getNodeChildren()["00"]!!.getNodeChildren()["000.txt"]!!.getNodeName()
+    )
+    assertEquals(
+      FastFileSearchTreeNode.LEAF,
+      children["1"]!!.getNodeChildren()["11"]!!.getNodeChildren()["111.txt"]!!.getNodeName()
+    )
+    assertEquals(
+      FastFileSearchTreeNode.LEAF,
+      children["2"]!!.getNodeChildren()["22"]!!.getNodeChildren()["222.txt"]!!.getNodeName()
+    )
+    assertEquals(
+      FastFileSearchTreeNode.LEAF,
+      children["3"]!!.getNodeChildren()["33"]!!.getNodeChildren()["333.txt"]!!.getNodeName()
+    )
+    assertEquals(
+      FastFileSearchTreeNode.LEAF,
+      children["4"]!!.getNodeChildren()["44"]!!.getNodeChildren()["444.txt"]!!.getNodeName()
+    )
+    assertEquals(
+      FastFileSearchTreeNode.LEAF,
+      children["5"]!!.getNodeChildren()["55"]!!.getNodeChildren()["555.txt"]!!.getNodeName()
+    )
+    assertEquals(
+      FastFileSearchTreeNode.LEAF,
+      children["6"]!!.getNodeChildren()["66"]!!.getNodeChildren()["666.txt"]!!.getNodeName()
+    )
+    assertEquals(
+      FastFileSearchTreeNode.LEAF,
+      children["7"]!!.getNodeChildren()["77"]!!.getNodeChildren()["777.txt"]!!.getNodeName()
+    )
+    assertEquals(
+      FastFileSearchTreeNode.LEAF,
+      children["8"]!!.getNodeChildren()["88"]!!.getNodeChildren()["888.txt"]!!.getNodeName()
+    )
+    assertEquals(
+      FastFileSearchTreeNode.LEAF,
+      children["9"]!!.getNodeChildren()["99"]!!.getNodeChildren()["999.txt"]!!.getNodeName()
+    )
+  }
+
+  private fun nodeTypesCheck(fastFileSearchTree: FastFileSearchTree<Int>) {
+    val collectedNodes = mutableListOf<FastFileSearchTreeNode<Int>>()
     fastFileSearchTree.visit { node ->
       collectedNodes += node
-      return@visit true
     }
 
     val rootNodes = collectedNodes.filter { node -> node.isRoot() }
