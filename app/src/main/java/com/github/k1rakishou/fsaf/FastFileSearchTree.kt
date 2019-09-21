@@ -20,25 +20,32 @@ class FastFileSearchTree<T>(
     val segments = file.getFileSegments().map { segment -> segment.name }
     require(segments.isNotEmpty()) { "Segments must not be empty" }
 
-    return root.insert(segments, value)
+    return insertSegments(segments, value)
   }
 
   fun insertFiles(files: List<Pair<ExternalFile, T>>) {
     files.forEach { (file, value) -> insertFile(file, value) }
   }
 
+  fun removeFile(file: ExternalFile): Boolean {
+    val segments = file.getFileSegments().map { segment -> segment.name }
+    require(segments.isNotEmpty()) { "Segments must not be empty" }
+
+    return removeSegments(segments)
+  }
+
   fun contains(file: ExternalFile): Boolean {
     val segments = file.getFileSegments().map { segment -> segment.name }
     require(segments.isNotEmpty()) { "Segments must not be empty" }
 
-    return root.contains(segments)
+    return containsSegment(segments)
   }
 
   fun find(file: ExternalFile): T? {
     val segments = file.getFileSegments().map { segment -> segment.name }
     require(segments.isNotEmpty()) { "Segments must not be empty" }
 
-    return root.find(segments)
+    return findSegment(segments)
   }
 
   fun visitPath(segments: List<String>, func: (Int, FastFileSearchTreeNode<T>) -> Boolean) {
@@ -66,6 +73,10 @@ class FastFileSearchTree<T>(
     return root.insert(segments, value)
   }
 
+  fun insertManySegments(manySegmentNames: List<Pair<List<String>, T>>): Boolean {
+    return manySegmentNames.all { (segments, value) -> insertSegments(segments, value) }
+  }
+
   /**
    * Removes a node with the innermost segment name, i.e:
    * Let's say we have the following segment:
@@ -83,10 +94,6 @@ class FastFileSearchTree<T>(
   fun removeSegments(segmentNames: List<String>): Boolean {
     require(segmentNames.isNotEmpty()) { "Segments must not be empty" }
     return root.remove(segmentNames)
-  }
-
-  fun insertManySegments(manySegmentNames: List<Pair<List<String>, T>>): Boolean {
-    return manySegmentNames.all { (segments, value) -> insertSegments(segments, value) }
   }
 
   fun containsSegment(segmentNames: List<String>): Boolean {
@@ -111,52 +118,14 @@ class FastFileSearchTreeNode<V>(
   private var parent: FastFileSearchTreeNode<V>? = null,
   private var value: V? = null,
   // Files inside this directory
-  private val children: MutableMap<String, FastFileSearchTreeNode<V>> = mutableMapOf()
+  private var children: MutableMap<String, FastFileSearchTreeNode<V>> =
+    SINGLETON_MAP as MutableMap<String, FastFileSearchTreeNode<V>>
 ) {
 
   fun getNodeName(): String? = segmentName
   fun getNodeParent(): FastFileSearchTreeNode<V>? = parent
   fun getNodeChildren(): MutableMap<String, FastFileSearchTreeNode<V>> = children
   fun getNodeValue(): V? = value
-
-  internal fun insert(segments: List<String>, value: V): Boolean {
-    if (segments.isEmpty()) {
-      return false
-    }
-
-    val firstSegment = segments.first()
-
-    if (!children.containsKey(firstSegment)) {
-      children[firstSegment] = FastFileSearchTreeNode(parent = this)
-    }
-
-    return children[firstSegment]!!.insertInternal(segments, value, 0)
-  }
-
-  internal fun remove(segments: List<String>): Boolean {
-    if (segments.isEmpty()) {
-      return false
-    }
-
-    val firstSegment = segments.first()
-    return children[firstSegment]?.removeInternal(segments, 0)
-      ?: false
-  }
-
-  internal fun contains(segmentNames: List<String>): Boolean {
-    return containsInternal(segmentNames, 0)
-  }
-
-  internal fun find(segmentNames: List<String>): V? {
-    return findInternal(segmentNames, 0)
-  }
-
-  internal fun clear() {
-    children.values.forEach { node ->
-      node.clear()
-      node.children.clear()
-    }
-  }
 
   fun getFullPath(): String {
     if (parent == null) {
@@ -178,6 +147,92 @@ class FastFileSearchTreeNode<V>(
     return !isRoot() && !isLeaf()
   }
 
+  internal fun insert(segments: List<String>, value: V): Boolean {
+    if (segments.isEmpty()) {
+      return false
+    }
+
+    val firstSegment = segments.first()
+
+    if (children === SINGLETON_MAP) {
+      children = mutableMapOf()
+    }
+
+    if (!children.containsKey(firstSegment)) {
+      children[firstSegment] = FastFileSearchTreeNode(parent = this)
+    }
+
+    return children[firstSegment]!!.insertInternal(segments, value, 0)
+  }
+
+  internal fun remove(segments: List<String>): Boolean {
+    if (segments.isEmpty()) {
+      return false
+    }
+
+    if (children === SINGLETON_MAP) {
+      return true
+    }
+
+    val firstSegment = segments.first()
+    return children[firstSegment]?.removeInternal(segments, 0)
+      ?: false
+  }
+
+  internal fun contains(segmentNames: List<String>): Boolean {
+    return containsInternal(segmentNames, 0)
+  }
+
+  internal fun find(segmentNames: List<String>): V? {
+    return findInternal(segmentNames, 0)
+  }
+
+  internal fun clear() {
+    if (children === SINGLETON_MAP) {
+      return
+    }
+
+    children.values.forEach { node ->
+      node.clear()
+      node.children.clear()
+      node.children = singletonMap()
+    }
+  }
+
+  internal fun visitPath(
+    segments: List<String>,
+    index: Int,
+    func: (Int, FastFileSearchTreeNode<V>) -> Boolean
+  ) {
+    if (children === SINGLETON_MAP) {
+      return
+    }
+
+    val currentSegmentName = segments.getOrNull(index)
+      ?: return
+
+    if (currentSegmentName != segmentName) {
+      return
+    }
+
+    if (!func(index, this)) {
+      return
+    }
+
+    children[currentSegmentName]?.visitPath(segments, index + 1, func)
+  }
+
+  internal fun visit(func: (FastFileSearchTreeNode<V>) -> Unit) {
+    if (children === singletonMap()) {
+      return
+    }
+
+    children.forEach { (_, node) ->
+      func(node)
+      node.visit(func)
+    }
+  }
+
   private fun insertInternal(
     segments: List<String>,
     value: V,
@@ -192,6 +247,10 @@ class FastFileSearchTreeNode<V>(
     if (isLastSegment || nextSegment == null) {
       this.value = value
       return true
+    }
+
+    if (children === SINGLETON_MAP) {
+      children = mutableMapOf()
     }
 
     if (!children.containsKey(nextSegment)) {
@@ -215,7 +274,14 @@ class FastFileSearchTreeNode<V>(
     }
 
     if (segmentName == segment && isLastSegment) {
-      parent!!.children.remove(segment)
+      if (parent!!.children !== singletonMap()) {
+        parent!!.children.remove(segment)
+
+        if (parent!!.children.isEmpty()) {
+          parent!!.children = singletonMap()
+        }
+      }
+
       return true
     }
 
@@ -237,6 +303,10 @@ class FastFileSearchTreeNode<V>(
       val nextNode = children[currentSegmentName]
         ?: return false
 
+      if (nextNode === singletonMap()) {
+        return false
+      }
+
       return nextNode.containsInternal(segments, index)
     }
 
@@ -250,6 +320,10 @@ class FastFileSearchTreeNode<V>(
     val nextNode = children[nextSegmentName]
       ?: return false
 
+    if (nextNode === singletonMap()) {
+      return false
+    }
+
     return nextNode.containsInternal(segments, index + 1)
   }
 
@@ -259,6 +333,10 @@ class FastFileSearchTreeNode<V>(
   ): V? {
     val currentSegmentName = segments.getOrNull(index)
       ?: return null
+
+    if (children === SINGLETON_MAP) {
+      return null
+    }
 
     if (isRoot()) {
       val nextNode = children[currentSegmentName]
@@ -284,31 +362,7 @@ class FastFileSearchTreeNode<V>(
     return nextNode.findInternal(segments, index + 1)
   }
 
-  fun visitPath(
-    segments: List<String>,
-    index: Int,
-    func: (Int, FastFileSearchTreeNode<V>) -> Boolean
-  ) {
-    val currentSegmentName = segments.getOrNull(index)
-      ?: return
-
-    if (currentSegmentName != segmentName) {
-      return
-    }
-
-    if (!func(index, this)) {
-      return
-    }
-
-    children[currentSegmentName]?.visitPath(segments, index + 1, func)
-  }
-
-  fun visit(func: (FastFileSearchTreeNode<V>) -> Unit) {
-    children.forEach { (_, node) ->
-      func(node)
-      node.visit(func)
-    }
-  }
+  private fun singletonMap() = SINGLETON_MAP as MutableMap<String, FastFileSearchTreeNode<V>>
 
   override fun equals(other: Any?): Boolean {
     if (other == null) {
@@ -335,7 +389,52 @@ class FastFileSearchTreeNode<V>(
     return "segmentName = ${segmentName}, value = ${value}, children = ${children.size}"
   }
 
+  class SingletonMap<K, V> : MutableMap<K, V> {
+
+    override val size: Int
+      get() = 0
+
+    override fun containsKey(key: K): Boolean {
+      return false
+    }
+
+    override fun containsValue(value: V): Boolean {
+      return false
+    }
+
+    override fun get(key: K): V? {
+      return null
+    }
+
+    override fun isEmpty(): Boolean {
+      return true
+    }
+
+    override val entries: MutableSet<MutableMap.MutableEntry<K, V>>
+      get() = throw IllegalAccessException("Cannot be used with SingletonMap")
+    override val keys: MutableSet<K>
+      get() = throw IllegalAccessException("Cannot be used with SingletonMap")
+    override val values: MutableCollection<V>
+      get() = throw IllegalAccessException("Cannot be used with SingletonMap")
+
+    override fun clear() {
+    }
+
+    override fun put(key: K, value: V): V? {
+      throw IllegalAccessException("Cannot be used with SingletonMap")
+    }
+
+    override fun putAll(from: Map<out K, V>) {
+      throw IllegalAccessException("Cannot be used with SingletonMap")
+    }
+
+    override fun remove(key: K): V? {
+      throw IllegalAccessException("Cannot be used with SingletonMap")
+    }
+  }
+
   companion object {
     const val ROOT = "<ROOT>"
+    private val SINGLETON_MAP = SingletonMap<String, FastFileSearchTreeNode<Any>>()
   }
 }
