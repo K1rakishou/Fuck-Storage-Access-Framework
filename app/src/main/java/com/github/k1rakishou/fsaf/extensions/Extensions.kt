@@ -2,6 +2,7 @@ package com.github.k1rakishou.fsaf.extensions
 
 import android.net.Uri
 import android.webkit.MimeTypeMap
+import com.github.k1rakishou.fsaf.file.AbstractFile
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
@@ -66,4 +67,18 @@ internal fun File.appendMany(segments: List<String>): File {
   }
 
   return newFile
+}
+
+internal fun String.splitIntoSegments(): List<String> {
+  return if (this.contains(File.separatorChar) || this.contains(AbstractFile.ENCODED_SEPARATOR)) {
+    val split = this
+      // First of all split by the "/" symbol
+      .split(File.separatorChar)
+      // Then try to split every part again by this time by the "%2F" symbol
+      .flatMap { names -> names.split(AbstractFile.ENCODED_SEPARATOR) }
+
+    split
+  } else {
+    listOf(this)
+  }
 }

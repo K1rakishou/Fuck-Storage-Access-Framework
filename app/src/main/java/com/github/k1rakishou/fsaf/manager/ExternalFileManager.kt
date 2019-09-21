@@ -2,21 +2,20 @@ package com.github.k1rakishou.fsaf.manager
 
 import android.content.Context
 import android.net.Uri
-import android.provider.DocumentsContract
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import com.github.k1rakishou.fsaf.FastFileSearchTree
+import com.github.k1rakishou.fsaf.extensions.splitIntoSegments
 import com.github.k1rakishou.fsaf.file.AbstractFile
 import com.github.k1rakishou.fsaf.file.ExternalFile
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
-import java.util.*
 
 class ExternalFileManager(
-  private val appContext: Context
+  private val appContext: Context,
+  private val searchMode: SearchMode = SearchMode.Fast
 ) : BaseFileManager {
-  // TODO: supa search speed
   private val fastFileSearchTree: FastFileSearchTree<DocumentFile> = FastFileSearchTree()
 
   override fun exists(file: AbstractFile): Boolean = toDocumentFile(file.clone())?.exists() ?: false
@@ -177,19 +176,20 @@ class ExternalFileManager(
   }
 
   private fun toDocumentFile(file: AbstractFile): DocumentFile? {
-    if (file.getFileSegments().isEmpty()) {
+    val segments = file.getFileSegments()
+    if (segments.isEmpty()) {
       return file.getFileRoot<DocumentFile>().holder
     }
 
     val root = file.getFileRoot<DocumentFile>()
-    val segments = file.getFileSegments()
-
     var documentFile: DocumentFile = root.holder
     var index = 0
 
     for (element in segments) {
-      val foundFile = fastFindFile(documentFile, element)
-        ?: break
+      val foundFile = supaFastSearch(documentFile, element.name)
+      if (foundFile == null) {
+        break
+      }
 
       documentFile = foundFile
       ++index
@@ -202,50 +202,33 @@ class ExternalFileManager(
     return documentFile
   }
 
-  private fun fastFindFile(root: DocumentFile, segment: AbstractFile.Segment): DocumentFile? {
-    val name = 0
-    val documentId = 1
-    val selection = "${DocumentsContract.Document.COLUMN_DISPLAY_NAME} = ?"
-    val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
-      root.uri,
-      DocumentsContract.getDocumentId(root.uri)
-    )
-    val projection = arrayOf(
-      DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-      DocumentsContract.Document.COLUMN_DOCUMENT_ID
-    )
-    val contentResolver = appContext.contentResolver
-    val lowerCaseFilename = segment.name.toLowerCase(Locale.US)
+  private fun supaFastSearch(dir: DocumentFile, fileName: String): DocumentFile? {
+    val segments = dir.uri
+      .buildUpon()
+      .appendPath(fileName)
+      .build()
+      .toString()
+      .splitIntoSegments()
+    check(segments.isNotEmpty())
 
-    return contentResolver.query(
-      childrenUri,
-      projection,
-      selection,
-      arrayOf(lowerCaseFilename),
+    var foundFile = if (searchMode == SearchMode.Fast) {
+      fastFileSearchTree.findSegment(segments)
+    } else {
       null
-    )?.use { cursor ->
-      while (cursor.moveToNext()) {
-        if (cursor.isNull(name)) {
-          continue
-        }
-
-        val foundFileName = cursor.getString(name)
-          ?: continue
-
-        if (!foundFileName.toLowerCase(Locale.US).startsWith(lowerCaseFilename)) {
-          continue
-        }
-
-        val uri = DocumentsContract.buildDocumentUriUsingTree(
-          root.uri,
-          cursor.getString(documentId)
-        )
-
-        return@use DocumentFile.fromSingleUri(appContext, uri)
-      }
-
-      return@use null
     }
+
+    if (foundFile != null) {
+      return foundFile
+    }
+
+    foundFile = dir.listFiles()
+      .firstOrNull { file -> file.name == fileName }
+    if (foundFile == null) {
+      return null
+    }
+
+    check(fastFileSearchTree.insertSegments(segments, foundFile))
+    return foundFile
   }
 
   private fun createDocumentFileFromUri(file: AbstractFile, uri: Uri, index: Int): DocumentFile? {
@@ -257,6 +240,20 @@ class ExternalFileManager(
     }
 
     return DocumentFile.fromSingleUri(appContext, builder.build())
+  }
+
+  /**
+   * For tests only!
+   * */
+  enum class SearchMode {
+    /**
+     * Fast search mode uses FastFileSearchTree
+     * */
+    Fast,
+    /**
+     * Slow search mode doesn't use FastFileSearchTree
+     * */
+    Slow
   }
 
   companion object {

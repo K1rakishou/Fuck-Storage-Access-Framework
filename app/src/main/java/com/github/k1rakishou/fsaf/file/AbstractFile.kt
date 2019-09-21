@@ -3,6 +3,7 @@ package com.github.k1rakishou.fsaf.file
 import com.github.k1rakishou.fsaf.annotation.ImmutableMethod
 import com.github.k1rakishou.fsaf.annotation.MutableMethod
 import com.github.k1rakishou.fsaf.extensions.extension
+import com.github.k1rakishou.fsaf.extensions.splitIntoSegments
 import java.io.File
 
 // TODO: rewrite
@@ -159,17 +160,8 @@ abstract class AbstractFile(
     check(!isFilenameAppended()) { "Cannot append anything after file name has been appended" }
     require(!name.isBlank()) { "Bad name: $name" }
 
-    val nameList = if (name.contains(File.separatorChar) || name.contains(ENCODED_SEPARATOR)) {
-      name
-        // First of all split by the "/" symbol
-        .split(File.separatorChar)
-        // Then try to split every part again by this time by the "%2F" symbol
-        .flatMap { names -> names.split(ENCODED_SEPARATOR) }
-    } else {
-      listOf(name)
-    }
 
-    nameList
+    name.splitIntoSegments()
       .map { splitName -> Segment(splitName) }
       .forEach { segment -> segments += segment }
 
@@ -180,17 +172,10 @@ abstract class AbstractFile(
     check(!isFilenameAppended()) { "Cannot append anything after file name has been appended" }
     require(!name.isBlank()) { "Bad name: $name" }
 
-    val nameList = if (name.contains(File.separatorChar) || name.contains(ENCODED_SEPARATOR)) {
-      val split = name
-        // First of all split by the "/" symbol
-        .split(File.separatorChar)
-        // Then try to split every part again by this time by the "%2F" symbol
-        .flatMap { names -> names.split(ENCODED_SEPARATOR) }
-      check(split.size >= 2) { "Should have at least two entries, name = $name" }
+    val nameList = name.splitIntoSegments()
 
-      split
-    } else {
-      listOf(name)
+    if (name.contains(File.separatorChar) || name.contains(ENCODED_SEPARATOR)) {
+      check(nameList.size >= 2) { "Should have at least two entries, name = $name" }
     }
 
     require(nameList.last().extension() != null) { "Last segment must be a filename" }
