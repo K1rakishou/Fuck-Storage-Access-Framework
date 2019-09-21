@@ -1,18 +1,13 @@
+apply plugin: 'android-maven'
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 apply plugin: 'com.github.dcendents.android-maven'
 
-repositories {
-    mavenCentral()
-    google()
-    jcenter()
-    maven { url "https://jitpack.io" }
-}
-
 android {
     compileSdkVersion 29
     buildToolsVersion "29.0.2"
+
     defaultConfig {
         minSdkVersion 21
         targetSdkVersion 29
@@ -26,6 +21,13 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+}
+
+repositories {
+    mavenCentral()
+    google()
+    jcenter()
+    maven { url "https://jitpack.io" }
 }
 
 dependencies {
