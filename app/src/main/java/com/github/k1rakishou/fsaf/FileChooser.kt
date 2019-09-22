@@ -3,7 +3,6 @@ package com.github.k1rakishou.fsaf
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.provider.DocumentsContract
 import android.util.Log
 import android.webkit.MimeTypeMap
 import com.github.k1rakishou.fsaf.callback.*
@@ -16,18 +15,18 @@ class FileChooser(
   private val mimeTypeMap = MimeTypeMap.getSingleton()
 
   private var requestCode = 10000
-  private var startActivityCallbacks: StartActivityCallbacks? = null
+  private var fsafActivityCallbacks: FSAFActivityCallbacks? = null
 
-  fun setCallbacks(startActivityCallbacks: StartActivityCallbacks) {
-    this.startActivityCallbacks = startActivityCallbacks
+  fun setCallbacks(FSAFActivityCallbacks: FSAFActivityCallbacks) {
+    this.fsafActivityCallbacks = FSAFActivityCallbacks
   }
 
   fun removeCallbacks() {
-    this.startActivityCallbacks = null
+    this.fsafActivityCallbacks = null
   }
 
   fun openChooseDirectoryDialog(directoryChooserCallback: DirectoryChooserCallback) {
-    startActivityCallbacks?.let { callbacks ->
+    fsafActivityCallbacks?.let { callbacks ->
       val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
       intent.putExtra("android.content.extra.SHOW_ADVANCED", true)
 
@@ -41,7 +40,7 @@ class FileChooser(
       callbacksMap[nextRequestCode] = directoryChooserCallback as ChooserCallback
 
       try {
-        callbacks.myStartActivityForResult(intent, nextRequestCode)
+        callbacks.fsafStartActivityForResult(intent, nextRequestCode)
       } catch (e: Exception) {
         callbacksMap.remove(nextRequestCode)
         directoryChooserCallback.onCancel(
@@ -53,7 +52,7 @@ class FileChooser(
   }
 
   fun openChooseFileDialog(fileChooserCallback: FileChooserCallback) {
-    startActivityCallbacks?.let { callbacks ->
+    fsafActivityCallbacks?.let { callbacks ->
       val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
       intent.addFlags(
         Intent.FLAG_GRANT_READ_URI_PERMISSION or
@@ -67,7 +66,7 @@ class FileChooser(
       callbacksMap[nextRequestCode] = fileChooserCallback as ChooserCallback
 
       try {
-        callbacks.myStartActivityForResult(intent, nextRequestCode)
+        callbacks.fsafStartActivityForResult(intent, nextRequestCode)
       } catch (e: Exception) {
         callbacksMap.remove(nextRequestCode)
         fileChooserCallback.onCancel(e.message ?: "openChooseFileDialog() Unknown error")
@@ -79,7 +78,7 @@ class FileChooser(
     fileName: String,
     fileCreateCallback: FileCreateCallback
   ) {
-    startActivityCallbacks?.let { callbacks ->
+    fsafActivityCallbacks?.let { callbacks ->
       val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
       intent.addFlags(
         Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or
@@ -95,7 +94,7 @@ class FileChooser(
       callbacksMap[nextRequestCode] = fileCreateCallback as ChooserCallback
 
       try {
-        callbacks.myStartActivityForResult(intent, nextRequestCode)
+        callbacks.fsafStartActivityForResult(intent, nextRequestCode)
       } catch (e: Exception) {
         callbacksMap.remove(nextRequestCode)
         fileCreateCallback.onCancel(e.message ?: "openCreateFileDialog() Unknown error")
@@ -111,7 +110,7 @@ class FileChooser(
     }
 
     try {
-      if (startActivityCallbacks == null) {
+      if (fsafActivityCallbacks == null) {
         // Skip all requests when the callback is not set
         Log.d(TAG, "Callback is not attached")
         return false
@@ -289,16 +288,13 @@ class FileChooser(
       return
     }
 
-    val documentId = DocumentsContract.getTreeDocumentId(uri)
-    val treeDocumentUri = DocumentsContract.buildDocumentUriUsingTree(uri, documentId)
-
     val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
       Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 
     val contentResolver = appContext.contentResolver
     contentResolver.takePersistableUriPermission(uri, flags)
 
-    callback.onResult(treeDocumentUri)
+    callback.onResult(uri)
   }
 
   companion object {
