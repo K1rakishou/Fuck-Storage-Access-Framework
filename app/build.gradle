@@ -29,4 +29,6 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation"org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'androidx.documentfile:documentfile:1.0.1'
+
+    testImplementation 'junit:junit:4.12'
 }

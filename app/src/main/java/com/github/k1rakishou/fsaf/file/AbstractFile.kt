@@ -2,6 +2,7 @@ package com.github.k1rakishou.fsaf.file
 
 import com.github.k1rakishou.fsaf.annotation.ImmutableMethod
 import com.github.k1rakishou.fsaf.annotation.MutableMethod
+import com.github.k1rakishou.fsaf.extensions.ENCODED_SEPARATOR
 import com.github.k1rakishou.fsaf.extensions.extension
 import com.github.k1rakishou.fsaf.extensions.splitIntoSegments
 import java.io.File
@@ -250,10 +251,6 @@ abstract class AbstractFile(
     val name: String,
     val isFileName: Boolean = false
   )
-
-  companion object {
-    const val ENCODED_SEPARATOR = "%2F"
-  }
 }
 
 interface HasFileManagerId {

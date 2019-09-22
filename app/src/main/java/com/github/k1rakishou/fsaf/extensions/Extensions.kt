@@ -2,13 +2,20 @@ package com.github.k1rakishou.fsaf.extensions
 
 import android.net.Uri
 import android.webkit.MimeTypeMap
-import com.github.k1rakishou.fsaf.file.AbstractFile
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 
-private const val BINARY_FILE_MIME_TYPE = "application/octet-stream"
+internal const val BINARY_FILE_MIME_TYPE = "application/octet-stream"
+
+internal const val CONTENT_TYPE = "content://"
+internal const val FILE_TYPE = "file://"
+internal val uriTypes = arrayOf(CONTENT_TYPE, FILE_TYPE)
+
+internal const val ENCODED_SEPARATOR = "%2F"
+internal const val FILE_SEPARATOR1 = "/"
+internal const val FILE_SEPARATOR2 = "\\"
 
 @Throws(IOException::class)
 internal fun InputStream.copyInto(outputStream: OutputStream) {
@@ -70,15 +77,27 @@ internal fun File.appendMany(segments: List<String>): File {
 }
 
 internal fun String.splitIntoSegments(): List<String> {
-  return if (this.contains(File.separatorChar) || this.contains(AbstractFile.ENCODED_SEPARATOR)) {
-    val split = this
+  val uriType = uriTypes.firstOrNull { type -> this.startsWith(type) }
+  val string = if (uriType != null) {
+    this.substring(uriType.length, this.length)
+  } else {
+    this
+  }
+
+  return if (string.contains(FILE_SEPARATOR1)
+    || string.contains(FILE_SEPARATOR2)
+    || string.contains(ENCODED_SEPARATOR)
+  ) {
+    val split = string
       // First of all split by the "/" symbol
-      .split(File.separatorChar)
-      // Then try to split every part again by this time by the "%2F" symbol
-      .flatMap { names -> names.split(AbstractFile.ENCODED_SEPARATOR) }
+      .split(FILE_SEPARATOR1)
+      // Then try to split every part again by the "\" symbol
+      .flatMap { names -> names.split(FILE_SEPARATOR2) }
+      // Then try to split every part again by the "%2F" symbol
+      .flatMap { names -> names.split(ENCODED_SEPARATOR) }
 
     split
   } else {
-    listOf(this)
+    listOf(string)
   }
 }

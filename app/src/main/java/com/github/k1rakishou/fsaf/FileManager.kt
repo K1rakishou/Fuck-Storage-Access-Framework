@@ -35,6 +35,14 @@ class FileManager(
     managers[fileManagerId] = customManager
   }
 
+  fun getExternalFileManager(): ExternalFileManager {
+    return managers[ExternalFile.FILE_MANAGER_ID]!! as ExternalFileManager
+  }
+
+  fun getRawFileManager(): RawFileManager {
+    return managers[RawFile.FILE_MANAGER_ID]!! as RawFileManager
+  }
+
   //=======================================================
   // Api to convert native file/documentFile classes into our own abstractions
   //=======================================================

@@ -8,15 +8,18 @@ import com.github.k1rakishou.fsaf.FastFileSearchTree
 import com.github.k1rakishou.fsaf.extensions.splitIntoSegments
 import com.github.k1rakishou.fsaf.file.AbstractFile
 import com.github.k1rakishou.fsaf.file.ExternalFile
-import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
 
 class ExternalFileManager(
-  private val appContext: Context,
-  private val searchMode: SearchMode = SearchMode.Fast
+  private val appContext: Context
 ) : BaseFileManager {
   private val fastFileSearchTree: FastFileSearchTree<DocumentFile> = FastFileSearchTree()
+  private var searchMode: SearchMode = SearchMode.Fast
+
+  fun updateSearchMode(searchMode: SearchMode) {
+    this.searchMode = searchMode
+  }
 
   override fun exists(file: AbstractFile): Boolean = toDocumentFile(file.clone())?.exists() ?: false
   override fun isFile(file: AbstractFile): Boolean = toDocumentFile(file.clone())?.isFile ?: false
@@ -30,9 +33,7 @@ class ExternalFileManager(
     toDocumentFile(file.clone())?.canWrite() ?: false
 
   override fun getSegmentNames(file: AbstractFile): List<String> {
-    return file.getFullPath()
-      .split(File.separatorChar)
-      .flatMap { names -> names.split(AbstractFile.ENCODED_SEPARATOR) }
+    return file.getFullPath().splitIntoSegments()
   }
 
   override fun delete(file: AbstractFile): Boolean {
@@ -218,16 +219,29 @@ class ExternalFileManager(
     }
 
     if (foundFile != null) {
-      return foundFile
+      if (foundFile.exists()) {
+        return foundFile
+      }
+
+      // File exists in the cache but not on the disk, so we need to remove it from the disk
+      check(fastFileSearchTree.removeSegments(segments))
     }
 
-    foundFile = dir.listFiles()
-      .firstOrNull { file -> file.name == fileName }
+    val filesInDirectory = dir.listFiles()
+    if (filesInDirectory.isEmpty()) {
+      return null
+    }
+
+    foundFile = filesInDirectory.firstOrNull { file -> file.name == fileName }
     if (foundFile == null) {
       return null
     }
 
-    check(fastFileSearchTree.insertSegments(segments, foundFile))
+    for (file in filesInDirectory) {
+      // Cache all of the files in the directory
+      check(fastFileSearchTree.insertSegments(segments, foundFile))
+    }
+
     return foundFile
   }
 
