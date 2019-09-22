@@ -25,6 +25,16 @@ class RawFileManager : BaseFileManager {
     return toFile(file.clone()).delete()
   }
 
+  override fun deleteContent(dir: AbstractFile) {
+    val file = toFile(dir.clone())
+    if (!file.isDirectory) {
+      Log.e(TAG, "Only directories are supported (files can't have contents anyway)")
+      return
+    }
+
+    file.listFiles()?.forEach { f -> f.delete() }
+  }
+
   override fun getInputStream(file: AbstractFile): InputStream? {
     val clonedFile = toFile(file.clone())
 

@@ -1,2 +1,2 @@
-include ':fsaf'
+include ':fsaf', ':fsaf_test_app'
 rootProject.name='FSAF'

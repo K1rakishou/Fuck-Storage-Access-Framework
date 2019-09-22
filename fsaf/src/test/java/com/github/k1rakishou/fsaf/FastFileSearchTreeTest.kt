@@ -152,6 +152,17 @@ class FastFileSearchTreeTest {
   }
 
   @Test
+  fun `test contains non existing returns false`() {
+    val fastFileSearchTree = FastFileSearchTree<Int>()
+    val segments = listOf("123", "456", "111.txt")
+    val segmentsNotExisting = listOf("123", "456", "789", "111.txt")
+
+    assertTrue(fastFileSearchTree.insertSegments(segments, 1))
+    assertFalse(fastFileSearchTree.containsSegment(segmentsNotExisting))
+    assertNull(fastFileSearchTree.findSegment(segmentsNotExisting))
+  }
+
+  @Test
   fun `test remove first segment`() {
     val fastFileSearchTree = FastFileSearchTree<Int>()
     val segments = listOf("123", "456", "111.txt")
@@ -175,6 +186,18 @@ class FastFileSearchTreeTest {
     assertFalse(fastFileSearchTree.containsSegment(segments))
     assertTrue(fastFileSearchTree.containsSegment(segments.take(2)))
     assertTrue(fastFileSearchTree.containsSegment(segments.take(1)))
+  }
+
+  @Test
+  fun `test remove non existing segment`() {
+    val fastFileSearchTree = FastFileSearchTree<Int>()
+    val segments = listOf("123", "456", "111.txt")
+    val segmentsNotExisting = listOf("123", "456", "789", "111.txt")
+
+    assertTrue(fastFileSearchTree.insertSegments(segments, 1))
+    assertFalse(fastFileSearchTree.removeSegments(segmentsNotExisting))
+    assertNull(fastFileSearchTree.findSegment(segmentsNotExisting))
+    assertEquals(1, fastFileSearchTree.findSegment(segments))
   }
 
   @Test

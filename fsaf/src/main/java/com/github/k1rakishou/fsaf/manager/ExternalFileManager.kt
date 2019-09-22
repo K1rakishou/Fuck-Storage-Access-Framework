@@ -12,14 +12,10 @@ import java.io.InputStream
 import java.io.OutputStream
 
 class ExternalFileManager(
-  private val appContext: Context
+  private val appContext: Context,
+  private val searchMode: SearchMode = SearchMode.Fast
 ) : BaseFileManager {
   private val fastFileSearchTree: FastFileSearchTree<DocumentFile> = FastFileSearchTree()
-  private var searchMode: SearchMode = SearchMode.Fast
-
-  fun updateSearchMode(searchMode: SearchMode) {
-    this.searchMode = searchMode
-  }
 
   override fun exists(file: AbstractFile): Boolean = toDocumentFile(file.clone())?.exists() ?: false
   override fun isFile(file: AbstractFile): Boolean = toDocumentFile(file.clone())?.isFile ?: false
@@ -37,7 +33,47 @@ class ExternalFileManager(
   }
 
   override fun delete(file: AbstractFile): Boolean {
-    return toDocumentFile(file.clone())?.delete() ?: false
+    val documentFile = toDocumentFile(file.clone())
+      ?: return true
+
+    if (searchMode == SearchMode.Fast) {
+      val segments = file
+        .toString()
+        .splitIntoSegments()
+      check(segments.isNotEmpty())
+
+      if (!fastFileSearchTree.removeSegments(segments)) {
+        Log.e(TAG, "Couldn't remove segments $segments from fastFileSearchTree")
+        return false
+      }
+    }
+
+    return documentFile.delete()
+  }
+
+  override fun deleteContent(dir: AbstractFile) {
+    val documentFile = toDocumentFile(dir.clone())
+      ?: return
+
+    if (!documentFile.isDirectory) {
+      Log.e(TAG, "Only directories are supported (files can't have contents anyway)")
+      return
+    }
+
+    val filesInDirectory = documentFile.listFiles()
+
+    if (searchMode == SearchMode.Fast) {
+      for (fileInDirectory in filesInDirectory) {
+        val segments = fileInDirectory.uri.toString().splitIntoSegments()
+
+        if (!fastFileSearchTree.removeSegments(segments)) {
+          Log.e(TAG, "Couldn't remove segments $segments from fastFileSearchTree")
+          return
+        }
+      }
+    }
+
+    filesInDirectory.forEach { it.delete() }
   }
 
   override fun getInputStream(file: AbstractFile): InputStream? {

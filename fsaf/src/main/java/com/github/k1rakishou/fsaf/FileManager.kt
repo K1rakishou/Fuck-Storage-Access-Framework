@@ -418,6 +418,10 @@ class FileManager(
       ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
   }
 
+  override fun deleteContent(dir: AbstractFile) {
+    managers[dir.getFileManagerId()]?.deleteContent(dir)
+      ?: throw NotImplementedError("Not implemented for ${dir.javaClass.name}")  }
+
   override fun getInputStream(file: AbstractFile): InputStream? {
     return managers[file.getFileManagerId()]?.getInputStream(file)
       ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")

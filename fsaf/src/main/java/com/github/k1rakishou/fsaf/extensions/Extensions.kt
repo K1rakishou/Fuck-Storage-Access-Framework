@@ -1,5 +1,6 @@
 package com.github.k1rakishou.fsaf.extensions
 
+import android.content.ContentResolver
 import android.net.Uri
 import android.webkit.MimeTypeMap
 import java.io.File
@@ -9,8 +10,8 @@ import java.io.OutputStream
 
 internal const val BINARY_FILE_MIME_TYPE = "application/octet-stream"
 
-internal const val CONTENT_TYPE = "content://"
-internal const val FILE_TYPE = "file://"
+internal const val CONTENT_TYPE = "${ContentResolver.SCHEME_CONTENT}://"
+internal const val FILE_TYPE = "${ContentResolver.SCHEME_FILE}://"
 internal val uriTypes = arrayOf(CONTENT_TYPE, FILE_TYPE)
 
 internal const val ENCODED_SEPARATOR = "%2F"

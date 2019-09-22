@@ -29,6 +29,9 @@ interface BaseFileManager {
   fun delete(file: AbstractFile): Boolean
 
   @ImmutableMethod
+  fun deleteContent(dir: AbstractFile)
+
+  @ImmutableMethod
   fun getInputStream(file: AbstractFile): InputStream?
 
   @ImmutableMethod
