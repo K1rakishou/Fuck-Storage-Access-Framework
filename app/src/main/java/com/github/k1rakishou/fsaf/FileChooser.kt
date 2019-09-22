@@ -18,15 +18,15 @@ class FileChooser(
   private var requestCode = 10000
   private var startActivityCallbacks: StartActivityCallbacks? = null
 
-  internal fun setCallbacks(startActivityCallbacks: StartActivityCallbacks) {
+  fun setCallbacks(startActivityCallbacks: StartActivityCallbacks) {
     this.startActivityCallbacks = startActivityCallbacks
   }
 
-  internal fun removeCallbacks() {
+  fun removeCallbacks() {
     this.startActivityCallbacks = null
   }
 
-  internal fun openChooseDirectoryDialog(directoryChooserCallback: DirectoryChooserCallback) {
+  fun openChooseDirectoryDialog(directoryChooserCallback: DirectoryChooserCallback) {
     startActivityCallbacks?.let { callbacks ->
       val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
       intent.putExtra("android.content.extra.SHOW_ADVANCED", true)
@@ -52,7 +52,7 @@ class FileChooser(
     }
   }
 
-  internal fun openChooseFileDialog(fileChooserCallback: FileChooserCallback) {
+  fun openChooseFileDialog(fileChooserCallback: FileChooserCallback) {
     startActivityCallbacks?.let { callbacks ->
       val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
       intent.addFlags(
@@ -75,7 +75,7 @@ class FileChooser(
     }
   }
 
-  internal fun openCreateFileDialog(
+  fun openCreateFileDialog(
     fileName: String,
     fileCreateCallback: FileCreateCallback
   ) {
@@ -103,7 +103,7 @@ class FileChooser(
     }
   }
 
-  internal fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
+  fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
     val callback = callbacksMap[requestCode]
     if (callback == null) {
       Log.d(TAG, "Callback is already removed from the map, resultCode = $requestCode")
