@@ -296,7 +296,7 @@ class FileChooser(
       Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 
     val contentResolver = appContext.contentResolver
-    contentResolver.takePersistableUriPermission(treeDocumentUri, flags)
+    contentResolver.takePersistableUriPermission(uri, flags)
 
     callback.onResult(treeDocumentUri)
   }
