@@ -314,52 +314,43 @@ class FastFileSearchTreeNode<V>(
       return false
     }
 
-    val nextSegmentName = segments.getOrNull(index + 1)
-      ?: return true
+    val nextSegment = segments.getOrNull(index + 1)
+    val isLastSegment = nextSegment == null
 
-    val nextNode = children[nextSegmentName]
-      ?: return false
-
-    if (nextNode === singletonMap()) {
-      return false
+    if (isLastSegment) {
+      return true
     }
 
-    return nextNode.containsInternal(segments, index + 1)
+    return children[nextSegment]?.containsInternal(segments, index + 1)
+      ?: false
   }
 
   private fun findInternal(
     segments: List<String>,
     index: Int
   ): V? {
-    val currentSegmentName = segments.getOrNull(index)
+    val currentSegment = segments.getOrNull(index)
       ?: return null
 
-    if (children === SINGLETON_MAP) {
-      return null
-    }
-
     if (isRoot()) {
-      val nextNode = children[currentSegmentName]
+      val nextNode = children[currentSegment]
         ?: return null
 
       return nextNode.findInternal(segments, index)
     }
 
-    if (currentSegmentName != segmentName) {
+    if (currentSegment != segmentName) {
       return null
     }
 
-    val nextSegmentName = segments.getOrNull(index + 1)
-      ?: return null
+    val nextSegment = segments.getOrNull(index + 1)
+    val isLastSegment = nextSegment == null
 
-    val nextNode = children[nextSegmentName]
-      ?: return null
-
-    if (nextNode.isLeaf()) {
-      return nextNode.value
+    if (isLastSegment) {
+      return value
     }
 
-    return nextNode.findInternal(segments, index + 1)
+    return children[nextSegment]?.findInternal(segments, index + 1)
   }
 
   private fun singletonMap() = SINGLETON_MAP as MutableMap<String, FastFileSearchTreeNode<V>>

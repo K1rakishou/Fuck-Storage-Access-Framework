@@ -246,7 +246,9 @@ class ExternalFileManager(
       .build()
       .toString()
       .splitIntoSegments()
+
     check(segments.isNotEmpty())
+    segments.forEach { segment -> check(segment.isNotBlank()) }
 
     var foundFile = if (searchMode == SearchMode.Fast) {
       fastFileSearchTree.findSegment(segments)
