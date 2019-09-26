@@ -1,7 +1,6 @@
 package com.github.k1rakishou.fsaf
 
 import android.content.Context
-import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
@@ -371,41 +370,6 @@ class FileManager(
             "traverseMode = ${traverseMode.name}"
         )
       }
-    }
-  }
-
-  fun forgetSAFTree(directory: AbstractFile): Boolean {
-    if (directory !is ExternalFile) {
-      // Only ExternalFile is being used with SAF
-      return true
-    }
-
-    val uri = Uri.parse(directory.getFullPath())
-    if (!exists(directory)) {
-      Log.e(
-        TAG,
-        "Couldn't revoke permissions from directory because it does not exist, path = $uri"
-      )
-      return false
-    }
-
-    if (!isDirectory(directory)) {
-      Log.e(TAG, "Couldn't revoke permissions from directory it is not a directory, path = $uri")
-      return false
-    }
-
-    return try {
-      val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
-        Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-
-      appContext.contentResolver.releasePersistableUriPermission(uri, flags)
-      appContext.revokeUriPermission(uri, flags)
-
-      Log.d(TAG, "Revoke old path permissions success on $uri")
-      true
-    } catch (err: Exception) {
-      Log.e(TAG, "Error revoking old path permissions on $uri", err)
-      false
     }
   }
 

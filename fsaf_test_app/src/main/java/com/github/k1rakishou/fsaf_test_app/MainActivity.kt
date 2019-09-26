@@ -164,6 +164,7 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
       return
     }
 
+    fileChooser.forgetSAFTree(treeUri)
     sharedPreferences.edit().remove(TREE_URI).apply()
   }
 
@@ -171,8 +172,6 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
     return sharedPreferences.getString(TREE_URI, null)
       ?.let { str -> Uri.parse(str) }
   }
-
-  private fun hasTreeUri(): Boolean = getTreeUri() != null
 
   companion object {
     const val TREE_URI = "tree_uri"

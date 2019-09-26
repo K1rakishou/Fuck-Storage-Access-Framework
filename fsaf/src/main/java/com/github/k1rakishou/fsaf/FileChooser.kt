@@ -3,6 +3,8 @@ package com.github.k1rakishou.fsaf
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.provider.DocumentsContract
 import android.util.Log
 import android.webkit.MimeTypeMap
 import androidx.documentfile.provider.DocumentFile
@@ -299,6 +301,43 @@ class FileChooser(
     Log.d(TAG, "treeUri = ${treeUri}")
 
     callback.onResult(treeUri)
+  }
+
+  fun forgetSAFTree(directoryUri: Uri): Boolean {
+    val directory = DocumentFile.fromTreeUri(appContext, directoryUri)
+    if (directory == null) {
+      Log.e(TAG, "forgetSAFTree() DocumentFile.fromTreeUri returned null")
+      return false
+    }
+
+    if (!directory.exists()) {
+      Log.e(TAG, "Couldn't revoke permissions from directory because it does not exist, path = $directoryUri")
+      return false
+    }
+
+    if (!directory.isDirectory) {
+      Log.e(TAG, "Couldn't revoke permissions from directory it is not a directory, path = $directoryUri")
+      return false
+    }
+
+    return try {
+      val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
+        Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+
+      val rootUri = DocumentsContract.buildTreeDocumentUri(
+        directoryUri.authority,
+        DocumentsContract.getTreeDocumentId(directoryUri)
+      )
+
+      appContext.contentResolver.releasePersistableUriPermission(rootUri, flags)
+      appContext.revokeUriPermission(rootUri, flags)
+
+      Log.d(TAG, "Revoke old path permissions success on $directoryUri")
+      true
+    } catch (err: Exception) {
+      Log.e(TAG, "Error revoking old path permissions on $directoryUri", err)
+      false
+    }
   }
 
   companion object {
