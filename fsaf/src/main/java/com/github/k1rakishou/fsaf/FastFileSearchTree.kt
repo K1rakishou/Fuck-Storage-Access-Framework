@@ -1,6 +1,5 @@
 package com.github.k1rakishou.fsaf
 
-import com.github.k1rakishou.fsaf.file.ExternalFile
 import java.io.File
 
 /**
@@ -16,56 +15,24 @@ class FastFileSearchTree<T>(
   val root: FastFileSearchTreeNode<T> = FastFileSearchTreeNode(segmentName = FastFileSearchTreeNode.ROOT)
 ) {
 
-  fun insertFile(file: ExternalFile, value: T): Boolean {
-    val segments = file.getFileSegments().map { segment -> segment.name }
-    require(segments.isNotEmpty()) { "Segments must not be empty" }
-
-    return insertSegments(segments, value)
-  }
-
-  fun insertFiles(files: List<Pair<ExternalFile, T>>) {
-    files.forEach { (file, value) -> insertFile(file, value) }
-  }
-
-  fun removeFile(file: ExternalFile): Boolean {
-    val segments = file.getFileSegments().map { segment -> segment.name }
-    require(segments.isNotEmpty()) { "Segments must not be empty" }
-
-    return removeSegments(segments)
-  }
-
-  fun contains(file: ExternalFile): Boolean {
-    val segments = file.getFileSegments().map { segment -> segment.name }
-    require(segments.isNotEmpty()) { "Segments must not be empty" }
-
-    return containsSegment(segments)
-  }
-
-  fun find(file: ExternalFile): T? {
-    val segments = file.getFileSegments().map { segment -> segment.name }
-    require(segments.isNotEmpty()) { "Segments must not be empty" }
-
-    return findSegment(segments)
-  }
-
-  fun visitPath(segments: List<String>, func: (Int, FastFileSearchTreeNode<T>) -> Boolean) {
+  fun visitEverySegmentInPath(segments: List<String>, func: (Int, FastFileSearchTreeNode<T>) -> Unit) {
     require(segments.isNotEmpty()) { "Segments to visit list must not be empty" }
-    root.visitPath(segments, 0, func)
+    root.visitEverySegmentInPath(segments, 0, func)
   }
 
-  fun visit(func: (FastFileSearchTreeNode<T>) -> Unit) {
+  fun visitAllSegments(func: (FastFileSearchTreeNode<T>) -> Unit) {
     func(root)
-    root.visit(func)
+    root.visitAllSegments(func)
   }
 
-  // Just to make it easier for the GC
-  fun clear() {
-    root.clear()
+  // Clears the whole tree starting from the root
+  fun clearTree() {
+    root.clearChildren()
   }
 
-  fun withTree(func: FastFileSearchTree<T>.() -> Unit) {
-    func(this)
-    clear()
+  // Clears all of the children of this node
+  fun clear(node: FastFileSearchTreeNode<T>) {
+    node.clearChildren()
   }
 
   fun insertSegments(segments: List<String>, value: T): Boolean {
@@ -74,6 +41,7 @@ class FastFileSearchTree<T>(
   }
 
   fun insertManySegments(manySegmentNames: List<Pair<List<String>, T>>): Boolean {
+    require(manySegmentNames.isNotEmpty()) { "Segments must not be empty" }
     return manySegmentNames.all { (segments, value) -> insertSegments(segments, value) }
   }
 
@@ -187,22 +155,25 @@ class FastFileSearchTreeNode<V>(
     return findInternal(segmentNames, 0)
   }
 
-  internal fun clear() {
+  internal fun clearChildren() {
     if (children === SINGLETON_MAP) {
       return
     }
 
     children.values.forEach { node ->
-      node.clear()
+      node.clearChildren()
       node.children.clear()
       node.children = singletonMap()
     }
+
+    children.clear()
+    children = singletonMap()
   }
 
-  internal fun visitPath(
+  internal fun visitEverySegmentInPath(
     segments: List<String>,
     index: Int,
-    func: (Int, FastFileSearchTreeNode<V>) -> Boolean
+    func: (Int, FastFileSearchTreeNode<V>) -> Unit
   ) {
     if (children === SINGLETON_MAP) {
       return
@@ -215,21 +186,18 @@ class FastFileSearchTreeNode<V>(
       return
     }
 
-    if (!func(index, this)) {
-      return
-    }
-
-    children[currentSegmentName]?.visitPath(segments, index + 1, func)
+    func(index, this)
+    children[currentSegmentName]?.visitEverySegmentInPath(segments, index + 1, func)
   }
 
-  internal fun visit(func: (FastFileSearchTreeNode<V>) -> Unit) {
+  internal fun visitAllSegments(func: (FastFileSearchTreeNode<V>) -> Unit) {
     if (children === singletonMap()) {
       return
     }
 
     children.forEach { (_, node) ->
       func(node)
-      node.visit(func)
+      node.visitAllSegments(func)
     }
   }
 
@@ -274,6 +242,8 @@ class FastFileSearchTreeNode<V>(
     }
 
     if (segmentName == segment && isLastSegment) {
+      // Replace mutableMap with SingletonMap when there are no more children left after removing
+      // a children
       if (parent!!.children !== singletonMap()) {
         parent!!.children.remove(segment)
 
@@ -289,7 +259,8 @@ class FastFileSearchTreeNode<V>(
       ?: return false
 
     return children[nextSegmentName]?.removeInternal(segments, index + 1)
-      ?: false
+      // Does not exist, so return true
+      ?: true
   }
 
   private fun containsInternal(

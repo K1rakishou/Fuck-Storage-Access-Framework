@@ -3,7 +3,10 @@ package com.github.k1rakishou.fsaf_test_app
 import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.DocumentsContract
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.documentfile.provider.DocumentFile
@@ -11,7 +14,11 @@ import com.github.k1rakishou.fsaf.FileChooser
 import com.github.k1rakishou.fsaf.FileManager
 import com.github.k1rakishou.fsaf.callback.DirectoryChooserCallback
 import com.github.k1rakishou.fsaf.callback.FSAFActivityCallbacks
+import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
+import com.github.k1rakishou.fsaf.file.AbstractFile
+import com.github.k1rakishou.fsaf.file.ExternalFile
 import com.github.k1rakishou.fsaf.manager.ExternalFileManager
+import com.github.k1rakishou.fsaf_test_app.tests.TestSuite
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
@@ -31,10 +38,18 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
 
     fastFileManager = FileManager(
       applicationContext,
-      externalFileManager = ExternalFileManager(applicationContext, ExternalFileManager.SearchMode.Fast))
+      externalFileManager = ExternalFileManager(
+        applicationContext,
+        ExternalFileManager.SearchMode.Fast
+      )
+    )
     slowFileManager = FileManager(
       applicationContext,
-      externalFileManager = ExternalFileManager(applicationContext, ExternalFileManager.SearchMode.Slow))
+      externalFileManager = ExternalFileManager(
+        applicationContext,
+        ExternalFileManager.SearchMode.Slow
+      )
+    )
 
     fileChooser = FileChooser(applicationContext)
     testSuite = TestSuite(fastFileManager, slowFileManager)
@@ -73,7 +88,21 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
 
     run_tests_button.setOnClickListener {
       try {
-        testSuite.runTests(getTreeUri()!!)
+        val dirDoc = CachingDocumentFile(
+          applicationContext,
+          DocumentFile.fromTreeUri(applicationContext, getTreeUri()!!)!!
+        )
+
+        val root = AbstractFile.Root.DirRoot(dirDoc)
+        val baseDir = ExternalFile(
+          applicationContext,
+          root
+        )
+
+        testSuite.runTests(
+          baseDir,
+          Environment.getDownloadCacheDirectory()
+        )
 
         val message = "=== ALL TESTS HAVE PASSED ==="
         println(message)
@@ -88,7 +117,7 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
   private fun updateControls() {
     val uri = getTreeUri()
 
-    if (uri != null && DocumentFile.isDocumentUri(this, uri)) {
+    if (uri != null && isTreeUri(uri)) {
       open_document_tree_button.isEnabled = false
       forget_document_tree_button.isEnabled = true
       run_tests_button.isEnabled = true
@@ -97,6 +126,16 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
       forget_document_tree_button.isEnabled = false
       run_tests_button.isEnabled = false
     }
+  }
+
+  private fun isTreeUri(uri: Uri): Boolean {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+      return DocumentsContract.isTreeUri(uri)
+    }
+
+    // HACK because this shit can only be used in Nougat and above
+    val paths = uri.pathSegments
+    return paths.size >= 2 && PATH_TREE == paths[0]
   }
 
   override fun onDestroy() {
@@ -137,5 +176,6 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
 
   companion object {
     const val TREE_URI = "tree_uri"
+    private const val PATH_TREE = "tree"
   }
 }

@@ -3,12 +3,64 @@ package com.github.k1rakishou.fsaf.manager
 import android.util.Log
 import com.github.k1rakishou.fsaf.extensions.appendMany
 import com.github.k1rakishou.fsaf.file.AbstractFile
+import com.github.k1rakishou.fsaf.file.FileDescriptorMode
 import com.github.k1rakishou.fsaf.file.RawFile
-import java.io.File
-import java.io.InputStream
-import java.io.OutputStream
+import java.io.*
 
 class RawFileManager : BaseFileManager {
+
+  override fun create(file: AbstractFile): RawFile? {
+    val root = file.getFileRoot<File>()
+    check(root !is AbstractFile.Root.FileRoot) {
+      "root is already FileRoot, cannot append anything anymore"
+    }
+
+    val segments = file.getFileSegments()
+    check(segments.isNotEmpty()) {
+      "root has already been created"
+    }
+
+    if (segments.isEmpty()) {
+      if (!root.holder.exists()) {
+        if (root.holder.isFile) {
+          if (!root.holder.createNewFile()) {
+            Log.e(TAG, "Couldn't create file, path = ${root.holder.absolutePath}")
+            return null
+          }
+        } else {
+          if (!root.holder.mkdirs()) {
+            Log.e(TAG, "Couldn't create directory, path = ${root.holder.absolutePath}")
+            return null
+          }
+        }
+      }
+
+      return file as RawFile
+    }
+
+    var newFile = root.holder
+    for (segment in segments) {
+      newFile = File(newFile, segment.name)
+
+      if (segment.isFileName) {
+        if (!newFile.exists() && !newFile.createNewFile()) {
+          Log.e(TAG, "Could not create a new file, path = " + newFile.absolutePath)
+          return null
+        }
+      } else {
+        if (!newFile.exists() && !newFile.mkdir()) {
+          Log.e(TAG, "Could not create a new directory, path = " + newFile.absolutePath)
+          return null
+        }
+      }
+
+      if (segment.isFileName) {
+        return RawFile(AbstractFile.Root.FileRoot(newFile, segment.name))
+      }
+    }
+
+    return RawFile(AbstractFile.Root.DirRoot(newFile))
+  }
 
   override fun exists(file: AbstractFile): Boolean = toFile(file.clone()).exists()
   override fun isFile(file: AbstractFile): Boolean = toFile(file.clone()).isFile
@@ -119,6 +171,21 @@ class RawFileManager : BaseFileManager {
       .listFiles()
       ?.map { file -> RawFile(AbstractFile.Root.DirRoot(file)) }
       ?: emptyList()
+  }
+
+  override fun <T> withFileDescriptor(
+    file: AbstractFile,
+    fileDescriptorMode: FileDescriptorMode,
+    func: (FileDescriptor) -> T?
+  ): T? {
+    val fileCopy = toFile(file.clone())
+
+    return when (fileDescriptorMode) {
+      FileDescriptorMode.Read -> FileInputStream(fileCopy).use { fis -> func(fis.fd) }
+      FileDescriptorMode.Write -> FileOutputStream(fileCopy, false).use { fos -> func(fos.fd) }
+      FileDescriptorMode.WriteTruncate -> FileOutputStream(fileCopy, true).use { fos -> func(fos.fd) }
+      else -> throw NotImplementedError("Not implemented for fileDescriptorMode = ${fileDescriptorMode.name}")
+    }
   }
 
   private fun toFile(file: AbstractFile): File {

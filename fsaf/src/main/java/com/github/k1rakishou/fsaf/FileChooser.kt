@@ -3,9 +3,9 @@ package com.github.k1rakishou.fsaf
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.provider.DocumentsContract
 import android.util.Log
 import android.webkit.MimeTypeMap
+import androidx.documentfile.provider.DocumentFile
 import com.github.k1rakishou.fsaf.callback.*
 import com.github.k1rakishou.fsaf.extensions.getMimeFromFilename
 
@@ -289,16 +289,16 @@ class FileChooser(
       return
     }
 
-    val documentId = DocumentsContract.getTreeDocumentId(uri)
-    val treeDocumentUri = DocumentsContract.buildDocumentUriUsingTree(uri, documentId)
-
     val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
       Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 
     val contentResolver = appContext.contentResolver
     contentResolver.takePersistableUriPermission(uri, flags)
 
-    callback.onResult(treeDocumentUri)
+    val treeUri = DocumentFile.fromTreeUri(appContext, uri)!!.uri
+    Log.d(TAG, "treeUri = ${treeUri}")
+
+    callback.onResult(treeUri)
   }
 
   companion object {

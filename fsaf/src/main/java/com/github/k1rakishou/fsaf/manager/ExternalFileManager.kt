@@ -1,32 +1,147 @@
 package com.github.k1rakishou.fsaf.manager
 
 import android.content.Context
-import android.net.Uri
+import android.os.ParcelFileDescriptor
+import android.provider.DocumentsContract
 import android.util.Log
+import android.webkit.MimeTypeMap
 import androidx.documentfile.provider.DocumentFile
 import com.github.k1rakishou.fsaf.FastFileSearchTree
+import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
+import com.github.k1rakishou.fsaf.document_file.SnapshotDocumentFile
+import com.github.k1rakishou.fsaf.extensions.getMimeFromFilename
 import com.github.k1rakishou.fsaf.extensions.splitIntoSegments
 import com.github.k1rakishou.fsaf.file.AbstractFile
 import com.github.k1rakishou.fsaf.file.ExternalFile
+import com.github.k1rakishou.fsaf.file.FileDescriptorMode
+import com.github.k1rakishou.fsaf.util.SAFHelper
+import java.io.FileDescriptor
 import java.io.InputStream
 import java.io.OutputStream
 
 class ExternalFileManager(
   private val appContext: Context,
-  private val searchMode: SearchMode = SearchMode.Fast
+  private val searchMode: SearchMode
 ) : BaseFileManager {
-  private val fastFileSearchTree: FastFileSearchTree<DocumentFile> = FastFileSearchTree()
+  private val mimeTypeMap = MimeTypeMap.getSingleton()
+  private val fastFileSearchTree: FastFileSearchTree<CachingDocumentFile> = FastFileSearchTree()
 
-  override fun exists(file: AbstractFile): Boolean = toDocumentFile(file.clone())?.exists() ?: false
+  fun getFastFileSearchTree() = fastFileSearchTree
+
+  fun cacheFiles(files: List<Pair<ExternalFile, SnapshotDocumentFile>>) {
+    for ((externalFile, snapshotDocFile) in files) {
+      val segments = externalFile.getFullPath().splitIntoSegments()
+      if (segments.isEmpty()) {
+        Log.e(TAG, "cacheFile.splitIntoSegments() returned empty list")
+        continue
+      }
+
+      check(fastFileSearchTree.insertSegments(segments, snapshotDocFile))
+    }
+  }
+
+  fun uncacheFile(file: AbstractFile) {
+    val segments = file.getFullPath().splitIntoSegments()
+    if (segments.isEmpty()) {
+      Log.e(TAG, "uncacheFile.splitIntoSegments() returned empty list")
+      return
+    }
+
+    fastFileSearchTree.removeSegments(segments)
+  }
+
+  @Suppress("UNCHECKED_CAST")
+  override fun create(file: AbstractFile): ExternalFile? {
+    val root = file.getFileRoot<CachingDocumentFile>()
+    check(root !is AbstractFile.Root.FileRoot) {
+      "root is already FileRoot, cannot append anything anymore"
+    }
+
+    val segments = file.getFileSegments()
+    check(segments.isNotEmpty()) {
+      "root has already been created"
+    }
+
+    var newFile: CachingDocumentFile? = null
+
+    for (segment in segments) {
+      val innerFile = newFile ?: root.holder
+
+      val mimeType = if (segment.isFileName) {
+        mimeTypeMap.getMimeFromFilename(segment.name)
+      } else {
+        DocumentsContract.Document.MIME_TYPE_DIR
+      }
+
+      val newUri = DocumentsContract.createDocument(
+        appContext.contentResolver,
+        innerFile.uri,
+        mimeType,
+        segment.name
+      )
+
+      if (newUri == null) {
+        Log.e(
+          TAG, "create() DocumentsContract.createDocument returned null, " +
+            "file.uri = ${innerFile.uri}, segment.name = ${segment.name}"
+        )
+        return null
+      }
+
+      val createdFile = if (segment.isFileName) {
+        DocumentFile.fromSingleUri(appContext, newUri)
+      } else {
+        DocumentFile.fromTreeUri(appContext, newUri)
+      }
+
+      if (createdFile == null) {
+        Log.e(
+          TAG, "create() DocumentFile.fromSingleUri returned null, directoryUri = ${newUri}"
+        )
+        return null
+      }
+
+      if (segment.isFileName) {
+        // Ignore any left segments (which we shouldn't have) after encountering fileName
+        // segment
+        return ExternalFile(
+          appContext, AbstractFile.Root.FileRoot(
+            CachingDocumentFile(appContext, createdFile),
+            segment.name
+          )
+        )
+      } else {
+        newFile = CachingDocumentFile(appContext, createdFile)
+      }
+    }
+
+    if (newFile == null) {
+      Log.e(TAG, "result file is null")
+      return null
+    }
+
+    val lastSegment = segments.last()
+    val isLastSegmentFilename = lastSegment.isFileName
+
+    val newRoot = if (isLastSegmentFilename) {
+      AbstractFile.Root.FileRoot(newFile, lastSegment.name)
+    } else {
+      AbstractFile.Root.DirRoot(newFile)
+    }
+
+    return ExternalFile(appContext, newRoot)
+  }
+
+  override fun exists(file: AbstractFile): Boolean = toDocumentFile(file.clone())?.exists ?: false
   override fun isFile(file: AbstractFile): Boolean = toDocumentFile(file.clone())?.isFile ?: false
   override fun isDirectory(file: AbstractFile): Boolean =
     toDocumentFile(file.clone())?.isDirectory ?: false
 
   override fun canRead(file: AbstractFile): Boolean =
-    toDocumentFile(file.clone())?.canRead() ?: false
+    toDocumentFile(file.clone())?.canRead ?: false
 
   override fun canWrite(file: AbstractFile): Boolean =
-    toDocumentFile(file.clone())?.canWrite() ?: false
+    toDocumentFile(file.clone())?.canWrite ?: false
 
   override fun getSegmentNames(file: AbstractFile): List<String> {
     return file.getFullPath().splitIntoSegments()
@@ -43,7 +158,7 @@ class ExternalFileManager(
       check(segments.isNotEmpty())
 
       if (!fastFileSearchTree.removeSegments(segments)) {
-        Log.e(TAG, "Couldn't remove segments $segments from fastFileSearchTree")
+        Log.e(TAG, "delete(), Couldn't remove segments $segments from fastFileSearchTree")
         return false
       }
     }
@@ -67,7 +182,7 @@ class ExternalFileManager(
         val segments = fileInDirectory.uri.toString().splitIntoSegments()
 
         if (!fastFileSearchTree.removeSegments(segments)) {
-          Log.e(TAG, "Couldn't remove segments $segments from fastFileSearchTree")
+          Log.e(TAG, "deleteContent() Couldn't remove segments $segments from fastFileSearchTree")
           return
         }
       }
@@ -85,7 +200,7 @@ class ExternalFileManager(
       return null
     }
 
-    if (!documentFile.exists()) {
+    if (!documentFile.exists) {
       Log.e(TAG, "getInputStream() documentFile does not exist, uri = ${documentFile.uri}")
       return null
     }
@@ -95,7 +210,7 @@ class ExternalFileManager(
       return null
     }
 
-    if (!documentFile.canRead()) {
+    if (!documentFile.canRead) {
       Log.e(TAG, "getInputStream() cannot read from documentFile, uri = ${documentFile.uri}")
       return null
     }
@@ -112,7 +227,7 @@ class ExternalFileManager(
       return null
     }
 
-    if (!documentFile.exists()) {
+    if (!documentFile.exists) {
       Log.e(TAG, "getOutputStream() documentFile does not exist, uri = ${documentFile.uri}")
       return null
     }
@@ -122,7 +237,7 @@ class ExternalFileManager(
       return null
     }
 
-    if (!documentFile.canWrite()) {
+    if (!documentFile.canWrite) {
       Log.e(TAG, "getOutputStream() cannot write to documentFile, uri = ${documentFile.uri}")
       return null
     }
@@ -144,62 +259,54 @@ class ExternalFileManager(
   }
 
   override fun findFile(dir: AbstractFile, fileName: String): ExternalFile? {
-    val root = dir.getFileRoot<DocumentFile>()
+    val root = dir.getFileRoot<CachingDocumentFile>()
     val segments = dir.getFileSegments()
+
     check(root !is AbstractFile.Root.FileRoot) { "Cannot use FileRoot as directory" }
+    check(!segments.last().isFileName) { "Cannot do search when last segment is file" }
 
-    val filteredSegments = segments
-      .map { it.name }
-
-    var dirTree = root.holder
-    for (segment in filteredSegments) {
-      // FIXME: SLOW!!!
-      for (documentFile in dirTree.listFiles()) {
-        if (documentFile.name != null && documentFile.name == segment) {
-          dirTree = documentFile
-          break
-        }
-      }
-    }
-
-    // FIXME: SLOW!!!
-    for (documentFile in dirTree.listFiles()) {
-      if (documentFile.name != null && documentFile.name == fileName) {
-        val innerRoot = if (documentFile.isFile) {
-          AbstractFile.Root.FileRoot(documentFile, documentFile.name!!)
-        } else {
-          AbstractFile.Root.DirRoot(documentFile)
-        }
-
-        return ExternalFile(
-          appContext,
-          innerRoot
-        )
-      }
-    }
-
-    if (dirTree.name == fileName) {
-      val innerRoot = if (dirTree.isFile) {
-        AbstractFile.Root.FileRoot(dirTree, dirTree.name!!)
+    val parentDocFile = if (segments.isNotEmpty()) {
+      SAFHelper.findDeepFile(appContext, root.holder.uri, segments)
+    } else {
+      val docFile = DocumentFile.fromSingleUri(appContext, root.holder.uri)
+      if (docFile != null) {
+        CachingDocumentFile(appContext, docFile)
       } else {
-        AbstractFile.Root.DirRoot(dirTree)
+        null
       }
-
-      return ExternalFile(
-        appContext,
-        innerRoot
-      )
     }
 
-    // Not found
-    return null
+    if (parentDocFile == null) {
+      return null
+    }
+
+    // TODO: change this to SAFHelper.findCachingFile when it is implemented
+    val snapshotDocumentFile = SAFHelper.findSnapshotFile(appContext, parentDocFile.uri, fileName)
+    if (snapshotDocumentFile == null || !snapshotDocumentFile.exists) {
+      return null
+    }
+
+    val cachingDocFile = CachingDocumentFile(
+      appContext,
+      snapshotDocumentFile.delegate
+    )
+
+    val innerRoot = if (cachingDocFile.isFile) {
+      AbstractFile.Root.FileRoot(cachingDocFile, cachingDocFile.name!!)
+    } else {
+      AbstractFile.Root.DirRoot(cachingDocFile)
+    }
+
+    return ExternalFile(
+      appContext,
+      innerRoot
+    )
   }
 
-  override fun getLength(file: AbstractFile): Long = toDocumentFile(file.clone())?.length() ?: -1L
+  override fun getLength(file: AbstractFile): Long = toDocumentFile(file.clone())?.length ?: -1L
 
   override fun listFiles(dir: AbstractFile): List<ExternalFile> {
-    val root = dir.getFileRoot<DocumentFile>()
-
+    val root = dir.getFileRoot<CachingDocumentFile>()
     check(root !is AbstractFile.Root.FileRoot) { "Cannot use listFiles with FileRoot" }
 
     return toDocumentFile(dir.clone())
@@ -209,89 +316,40 @@ class ExternalFileManager(
   }
 
   override fun lastModified(file: AbstractFile): Long {
-    return toDocumentFile(file.clone())?.lastModified() ?: 0L
+    return toDocumentFile(file.clone())?.lastModified ?: 0L
   }
 
-  private fun toDocumentFile(file: AbstractFile): DocumentFile? {
+  private fun toDocumentFile(file: AbstractFile): CachingDocumentFile? {
     val segments = file.getFileSegments()
     if (segments.isEmpty()) {
-      return file.getFileRoot<DocumentFile>().holder
+      return file.getFileRoot<CachingDocumentFile>().holder
     }
 
-    val root = file.getFileRoot<DocumentFile>()
-    var documentFile: DocumentFile = root.holder
-    var index = 0
-
-    for (element in segments) {
-      val foundFile = supaFastSearch(documentFile, element.name)
-      if (foundFile == null) {
-        break
-      }
-
-      documentFile = foundFile
-      ++index
-    }
-
-    if (index != segments.size) {
-      return createDocumentFileFromUri(file, documentFile.uri, index)
-    }
-
-    return documentFile
+    val parentUri = file.getFileRoot<CachingDocumentFile>().holder.uri
+    return SAFHelper.findDeepFile(appContext, parentUri, segments)
   }
 
-  private fun supaFastSearch(dir: DocumentFile, fileName: String): DocumentFile? {
-    val segments = dir.uri
-      .buildUpon()
-      .appendPath(fileName)
-      .build()
-      .toString()
-      .splitIntoSegments()
-
-    check(segments.isNotEmpty())
-    segments.forEach { segment -> check(segment.isNotBlank()) }
-
-    var foundFile = if (searchMode == SearchMode.Fast) {
-      fastFileSearchTree.findSegment(segments)
-    } else {
-      null
-    }
-
-    if (foundFile != null) {
-      if (foundFile.exists()) {
-        return foundFile
-      }
-
-      // File exists in the cache but not on the disk, so we need to remove it from the disk
-      check(fastFileSearchTree.removeSegments(segments))
-    }
-
-    val filesInDirectory = dir.listFiles()
-    if (filesInDirectory.isEmpty()) {
-      return null
-    }
-
-    foundFile = filesInDirectory.firstOrNull { file -> file.name == fileName }
-    if (foundFile == null) {
-      return null
-    }
-
-    for (file in filesInDirectory) {
-      // Cache all of the files in the directory
-      check(fastFileSearchTree.insertSegments(segments, foundFile))
-    }
-
-    return foundFile
+  override fun <T> withFileDescriptor(
+    file: AbstractFile,
+    fileDescriptorMode: FileDescriptorMode,
+    func: (FileDescriptor) -> T?
+  ): T? {
+    return getParcelFileDescriptor(file, fileDescriptorMode)
+      ?.use { pfd -> func(pfd.fileDescriptor) }
+      ?: throw IllegalStateException(
+        "Could not get ParcelFileDescriptor " +
+          "from root with uri = ${file.getFileRoot<DocumentFile>().holder.uri}"
+      )
   }
 
-  private fun createDocumentFileFromUri(file: AbstractFile, uri: Uri, index: Int): DocumentFile? {
-    val builder = uri.buildUpon()
-    val segments = file.getFileSegments()
-
-    for (i in index until segments.size) {
-      builder.appendPath(segments[i].name)
-    }
-
-    return DocumentFile.fromSingleUri(appContext, builder.build())
+  private fun getParcelFileDescriptor(
+    file: AbstractFile,
+    fileDescriptorMode: FileDescriptorMode
+  ): ParcelFileDescriptor? {
+    return appContext.contentResolver.openFileDescriptor(
+      file.getFileRoot<DocumentFile>().holder.uri,
+      fileDescriptorMode.mode
+    )
   }
 
   /**

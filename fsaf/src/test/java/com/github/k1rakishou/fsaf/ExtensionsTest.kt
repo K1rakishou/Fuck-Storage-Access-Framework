@@ -8,7 +8,7 @@ class ExtensionsTest {
 
   @Test
   fun testSplitIntoSegments() {
-    val string = "content://com.android.externalstorage.documents/tree/0EF0-1C1F%3Atest/document/0EF0-1C1F%3Atest"
+    val string = "content://com.android.externalstorage.documents/tree/0EF0-1C1F%3Atest/document/0EF0-1C1F%3Atest%2Ftest"
 
     /**
      * com.android.externalstorage.documents
@@ -16,15 +16,17 @@ class ExtensionsTest {
      * 0EF0-1C1F%3Atest
      * document
      * 0EF0-1C1F%3Atest
+     * test
      * */
 
     val segments = string.splitIntoSegments()
-    assertEquals(5, segments.size)
+    assertEquals(6, segments.size)
 
     assertEquals("com.android.externalstorage.documents", segments[0])
     assertEquals("tree", segments[1])
     assertEquals("0EF0-1C1F%3Atest", segments[2])
     assertEquals("document", segments[3])
     assertEquals("0EF0-1C1F%3Atest", segments[4])
+    assertEquals("test", segments[5])
   }
 }

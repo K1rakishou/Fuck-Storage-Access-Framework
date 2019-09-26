@@ -5,23 +5,23 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
+import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
 import com.github.k1rakishou.fsaf.extensions.copyInto
-import com.github.k1rakishou.fsaf.file.AbstractFile
-import com.github.k1rakishou.fsaf.file.ExternalFile
-import com.github.k1rakishou.fsaf.file.FileManagerId
-import com.github.k1rakishou.fsaf.file.RawFile
+import com.github.k1rakishou.fsaf.file.*
 import com.github.k1rakishou.fsaf.manager.BaseFileManager
 import com.github.k1rakishou.fsaf.manager.ExternalFileManager
 import com.github.k1rakishou.fsaf.manager.RawFileManager
-import java.io.File
-import java.io.IOException
-import java.io.InputStream
-import java.io.OutputStream
+import com.github.k1rakishou.fsaf.util.SAFHelper
+import java.io.*
 import java.util.*
+
 
 class FileManager(
   private val appContext: Context,
-  externalFileManager: ExternalFileManager = ExternalFileManager(appContext),
+  externalFileManager: ExternalFileManager = ExternalFileManager(
+    appContext,
+    ExternalFileManager.SearchMode.Fast
+  ),
   rawFileManager: RawFileManager = RawFileManager()
 ) : BaseFileManager {
   private val managers = mutableMapOf<FileManagerId, BaseFileManager>()
@@ -36,11 +36,13 @@ class FileManager(
   }
 
   fun getExternalFileManager(): ExternalFileManager {
-    return managers[ExternalFile.FILE_MANAGER_ID]!! as ExternalFileManager
+    return managers[ExternalFile.FILE_MANAGER_ID] as? ExternalFileManager
+      ?: throw IllegalStateException("ExternalFileManager is not added")
   }
 
   fun getRawFileManager(): RawFileManager {
-    return managers[RawFile.FILE_MANAGER_ID]!! as RawFileManager
+    return managers[RawFile.FILE_MANAGER_ID] as? RawFileManager
+      ?: throw IllegalStateException("RawFileManager is not added")
   }
 
   //=======================================================
@@ -101,17 +103,13 @@ class FileManager(
    * AbstractFile. If a file does not exist null is returned.
    * Does not create file on the disk automatically!
    * */
-  fun fromUri(uri: Uri): ExternalFile? {
+  fun fromUri(uri: Uri): ExternalFile {
     val documentFile = toDocumentFile(uri)
-    if (documentFile == null) {
-      return null
-    }
+      ?: throw IllegalStateException("toDocumentFile returned null, uri = $uri")
 
     return if (documentFile.isFile) {
       val filename = documentFile.name
-      if (filename == null) {
-        throw IllegalStateException("fromUri() queryTreeName() returned null")
-      }
+        ?: throw IllegalStateException("fromUri() queryTreeName() returned null")
 
       ExternalFile(appContext, AbstractFile.Root.FileRoot(documentFile, filename))
     } else {
@@ -185,6 +183,12 @@ class FileManager(
 //    return RawFile(AbstractFile.Root.DirRoot(File(path)))
 //  }
 
+  // TODO: Make this better
+  override fun create(file: AbstractFile): AbstractFile? {
+    return managers[file.getFileManagerId()]?.create(file)
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+  }
+
   /**
    * Copy one file's contents into another
    * */
@@ -236,6 +240,7 @@ class FileManager(
       return false
     }
 
+    // TODO: replace with traverse directory
     val files = collectAllFilesInDirTree(sourceDir, includeEmptyDirectories)
     if (files.isEmpty()) {
       // No files, so do nothing
@@ -266,10 +271,11 @@ class FileManager(
       // /456/111/2.txt
       // /456/222/3.txt
       //
-      val fileInNewDirectory = destDir
-        .clone()
-        .appendFileNameSegment(file.getFullPath().removePrefix(prefix))
-        .createNew()
+      val fileInNewDirectory = create(
+        destDir
+          .clone()
+          .appendFileNameSegment(file.getFullPath().removePrefix(prefix))
+      )
 
       if (fileInNewDirectory == null) {
         Log.e(TAG, "Couldn't create inner file with name ${getName(file)}")
@@ -303,7 +309,7 @@ class FileManager(
       return 0
     }
 
-    return collectAllFilesInDirTree(sourceDir, false).size
+    TODO("Replace with traverseDirectory")
   }
 
   fun collectAllFilesInDirTree(
@@ -347,6 +353,68 @@ class FileManager(
     return files
   }
 
+  /**
+   * [recursively] means that all of the subdirectories and their subdirectories will be traversed.
+   * If false then only the [sourceDir] dir's files will be traversed
+   * */
+  fun traverseDirectory(
+    sourceDir: AbstractFile,
+    recursively: Boolean,
+    traverseMode: TraverseMode,
+    func: (AbstractFile) -> Unit
+  ) {
+    if (!exists(sourceDir)) {
+      Log.e(TAG, "Source directory does not exists, path = ${sourceDir.getFullPath()}")
+      return
+    }
+
+    if (!isDirectory(sourceDir)) {
+      Log.e(TAG, "Source directory is not a directory, path = ${sourceDir.getFullPath()}")
+      return
+    }
+
+    if (listFiles(sourceDir).isEmpty()) {
+      Log.d(TAG, "Source directory is empty, nothing to copy")
+      return
+    }
+
+    if (!recursively) {
+      listFiles(sourceDir).forEach { file -> func(file) }
+      return
+    }
+
+    val queue = LinkedList<AbstractFile>()
+    queue.offer(sourceDir)
+
+    // Collect all of the inner files in the source directory
+    while (queue.isNotEmpty()) {
+      val file = queue.poll()
+        ?: break
+
+      when {
+        isDirectory(file) -> {
+          val innerFiles = listFiles(file)
+          if (traverseMode.includeDirs()) {
+            func(file)
+          }
+
+          innerFiles.forEach { innerFile ->
+            queue.offer(innerFile)
+          }
+        }
+        isFile(file) -> {
+          if (traverseMode.includeFiles()) {
+            func(file)
+          }
+        }
+        else -> throw IllegalArgumentException(
+          "traverseMode does not include neither dir now files, " +
+            "traverseMode = ${traverseMode.name}"
+        )
+      }
+    }
+  }
+
   fun forgetSAFTree(directory: AbstractFile): Boolean {
     if (directory !is ExternalFile) {
       // Only ExternalFile is being used with SAF
@@ -354,7 +422,6 @@ class FileManager(
     }
 
     val uri = Uri.parse(directory.getFullPath())
-
     if (!exists(directory)) {
       Log.e(
         TAG,
@@ -385,102 +452,171 @@ class FileManager(
 
   override fun exists(file: AbstractFile): Boolean {
     return managers[file.getFileManagerId()]?.exists(file)
-      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}, " +
+        "fileManagerId = ${file.getFileManagerId()}")
   }
 
   override fun isFile(file: AbstractFile): Boolean {
     return managers[file.getFileManagerId()]?.isFile(file)
-      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}, " +
+        "fileManagerId = ${file.getFileManagerId()}")
   }
 
   override fun isDirectory(file: AbstractFile): Boolean {
     return managers[file.getFileManagerId()]?.isDirectory(file)
-      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}, " +
+        "fileManagerId = ${file.getFileManagerId()}")
   }
 
   override fun canRead(file: AbstractFile): Boolean {
     return managers[file.getFileManagerId()]?.canRead(file)
-      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}, " +
+        "fileManagerId = ${file.getFileManagerId()}")
   }
 
   override fun canWrite(file: AbstractFile): Boolean {
     return managers[file.getFileManagerId()]?.canWrite(file)
-      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}, " +
+        "fileManagerId = ${file.getFileManagerId()}")
   }
 
   override fun getSegmentNames(file: AbstractFile): List<String> {
     return managers[file.getFileManagerId()]?.getSegmentNames(file)
-      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}, " +
+        "fileManagerId = ${file.getFileManagerId()}")
   }
 
   override fun delete(file: AbstractFile): Boolean {
     return managers[file.getFileManagerId()]?.delete(file)
-      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}, " +
+        "fileManagerId = ${file.getFileManagerId()}")
   }
 
   override fun deleteContent(dir: AbstractFile) {
     managers[dir.getFileManagerId()]?.deleteContent(dir)
-      ?: throw NotImplementedError("Not implemented for ${dir.javaClass.name}")  }
+      ?: throw NotImplementedError("Not implemented for ${dir.javaClass.name}, " +
+        "fileManagerId = ${dir.getFileManagerId()}")
+  }
 
   override fun getInputStream(file: AbstractFile): InputStream? {
-    return managers[file.getFileManagerId()]?.getInputStream(file)
-      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+    val manager = managers[file.getFileManagerId()]
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}, " +
+        "fileManagerId = ${file.getFileManagerId()}")
+
+    return manager.getInputStream(file)
   }
 
   override fun getOutputStream(file: AbstractFile): OutputStream? {
-    return managers[file.getFileManagerId()]?.getOutputStream(file)
-      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+    val manager = managers[file.getFileManagerId()]
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}, " +
+        "fileManagerId = ${file.getFileManagerId()}")
+
+    return manager.getOutputStream(file)
   }
 
   override fun getName(file: AbstractFile): String {
     return managers[file.getFileManagerId()]?.getName(file)
-      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}, " +
+        "fileManagerId = ${file.getFileManagerId()}")
   }
 
   override fun findFile(dir: AbstractFile, fileName: String): AbstractFile? {
-    return managers[dir.getFileManagerId()]?.findFile(dir, fileName)
-      ?: throw NotImplementedError("Not implemented for ${dir.javaClass.name}")
+    val manager = managers[dir.getFileManagerId()]
+      ?: throw NotImplementedError("Not implemented for ${dir.javaClass.name}, " +
+        "fileManagerId = ${dir.getFileManagerId()}")
+
+    return manager.findFile(dir, fileName)
   }
 
   override fun getLength(file: AbstractFile): Long {
     return managers[file.getFileManagerId()]?.getLength(file)
-      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}, " +
+        "fileManagerId = ${file.getFileManagerId()}")
   }
 
   override fun listFiles(dir: AbstractFile): List<AbstractFile> {
     return managers[dir.getFileManagerId()]?.listFiles(dir)
-      ?: throw NotImplementedError("Not implemented for ${dir.javaClass.name}")
+      ?: throw NotImplementedError("Not implemented for ${dir.javaClass.name}, " +
+        "fileManagerId = ${dir.getFileManagerId()}")
   }
 
   override fun lastModified(file: AbstractFile): Long {
     return managers[file.getFileManagerId()]?.lastModified(file)
+      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}, " +
+        "fileManagerId = ${file.getFileManagerId()}")
+  }
+
+  override fun <T> withFileDescriptor(
+    file: AbstractFile,
+    fileDescriptorMode: FileDescriptorMode,
+    func: (FileDescriptor) -> T?
+  ): T? {
+    return managers[file.getFileManagerId()]?.withFileDescriptor(file, fileDescriptorMode, func)
       ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
   }
 
-  private fun toDocumentFile(uri: Uri): DocumentFile? {
-    if (!DocumentFile.isDocumentUri(appContext, uri)) {
-      Log.e(TAG, "Not a DocumentFile, uri = $uri")
-      return null
+  fun snapshot(dir: ExternalFile, includeSubDirs: Boolean = false, func: () -> Unit) {
+    val externalFileManager = getExternalFileManager()
+    val directories = arrayListOf<ExternalFile>().apply { this.ensureCapacity(16) }
+
+    traverseDirectory(dir, includeSubDirs, TraverseMode.OnlyDirs) { file ->
+      directories += file as ExternalFile
     }
 
-    val treeUri = try {
-      // Will throw an exception if uri is not a treeUri. Hacky as fuck but I don't know
-      // another way to check it.
-      DocumentFile.fromTreeUri(appContext, uri)
-    } catch (ignored: IllegalArgumentException) {
-      null
+    for (directory in directories) {
+      val parentUri = directory.getFileRoot<CachingDocumentFile>().holder.uri
+      val documentFiles = SAFHelper.listFilesFast(appContext, parentUri)
+
+      if (documentFiles.isNotEmpty()) {
+        val pairs = documentFiles
+          .map { docFile ->
+            if (docFile.name == null) {
+              return@map null
+            }
+
+            val root = if (docFile.isDirectory) {
+              AbstractFile.Root.DirRoot(docFile)
+            } else {
+              AbstractFile.Root.FileRoot(docFile, docFile.name!!)
+            }
+
+            return@map Pair(
+              ExternalFile(appContext, root as AbstractFile.Root<CachingDocumentFile>),
+              docFile
+            )
+          }
+          .filterNotNull()
+
+        externalFileManager.cacheFiles(pairs)
+      }
     }
 
-    if (treeUri != null) {
-      return treeUri
+    try {
+      func()
+    } finally {
+      externalFileManager.uncacheFile(dir)
     }
+  }
 
-    return try {
-      DocumentFile.fromSingleUri(appContext, uri)
+  private fun toDocumentFile(uri: Uri): CachingDocumentFile? {
+    try {
+      val file = DocumentFile.fromSingleUri(appContext, uri)
+        ?: return null
+
+      return CachingDocumentFile(appContext, file)
     } catch (e: IllegalArgumentException) {
       Log.e(TAG, "Provided uri is neither a treeUri nor singleUri, uri = $uri")
-      null
+      return null
     }
+  }
+
+  enum class TraverseMode {
+    OnlyFiles,
+    OnlyDirs,
+    Both;
+
+    fun includeDirs(): Boolean = this == OnlyDirs || this == Both
+    fun includeFiles(): Boolean = this == OnlyFiles || this == Both
   }
 
   companion object {

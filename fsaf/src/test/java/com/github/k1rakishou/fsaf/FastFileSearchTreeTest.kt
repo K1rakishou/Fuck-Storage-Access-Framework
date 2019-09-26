@@ -77,12 +77,10 @@ class FastFileSearchTreeTest {
     assertEquals(10, fastFileSearchTree.root.getNodeChildren().size)
 
     balancedSegmentsList.forEach { pathToVisit ->
-      fastFileSearchTree.visitPath(pathToVisit) { index, node ->
+      fastFileSearchTree.visitEverySegmentInPath(pathToVisit) { index, node ->
         assertEquals(pathToVisit[index], node.getNodeName())
         assertEquals(1, node.getNodeChildren().size)
         assertEquals(valuesList[index], node.getNodeChildren())
-
-        return@visitPath true
       }
     }
 
@@ -102,12 +100,10 @@ class FastFileSearchTreeTest {
     assertEquals(10, fastFileSearchTree.root.getNodeChildren().size)
 
     balancedSegmentsList.forEach { pathToVisit ->
-      fastFileSearchTree.visitPath(pathToVisit) { index, node ->
+      fastFileSearchTree.visitEverySegmentInPath(pathToVisit) { index, node ->
         assertEquals(pathToVisit[index], node.getNodeName())
         assertEquals(1, node.getNodeChildren().size)
         assertEquals(valuesList[index], node.getNodeChildren())
-
-        return@visitPath true
       }
     }
 
@@ -195,7 +191,7 @@ class FastFileSearchTreeTest {
     val segmentsNotExisting = listOf("123", "456", "789", "111.txt")
 
     assertTrue(fastFileSearchTree.insertSegments(segments, 1))
-    assertFalse(fastFileSearchTree.removeSegments(segmentsNotExisting))
+    assertTrue(fastFileSearchTree.removeSegments(segmentsNotExisting))
     assertNull(fastFileSearchTree.findSegment(segmentsNotExisting))
     assertEquals(1, fastFileSearchTree.findSegment(segments))
   }
@@ -208,6 +204,9 @@ class FastFileSearchTreeTest {
     assertTrue(fastFileSearchTree.insertSegments(segments, 1))
     assertTrue(fastFileSearchTree.containsSegment(segments.take(1)))
   }
+
+  // TODO: visit tests
+  // TODO: clear tests
 
   private fun assertChildrenAreLeafs(children: MutableMap<String, FastFileSearchTreeNode<Int>>) {
     assertEquals(0, children["0"]!!.getNodeChildren()["00"]!!.getNodeChildren()["000.txt"]!!.getNodeChildren().size)
@@ -224,7 +223,7 @@ class FastFileSearchTreeTest {
 
   private fun nodeTypesCheck(fastFileSearchTree: FastFileSearchTree<Int>) {
     val collectedNodes = mutableListOf<FastFileSearchTreeNode<Int>>()
-    fastFileSearchTree.visit { node ->
+    fastFileSearchTree.visitAllSegments { node ->
       collectedNodes += node
     }
 

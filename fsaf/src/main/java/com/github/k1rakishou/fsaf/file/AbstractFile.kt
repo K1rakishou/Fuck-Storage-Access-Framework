@@ -109,7 +109,7 @@ abstract class AbstractFile(
    * /test/123/test2/filename.txt -> 4 segments
    * */
   protected val segments: MutableList<Segment>
-) : HasFileManagerId {
+) : IsFileManager {
 
   fun getFileSegments(): List<Segment> {
     return segments
@@ -133,18 +133,6 @@ abstract class AbstractFile(
   @MutableMethod
   abstract fun appendFileNameSegment(name: String): AbstractFile
 
-  /**
-   * Creates a new file that consists of the root directory and segments (sub dirs or the file name)
-   * Behave similarly to Java's mkdirs() method but work not only with directories but files as well.
-   * */
-  @ImmutableMethod
-  abstract fun createNew(): AbstractFile?
-
-  @ImmutableMethod
-  fun create(): Boolean {
-    return createNew() != null
-  }
-
   @ImmutableMethod
   abstract fun getFullPath(): String
 
@@ -158,9 +146,8 @@ abstract class AbstractFile(
   abstract fun clone(): AbstractFile
 
   protected fun appendSubDirSegmentInner(name: String): AbstractFile {
-    check(!isFilenameAppended()) { "Cannot append anything after file name has been appended" }
     require(!name.isBlank()) { "Bad name: $name" }
-
+    check(!isFilenameAppended()) { "Cannot append anything after file name has been appended" }
 
     name.splitIntoSegments()
       .map { splitName -> Segment(splitName) }
@@ -170,8 +157,8 @@ abstract class AbstractFile(
   }
 
   protected fun appendFileNameSegmentInner(name: String): AbstractFile {
-    check(!isFilenameAppended()) { "Cannot append anything after file name has been appended" }
     require(!name.isBlank()) { "Bad name: $name" }
+    check(!isFilenameAppended()) { "Cannot append anything after file name has been appended" }
 
     val nameList = name.splitIntoSegments()
 
@@ -253,8 +240,8 @@ abstract class AbstractFile(
   )
 }
 
-interface HasFileManagerId {
+interface IsFileManager {
   fun getFileManagerId(): FileManagerId
 }
 
-inline class FileManagerId(val id: String)
+class FileManagerId(val id: String)
