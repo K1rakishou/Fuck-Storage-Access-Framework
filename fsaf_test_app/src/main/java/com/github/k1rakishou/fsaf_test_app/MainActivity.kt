@@ -9,17 +9,14 @@ import android.os.Environment
 import android.provider.DocumentsContract
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.documentfile.provider.DocumentFile
 import com.github.k1rakishou.fsaf.FileChooser
 import com.github.k1rakishou.fsaf.FileManager
 import com.github.k1rakishou.fsaf.callback.DirectoryChooserCallback
 import com.github.k1rakishou.fsaf.callback.FSAFActivityCallbacks
-import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
-import com.github.k1rakishou.fsaf.file.ExternalFile
-import com.github.k1rakishou.fsaf.file.Root
 import com.github.k1rakishou.fsaf.manager.ExternalFileManager
 import com.github.k1rakishou.fsaf_test_app.tests.TestSuite
 import kotlinx.android.synthetic.main.activity_main.*
+import java.io.File
 
 class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
   private lateinit var testSuite: TestSuite
@@ -88,20 +85,12 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
 
     run_tests_button.setOnClickListener {
       try {
-        val dirDoc = CachingDocumentFile(
-          applicationContext,
-          DocumentFile.fromTreeUri(applicationContext, getTreeUri()!!)!!
-        )
-
-        val root = Root.DirRoot(dirDoc)
-        val baseDir = ExternalFile(
-          applicationContext,
-          root
-        )
+        val baseSAFDir = fastFileManager.fromUri(getTreeUri()!!)
+        val baseFileApiDir = fastFileManager.fromRawFile(File(Environment.getDownloadCacheDirectory(), "test"))
 
         testSuite.runTests(
-          baseDir,
-          Environment.getDownloadCacheDirectory()
+          baseSAFDir,
+          baseFileApiDir
         )
 
         val message = "=== ALL TESTS HAVE PASSED ==="

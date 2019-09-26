@@ -97,7 +97,7 @@ class FileManager(
   }
 
   /**
-   * Create an external file from Uri.
+   * Creates an external file from Uri.
    * Use this method to convert external file uri (file that may be located at sd card) into an
    * AbstractFile. If a file does not exist null is returned.
    * Does not create file on the disk automatically!
@@ -108,7 +108,7 @@ class FileManager(
 
     return if (documentFile.isFile) {
       val filename = documentFile.name
-        ?: throw IllegalStateException("fromUri() queryTreeName() returned null")
+        ?: throw IllegalStateException("fromUri() DocumentFile.getName() returned null")
 
       ExternalFile(appContext, Root.FileRoot(documentFile, filename))
     } else {
@@ -523,8 +523,18 @@ class FileManager(
 
   private fun toDocumentFile(uri: Uri): CachingDocumentFile? {
     try {
-      val file = DocumentFile.fromSingleUri(appContext, uri)
-        ?: return null
+      val file = try {
+        // Will throw an exception if uri is not a treeUri. Hacky as fuck but I don't know
+        // another way to check it.
+        DocumentFile.fromTreeUri(appContext, uri)
+      } catch (ignored: IllegalArgumentException) {
+        DocumentFile.fromSingleUri(appContext, uri)
+      }
+
+      if (file == null) {
+        Log.e(TAG, "Couldn't convert uri ${uri} into a DocumentFile")
+        return null
+      }
 
       return CachingDocumentFile(appContext, file)
     } catch (e: IllegalArgumentException) {

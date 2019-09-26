@@ -2,14 +2,13 @@ package com.github.k1rakishou.fsaf_test_app.tests
 
 import com.github.k1rakishou.fsaf.FileManager
 import com.github.k1rakishou.fsaf.file.AbstractFile
-import java.io.File
 
 class CopyTest(
   tag: String,
   isFastMode: Boolean
 ) : BaseTest(tag, isFastMode) {
 
-  fun runCopyTests(fileManager: FileManager, baseDir: AbstractFile, baseDirFile: File) {
+  fun runCopyTests(fileManager: FileManager, baseDir: AbstractFile, baseDirFile: AbstractFile) {
     fileManager.deleteContent(baseDir)
 
     val srcDir = fileManager.createDir(
