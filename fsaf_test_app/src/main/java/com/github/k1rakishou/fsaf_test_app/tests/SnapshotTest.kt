@@ -62,8 +62,14 @@ class SnapshotTest(
 
             fileManager.getLength(file)
             fileManager.lastModified(file)
-            fileManager.canRead(file)
-            fileManager.canWrite(file)
+
+            if (!fileManager.canRead(file)) {
+              throw TestException("Cannot read ${file.getFullPath()}")
+            }
+
+            if (!fileManager.canWrite(file)) {
+              throw TestException("Cannot write to ${file.getFullPath()}")
+            }
           }
         }
 

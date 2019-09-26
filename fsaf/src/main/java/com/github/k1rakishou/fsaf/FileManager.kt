@@ -257,8 +257,11 @@ class FileManager(
       return false
     }
 
-    // TODO: replace with traverse directory
-    val files = collectAllFilesInDirTree(sourceDir, includeEmptyDirectories)
+    val files = mutableListOf<AbstractFile>()
+    traverseDirectory(sourceDir, includeEmptyDirectories, TraverseMode.Both) { file ->
+      files += file
+    }
+
     if (files.isEmpty()) {
       // No files, so do nothing
       Log.d(TAG, "No files were collected, nothing to copy")
@@ -307,66 +310,6 @@ class FileManager(
     }
 
     return true
-  }
-
-  fun countAllFilesInDirTree(sourceDir: AbstractFile): Int {
-    if (!exists(sourceDir)) {
-      Log.e(TAG, "Source directory does not exists, path = ${sourceDir.getFullPath()}")
-      return 0
-    }
-
-    if (listFiles(sourceDir).isEmpty()) {
-      Log.d(TAG, "Source directory is empty")
-      return 0
-    }
-
-    if (!isDirectory(sourceDir)) {
-      Log.e(TAG, "Source directory is not a directory, path = ${sourceDir.getFullPath()}")
-      return 0
-    }
-
-    TODO("Replace with traverseDirectory")
-  }
-
-  fun collectAllFilesInDirTree(
-    sourceDir: AbstractFile,
-    includeEmptyDirs: Boolean = false
-  ): List<AbstractFile> {
-    if (!exists(sourceDir)) {
-      Log.e(TAG, "Source directory does not exists, path = ${sourceDir.getFullPath()}")
-      return emptyList()
-    }
-
-    if (listFiles(sourceDir).isEmpty()) {
-      Log.d(TAG, "Source directory is empty, nothing to copy")
-      return emptyList()
-    }
-
-    if (!isDirectory(sourceDir)) {
-      Log.e(TAG, "Source directory is not a directory, path = ${sourceDir.getFullPath()}")
-      return emptyList()
-    }
-
-    val queue = LinkedList<AbstractFile>()
-    val files = mutableListOf<AbstractFile>()
-    queue.offer(sourceDir)
-
-    // Collect all of the inner files in the source directory
-    while (queue.isNotEmpty()) {
-      val file = queue.poll()!!
-      if (isDirectory(file)) {
-        val innerFiles = listFiles(file)
-        if (innerFiles.isEmpty() && includeEmptyDirs) {
-          files.add(file)
-        }
-
-        innerFiles.forEach { queue.offer(it) }
-      } else {
-        files.add(file)
-      }
-    }
-
-    return files
   }
 
   /**

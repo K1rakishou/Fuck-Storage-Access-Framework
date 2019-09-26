@@ -27,7 +27,11 @@ class TestSuite(
         }
     }
 
-    private fun runTestsWithCaching(fileManager: FileManager, baseDirSAF: AbstractFile, baseDirFile: File) {
+    private fun runTestsWithCaching(
+        fileManager: FileManager,
+        baseDirSAF: AbstractFile,
+        baseDirFile: File
+    ) {
         val time = measureTimeMillis {
             SimpleTest("$TAG SimpleTest", true).runTests(fileManager, baseDirSAF)
             CreateFilesTest("$TAG CreateFilesTest", true).runTests(fileManager, baseDirSAF)
@@ -37,7 +41,11 @@ class TestSuite(
         println("$TAG runTestsWithCaching took ${time}ms")
     }
 
-    private fun runTestsWithoutCaching(fileManager: FileManager, baseDirSAF: AbstractFile, baseDirFile: File) {
+    private fun runTestsWithoutCaching(
+        fileManager: FileManager,
+        baseDirSAF: AbstractFile,
+        baseDirFile: File
+    ) {
         val time = measureTimeMillis {
             SimpleTest("$TAG SimpleTest", false).runTests(fileManager, baseDirSAF)
             CreateFilesTest("$TAG CreateFilesTest", false).runTests(fileManager, baseDirSAF)
@@ -47,87 +55,4 @@ class TestSuite(
         println("$TAG runTestsWithoutCaching took ${time}ms")
     }
 
-    private fun test3() {
-//        // Write string to the file
-//        val testString = "Hello world"
-//
-//        foundFile!!.withFileDescriptor(FileDescriptorMode.WriteTruncate, { fd ->
-//            try {
-//                OutputStreamWriter(FileOutputStream(fd)).use({ osw ->
-//                    osw.write(testString)
-//                    osw.flush()
-//                })
-//            } catch (e: IOException) {
-//                throw
-//            }
-//
-//            Unit
-//        })
-//
-//        if (foundFile!!.getLength() !== testString.length) {
-//            throw TestException(("file length != testString.length(), file length = " + foundFile!!.getLength()))
-//        }
-//
-//        foundFile!!.withFileDescriptor(FileDescriptorMode.Read, { fd ->
-//            try {
-//                InputStreamReader(FileInputStream(fd)).use { isr ->
-//                    val stringBytes = CharArray(testString.length)
-//                    val read = isr.read(stringBytes)
-//
-//                    if (read != testString.length) {
-//                        throw TestException("read bytes != testString.length(), read = " + read)
-//                    }
-//
-//                    val resultString = String(stringBytes)
-//                    if (resultString != testString) {
-//                        throw TestException(("resultString != testString, resultString = " + resultString))
-//                    }
-//
-//                }
-//            } catch (e: IOException) {
-//                e.printStackTrace()
-//            }
-//
-//            Unit
-//        })
-//
-//        // Write another string that is shorter than the previous string
-//        val testString2 = "Hello"
-//
-//        foundFile!!.withFileDescriptor(FileDescriptorMode.WriteTruncate, { fd ->
-//            try {
-//                OutputStreamWriter(FileOutputStream(fd)).use { osw ->
-//                    osw.write(testString2)
-//                    osw.flush()
-//                }
-//            } catch (e: IOException) {
-//                e.printStackTrace()
-//            }
-//
-//            Unit
-//        })
-//
-//        if (foundFile!!.getLength() !== testString2.length) {
-//            throw TestException(("file length != testString.length(), file length = " + foundFile!!.getLength()))
-//        }
-//
-//        foundFile!!.withFileDescriptor(FileDescriptorMode.Read, { fd ->
-//            InputStreamReader(FileInputStream(fd)).use { isr ->
-//                val stringBytes = CharArray(testString2.length)
-//                val read = isr.read(stringBytes)
-//
-//                if (read != testString2.length) {
-//                    throw TestException("read bytes != testString2.length(), read = $read")
-//                }
-//
-//                val resultString = String(stringBytes)
-//                if (resultString != testString2) {
-//                    throw TestException(("resultString != testString2, resultString = $resultString"))
-//                }
-//
-//            }
-//
-//            Unit
-//        })
-    }
 }

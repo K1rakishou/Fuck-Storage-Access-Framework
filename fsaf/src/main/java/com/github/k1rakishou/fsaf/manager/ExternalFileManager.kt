@@ -24,6 +24,7 @@ class ExternalFileManager(
   private val mimeTypeMap = MimeTypeMap.getSingleton()
   private val fastFileSearchTree: FastFileSearchTree<CachingDocumentFile> = FastFileSearchTree()
 
+  // For tests
   fun getFastFileSearchTree() = fastFileSearchTree
 
   fun cacheFiles(files: List<Pair<ExternalFile, SnapshotDocumentFile>>) {
@@ -89,9 +90,7 @@ class ExternalFileManager(
       }
 
       if (createdFile == null) {
-        Log.e(
-          TAG, "create() DocumentFile.fromSingleUri returned null, directoryUri = ${newUri}"
-        )
+        Log.e(TAG, "create() DocumentFile.fromSingleUri returned null, directoryUri = ${newUri}")
         return null
       }
 
@@ -128,12 +127,16 @@ class ExternalFileManager(
 
   override fun exists(file: AbstractFile): Boolean =
     toDocumentFile(file.clone())?.exists ?: false
+
   override fun isFile(file: AbstractFile): Boolean =
     toDocumentFile(file.clone())?.isFile ?: false
+
   override fun isDirectory(file: AbstractFile): Boolean =
     toDocumentFile(file.clone())?.isDirectory ?: false
+
   override fun canRead(file: AbstractFile): Boolean =
     toDocumentFile(file.clone())?.canRead ?: false
+
   override fun canWrite(file: AbstractFile): Boolean =
     toDocumentFile(file.clone())?.canWrite ?: false
 
@@ -299,6 +302,7 @@ class ExternalFileManager(
 
     return toDocumentFile(dir.clone())
       ?.listFiles()
+      // TODO: update FastFileSearchTree here with fresh files
       ?.map { documentFile -> ExternalFile(appContext, Root.DirRoot(documentFile)) }
       ?: emptyList()
   }
