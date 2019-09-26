@@ -280,16 +280,10 @@ class ExternalFileManager(
       return null
     }
 
-    // TODO: change this to SAFHelper.findCachingFile when it is implemented
-    val snapshotDocumentFile = SAFHelper.findSnapshotFile(appContext, parentDocFile.uri, fileName)
-    if (snapshotDocumentFile == null || !snapshotDocumentFile.exists) {
+    val cachingDocFile = SAFHelper.findCachingFile(appContext, parentDocFile.uri, fileName)
+    if (cachingDocFile == null || !cachingDocFile.exists) {
       return null
     }
-
-    val cachingDocFile = CachingDocumentFile(
-      appContext,
-      snapshotDocumentFile.delegate
-    )
 
     val innerRoot = if (cachingDocFile.isFile) {
       AbstractFile.Root.FileRoot(cachingDocFile, cachingDocFile.name!!)

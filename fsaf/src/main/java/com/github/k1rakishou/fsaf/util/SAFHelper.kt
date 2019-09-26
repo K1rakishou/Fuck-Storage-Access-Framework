@@ -46,16 +46,48 @@ object SAFHelper {
     return file
   }
 
-  /**
-   * Finds a file and preloads all of it's info (like name size mime type etc.) because every one
-   * of those operations require and IPC call which slow as fuck. So it's way faster to just preload
-   * all that shit at once
-   * */
+  fun findCachingFile(
+    appContext: Context,
+    parentUri: Uri,
+    name: String
+  ): CachingDocumentFile? {
+    return findFile(appContext, parentUri, name) { documentFile, _ ->
+      return@findFile CachingDocumentFile(
+        appContext,
+        documentFile
+      )
+    }
+  }
+
   fun findSnapshotFile(
     appContext: Context,
     parentUri: Uri,
     name: String
   ): SnapshotDocumentFile? {
+    return findFile(appContext, parentUri, name) { documentFile, preloadedInfo ->
+      return@findFile SnapshotDocumentFile(
+        appContext,
+        documentFile,
+        preloadedInfo.displayName,
+        preloadedInfo.mimeType,
+        preloadedInfo.flags,
+        preloadedInfo.lastModified,
+        preloadedInfo.size
+      )
+    }
+  }
+
+  /**
+   * Finds a file and preloads all of it's info (like name size mime type etc.) because every one
+   * of those operations require and IPC call which slow as fuck. So it's way faster to just preload
+   * all that shit at once
+   * */
+  fun <T> findFile(
+    appContext: Context,
+    parentUri: Uri,
+    name: String,
+    mapper: (DocumentFile, PreloadedInfo) -> T
+  ): T? {
     val selection = DocumentsContract.Document.COLUMN_DISPLAY_NAME + " = ?"
 
     val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
@@ -99,27 +131,21 @@ object SAFHelper {
           return@use null
         }
 
-        return@use SnapshotDocumentFile(
-          appContext,
+        return@use mapper(
           documentFile,
-          displayName,
-          mimeType,
-          flags,
-          lastModified,
-          size
+          PreloadedInfo(
+            documentId,
+            mimeType,
+            displayName,
+            lastModified,
+            flags,
+            size
+          )
         )
       }
 
       return@use null
     }
-  }
-
-  fun findCachingFile(
-    appContext: Context,
-    parentUri: Uri,
-    name: String
-  ): CachingDocumentFile? {
-    TODO("Not implemented")
   }
 
   /**
@@ -184,4 +210,12 @@ object SAFHelper {
     }
   }
 
+  class PreloadedInfo(
+    val documentId: String,
+    val mimeType: String,
+    val displayName: String,
+    val lastModified: Long,
+    val flags: Int,
+    val size: Long
+  )
 }
