@@ -27,10 +27,9 @@ class SnapshotTest(
     fileManager.deleteContent(baseDir)
     checkDirEmpty(fileManager, baseDir)
 
-    val dir = fileManager.create(
-      baseDir
-        .clone()
-        .appendSubDirSegment("test")
+    val dir = fileManager.createDir(
+      baseDir,
+      "test"
     )
 
     if (dir == null || !fileManager.exists(dir) || !fileManager.isDirectory(dir)) {
@@ -86,25 +85,24 @@ class SnapshotTest(
     val count = 25
 
     for (i in 0 until count) {
-      val name = "${i}.txt"
+      val fileName = "${i}.txt"
 
-      val createdFile = fileManager.create(
-        dir
-          .clone()
-          .appendFileNameSegment(name)
+      val createdFile = fileManager.createFile(
+        dir,
+        fileName
       )
 
       if (createdFile == null || !fileManager.exists(createdFile) || !fileManager.isFile(createdFile)) {
         throw TestException("Couldn't create file name")
       }
 
-      if (fileManager.getName(createdFile) != name) {
+      if (fileManager.getName(createdFile) != fileName) {
         throw TestException("Bad name ${fileManager.getName(createdFile)}")
       }
 
       fileManager.getOutputStream(createdFile)?.use { os ->
         DataOutputStream(os).use { dos ->
-          dos.writeUTF(name)
+          dos.writeUTF(fileName)
         }
       } ?: throw TestException("Couldn't get output stream, file = ${createdFile.getFullPath()}")
 
@@ -112,8 +110,8 @@ class SnapshotTest(
         DataInputStream(`is`).use { dis ->
           val readString = dis.readUTF()
 
-          if (readString != name) {
-            throw TestException("Wrong value read, expected = ${name}, actual = ${readString}")
+          if (readString != fileName) {
+            throw TestException("Wrong value read, expected = ${fileName}, actual = ${readString}")
           }
         }
       } ?: throw TestException("Couldn't get input stream, file = ${createdFile.getFullPath()}")

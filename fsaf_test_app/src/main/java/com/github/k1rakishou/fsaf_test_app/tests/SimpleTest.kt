@@ -2,6 +2,8 @@ package com.github.k1rakishou.fsaf_test_app.tests
 
 import com.github.k1rakishou.fsaf.FileManager
 import com.github.k1rakishou.fsaf.file.AbstractFile
+import com.github.k1rakishou.fsaf.file.DirectorySegment
+import com.github.k1rakishou.fsaf.file.FileSegment
 import kotlin.system.measureTimeMillis
 
 class SimpleTest(
@@ -40,11 +42,11 @@ class SimpleTest(
 
   private fun test3(fileManager: FileManager, baseDir: AbstractFile) {
     val externalFile = fileManager.create(
-      baseDir.clone()
-        .appendSubDirSegment("123")
-        .appendSubDirSegment("456")
-        .appendSubDirSegment("789")
-        .appendFileNameSegment("test123.txt")
+      baseDir,
+      DirectorySegment("123"),
+      DirectorySegment("456"),
+      DirectorySegment("789"),
+      FileSegment("test123.txt")
     )
 
     if (externalFile == null || !fileManager.exists(externalFile)) {
@@ -68,11 +70,11 @@ class SimpleTest(
 
   private fun test1(fileManager: FileManager, baseDir: AbstractFile) {
     val externalFile = fileManager.create(
-      baseDir.clone()
-        .appendSubDirSegment("123")
-        .appendSubDirSegment("456")
-        .appendSubDirSegment("789")
-        .appendFileNameSegment("test123.txt")
+      baseDir,
+      DirectorySegment("123"),
+      DirectorySegment("456"),
+      DirectorySegment("789"),
+      FileSegment("test123.txt")
     )
 
     if (externalFile == null || !fileManager.exists(externalFile)) {
@@ -91,19 +93,19 @@ class SimpleTest(
       throw TestException("externalFile name != test123.txt")
     }
 
-    val externalFile2Exists = baseDir.clone()
-      .appendSubDirSegment("123")
-      .appendSubDirSegment("456")
-      .appendSubDirSegment("789")
-      .let { fileManager.exists(it) }
+    val externalFile2Exists = baseDir.clone(
+      DirectorySegment("123"),
+      DirectorySegment("456"),
+      DirectorySegment("789")
+    )
 
-
-    if (!externalFile2Exists) {
+    if (!fileManager.exists(externalFile2Exists)) {
       throw TestException("789 directory does not exist")
     }
 
-    val dirToDelete = baseDir.clone()
-      .appendSubDirSegment("123")
+    val dirToDelete = baseDir.clone(
+      DirectorySegment("123")
+    )
 
     if (!fileManager.delete(dirToDelete) && fileManager.exists(dirToDelete)) {
       throw TestException("Couldn't delete test123.txt")
@@ -114,10 +116,10 @@ class SimpleTest(
 
   private fun test2(fileManager: FileManager, baseDir: AbstractFile) {
     val externalFile = fileManager.create(
-      baseDir.clone()
-        .appendSubDirSegment("1234")
-        .appendSubDirSegment("4566")
-        .appendFileNameSegment("filename.json")
+      baseDir,
+      DirectorySegment("1234"),
+      DirectorySegment("4566"),
+      FileSegment("filename.json")
     )
 
     if (externalFile == null || !fileManager.exists(externalFile)) {
@@ -136,16 +138,13 @@ class SimpleTest(
       throw TestException("externalFile1 name != filename.json")
     }
 
-    val dir = baseDir.clone()
-      .appendSubDirSegment("1234")
-      .appendSubDirSegment("4566")
+    val dir = baseDir.clone(
+      DirectorySegment("1234"),
+      DirectorySegment("4566")
+    )
 
     if (fileManager.getName(dir) != "4566") {
-      throw TestException(
-        "dir.name != 4566, name = " + fileManager.getName(
-          dir
-        )
-      )
+      throw TestException("dir.name != 4566, name = " + fileManager.getName(dir))
     }
 
     val foundFile = fileManager.findFile(dir, "filename.json")

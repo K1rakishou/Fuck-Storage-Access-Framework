@@ -11,9 +11,7 @@ import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
 import com.github.k1rakishou.fsaf.document_file.SnapshotDocumentFile
 import com.github.k1rakishou.fsaf.extensions.getMimeFromFilename
 import com.github.k1rakishou.fsaf.extensions.splitIntoSegments
-import com.github.k1rakishou.fsaf.file.AbstractFile
-import com.github.k1rakishou.fsaf.file.ExternalFile
-import com.github.k1rakishou.fsaf.file.FileDescriptorMode
+import com.github.k1rakishou.fsaf.file.*
 import com.github.k1rakishou.fsaf.util.SAFHelper
 import java.io.FileDescriptor
 import java.io.InputStream
@@ -51,17 +49,13 @@ class ExternalFileManager(
   }
 
   @Suppress("UNCHECKED_CAST")
-  override fun create(file: AbstractFile): ExternalFile? {
-    val root = file.getFileRoot<CachingDocumentFile>()
-    check(root !is AbstractFile.Root.FileRoot) {
+  override fun create(baseDir: AbstractFile, segments: List<Segment>): ExternalFile? {
+    val root = baseDir.getFileRoot<CachingDocumentFile>()
+    check(root !is Root.FileRoot) {
       "root is already FileRoot, cannot append anything anymore"
     }
 
-    val segments = file.getFileSegments()
-    check(segments.isNotEmpty()) {
-      "root has already been created"
-    }
-
+    check(segments.isNotEmpty()) { "root has already been created" }
     var newFile: CachingDocumentFile? = null
 
     for (segment in segments) {
@@ -105,7 +99,7 @@ class ExternalFileManager(
         // Ignore any left segments (which we shouldn't have) after encountering fileName
         // segment
         return ExternalFile(
-          appContext, AbstractFile.Root.FileRoot(
+          appContext, Root.FileRoot(
             CachingDocumentFile(appContext, createdFile),
             segment.name
           )
@@ -124,22 +118,22 @@ class ExternalFileManager(
     val isLastSegmentFilename = lastSegment.isFileName
 
     val newRoot = if (isLastSegmentFilename) {
-      AbstractFile.Root.FileRoot(newFile, lastSegment.name)
+      Root.FileRoot(newFile, lastSegment.name)
     } else {
-      AbstractFile.Root.DirRoot(newFile)
+      Root.DirRoot(newFile)
     }
 
     return ExternalFile(appContext, newRoot)
   }
 
-  override fun exists(file: AbstractFile): Boolean = toDocumentFile(file.clone())?.exists ?: false
-  override fun isFile(file: AbstractFile): Boolean = toDocumentFile(file.clone())?.isFile ?: false
+  override fun exists(file: AbstractFile): Boolean =
+    toDocumentFile(file.clone())?.exists ?: false
+  override fun isFile(file: AbstractFile): Boolean =
+    toDocumentFile(file.clone())?.isFile ?: false
   override fun isDirectory(file: AbstractFile): Boolean =
     toDocumentFile(file.clone())?.isDirectory ?: false
-
   override fun canRead(file: AbstractFile): Boolean =
     toDocumentFile(file.clone())?.canRead ?: false
-
   override fun canWrite(file: AbstractFile): Boolean =
     toDocumentFile(file.clone())?.canWrite ?: false
 
@@ -262,7 +256,7 @@ class ExternalFileManager(
     val root = dir.getFileRoot<CachingDocumentFile>()
     val segments = dir.getFileSegments()
 
-    check(root !is AbstractFile.Root.FileRoot) { "Cannot use FileRoot as directory" }
+    check(root !is Root.FileRoot) { "Cannot use FileRoot as directory" }
     check(!segments.last().isFileName) { "Cannot do search when last segment is file" }
 
     val parentDocFile = if (segments.isNotEmpty()) {
@@ -286,9 +280,9 @@ class ExternalFileManager(
     }
 
     val innerRoot = if (cachingDocFile.isFile) {
-      AbstractFile.Root.FileRoot(cachingDocFile, cachingDocFile.name!!)
+      Root.FileRoot(cachingDocFile, cachingDocFile.name!!)
     } else {
-      AbstractFile.Root.DirRoot(cachingDocFile)
+      Root.DirRoot(cachingDocFile)
     }
 
     return ExternalFile(
@@ -301,11 +295,11 @@ class ExternalFileManager(
 
   override fun listFiles(dir: AbstractFile): List<ExternalFile> {
     val root = dir.getFileRoot<CachingDocumentFile>()
-    check(root !is AbstractFile.Root.FileRoot) { "Cannot use listFiles with FileRoot" }
+    check(root !is Root.FileRoot) { "Cannot use listFiles with FileRoot" }
 
     return toDocumentFile(dir.clone())
       ?.listFiles()
-      ?.map { documentFile -> ExternalFile(appContext, AbstractFile.Root.DirRoot(documentFile)) }
+      ?.map { documentFile -> ExternalFile(appContext, Root.DirRoot(documentFile)) }
       ?: emptyList()
   }
 

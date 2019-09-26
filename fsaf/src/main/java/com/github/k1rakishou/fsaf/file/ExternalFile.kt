@@ -11,16 +11,6 @@ class ExternalFile(
   segments: MutableList<Segment> = mutableListOf()
 ) : AbstractFile(root, segments) {
 
-  override fun appendSubDirSegment(name: String): ExternalFile {
-    check(root !is Root.FileRoot) { "root is already FileRoot, cannot append anything anymore" }
-    return super.appendSubDirSegmentInner(name) as ExternalFile
-  }
-
-  override fun appendFileNameSegment(name: String): ExternalFile {
-    check(root !is Root.FileRoot) { "root is already FileRoot, cannot append anything anymore" }
-    return super.appendFileNameSegmentInner(name) as ExternalFile
-  }
-
   @Suppress("UNCHECKED_CAST")
   override fun getFullPath(): String {
     return Uri.parse((root as Root<CachingDocumentFile>).holder.uri.toString()).buildUpon()
@@ -30,10 +20,10 @@ class ExternalFile(
   }
 
   @Suppress("UNCHECKED_CAST")
-  override fun clone(): ExternalFile = ExternalFile(
+  override fun cloneInternal(newSegments: List<Segment>): ExternalFile = ExternalFile(
     appContext,
     (root as Root<CachingDocumentFile>).clone(),
-    segments.toMutableList()
+    segments.toMutableList().apply { addAll(newSegments) }
   )
 
   override fun getFileManagerId(): FileManagerId = FILE_MANAGER_ID

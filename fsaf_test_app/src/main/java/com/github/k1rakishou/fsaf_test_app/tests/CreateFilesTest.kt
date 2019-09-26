@@ -2,6 +2,8 @@ package com.github.k1rakishou.fsaf_test_app.tests
 
 import com.github.k1rakishou.fsaf.FileManager
 import com.github.k1rakishou.fsaf.file.AbstractFile
+import com.github.k1rakishou.fsaf.file.DirectorySegment
+import com.github.k1rakishou.fsaf.file.FileSegment
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import kotlin.system.measureTimeMillis
@@ -25,10 +27,9 @@ class CreateFilesTest(
     fileManager.deleteContent(baseDir)
     checkDirEmpty(fileManager, baseDir)
 
-    val dir = fileManager.create(
-      baseDir
-        .clone()
-        .appendSubDirSegment("test")
+    val dir = fileManager.createDir(
+      baseDir,
+      "test"
     )
 
     if (dir == null || !fileManager.exists(dir) || !fileManager.isDirectory(dir)) {
@@ -38,26 +39,25 @@ class CreateFilesTest(
     val files = 25
 
     for (i in 0 until files) {
-      val name = "${i}.txt"
+      val fileName = "${i}.txt"
 
       val createdFile = fileManager.create(
-        dir
-          .clone()
-          .appendSubDirSegment(name)
-          .appendFileNameSegment(name)
+        dir,
+        DirectorySegment(i.toString()),
+        FileSegment(fileName)
       )
 
       if (createdFile == null || !fileManager.exists(createdFile) || !fileManager.isFile(createdFile)) {
         throw TestException("Couldn't create file name")
       }
 
-      if (fileManager.getName(createdFile) != name) {
+      if (fileManager.getName(createdFile) != fileName) {
         throw TestException("Bad name ${fileManager.getName(createdFile)}")
       }
 
       fileManager.getOutputStream(createdFile)?.use { os ->
         DataOutputStream(os).use { dos ->
-          dos.writeUTF(name)
+          dos.writeUTF(fileName)
         }
       } ?: throw TestException("Couldn't get output stream, file = ${createdFile.getFullPath()}")
 
@@ -65,8 +65,8 @@ class CreateFilesTest(
         DataInputStream(`is`).use { dis ->
           val readString = dis.readUTF()
 
-          if (readString != name) {
-            throw TestException("Wrong value read, expected = ${name}, actual = ${readString}")
+          if (readString != fileName) {
+            throw TestException("Wrong value read, expected = ${fileName}, actual = ${readString}")
           }
         }
       } ?: throw TestException("Couldn't get input stream, file = ${createdFile.getFullPath()}")

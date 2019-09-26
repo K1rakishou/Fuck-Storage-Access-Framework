@@ -2,41 +2,18 @@ package com.github.k1rakishou.fsaf.manager
 
 import android.util.Log
 import com.github.k1rakishou.fsaf.extensions.appendMany
-import com.github.k1rakishou.fsaf.file.AbstractFile
-import com.github.k1rakishou.fsaf.file.FileDescriptorMode
-import com.github.k1rakishou.fsaf.file.RawFile
+import com.github.k1rakishou.fsaf.file.*
 import java.io.*
 
 class RawFileManager : BaseFileManager {
 
-  override fun create(file: AbstractFile): RawFile? {
-    val root = file.getFileRoot<File>()
-    check(root !is AbstractFile.Root.FileRoot) {
+  override fun create(baseDir: AbstractFile, segments: List<Segment>): RawFile? {
+    val root = baseDir.getFileRoot<File>()
+    check(root !is Root.FileRoot) {
       "root is already FileRoot, cannot append anything anymore"
     }
 
-    val segments = file.getFileSegments()
-    check(segments.isNotEmpty()) {
-      "root has already been created"
-    }
-
-    if (segments.isEmpty()) {
-      if (!root.holder.exists()) {
-        if (root.holder.isFile) {
-          if (!root.holder.createNewFile()) {
-            Log.e(TAG, "Couldn't create file, path = ${root.holder.absolutePath}")
-            return null
-          }
-        } else {
-          if (!root.holder.mkdirs()) {
-            Log.e(TAG, "Couldn't create directory, path = ${root.holder.absolutePath}")
-            return null
-          }
-        }
-      }
-
-      return file as RawFile
-    }
+    check(segments.isNotEmpty()) { "root has already been created" }
 
     var newFile = root.holder
     for (segment in segments) {
@@ -55,18 +32,23 @@ class RawFileManager : BaseFileManager {
       }
 
       if (segment.isFileName) {
-        return RawFile(AbstractFile.Root.FileRoot(newFile, segment.name))
+        return RawFile(Root.FileRoot(newFile, segment.name))
       }
     }
 
-    return RawFile(AbstractFile.Root.DirRoot(newFile))
+    return RawFile(Root.DirRoot(newFile))
   }
 
-  override fun exists(file: AbstractFile): Boolean = toFile(file.clone()).exists()
-  override fun isFile(file: AbstractFile): Boolean = toFile(file.clone()).isFile
-  override fun isDirectory(file: AbstractFile): Boolean = toFile(file.clone()).isDirectory
-  override fun canRead(file: AbstractFile): Boolean = toFile(file.clone()).canRead()
-  override fun canWrite(file: AbstractFile): Boolean = toFile(file.clone()).canWrite()
+  override fun exists(file: AbstractFile): Boolean =
+    toFile(file.clone()).exists()
+  override fun isFile(file: AbstractFile): Boolean =
+    toFile(file.clone()).isFile
+  override fun isDirectory(file: AbstractFile): Boolean =
+    toFile(file.clone()).isDirectory
+  override fun canRead(file: AbstractFile): Boolean =
+    toFile(file.clone()).canRead()
+  override fun canWrite(file: AbstractFile): Boolean =
+    toFile(file.clone()).canWrite()
 
   override fun getSegmentNames(file: AbstractFile): List<String> {
     return file.getFullPath()
@@ -136,7 +118,7 @@ class RawFileManager : BaseFileManager {
   override fun findFile(dir: AbstractFile, fileName: String): RawFile? {
     val root = dir.getFileRoot<File>()
     val segments = dir.getFileSegments()
-    check(root !is AbstractFile.Root.FileRoot) { "Cannot use FileRoot as directory" }
+    check(root !is Root.FileRoot) { "Cannot use FileRoot as directory" }
 
     val copy = File(root.holder.absolutePath)
     if (segments.isNotEmpty()) {
@@ -149,9 +131,9 @@ class RawFileManager : BaseFileManager {
     }
 
     val newRoot = if (resultFile.isFile) {
-      AbstractFile.Root.FileRoot(resultFile, resultFile.name)
+      Root.FileRoot(resultFile, resultFile.name)
     } else {
-      AbstractFile.Root.DirRoot(resultFile)
+      Root.DirRoot(resultFile)
     }
 
     return RawFile(newRoot)
@@ -165,11 +147,11 @@ class RawFileManager : BaseFileManager {
 
   override fun listFiles(dir: AbstractFile): List<RawFile> {
     val root = dir.getFileRoot<File>()
-    check(root !is AbstractFile.Root.FileRoot) { "Cannot use listFiles with FileRoot" }
+    check(root !is Root.FileRoot) { "Cannot use listFiles with FileRoot" }
 
     return toFile(dir.clone())
       .listFiles()
-      ?.map { file -> RawFile(AbstractFile.Root.DirRoot(file)) }
+      ?.map { file -> RawFile(Root.DirRoot(file)) }
       ?: emptyList()
   }
 

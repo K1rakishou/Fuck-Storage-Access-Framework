@@ -91,10 +91,10 @@ class FileManager(
    * */
   fun fromRawFile(file: File): RawFile {
     if (file.isFile) {
-      return RawFile(AbstractFile.Root.FileRoot(file, file.name))
+      return RawFile(Root.FileRoot(file, file.name))
     }
 
-    return RawFile(AbstractFile.Root.DirRoot(file))
+    return RawFile(Root.DirRoot(file))
   }
 
   /**
@@ -111,9 +111,9 @@ class FileManager(
       val filename = documentFile.name
         ?: throw IllegalStateException("fromUri() queryTreeName() returned null")
 
-      ExternalFile(appContext, AbstractFile.Root.FileRoot(documentFile, filename))
+      ExternalFile(appContext, Root.FileRoot(documentFile, filename))
     } else {
-      ExternalFile(appContext, AbstractFile.Root.DirRoot(documentFile))
+      ExternalFile(appContext, Root.DirRoot(documentFile))
     }
   }
 
@@ -183,10 +183,27 @@ class FileManager(
 //    return RawFile(AbstractFile.Root.DirRoot(File(path)))
 //  }
 
-  // TODO: Make this better
-  override fun create(file: AbstractFile): AbstractFile? {
-    return managers[file.getFileManagerId()]?.create(file)
-      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+  fun createDir(baseDir: AbstractFile, name: String): AbstractFile? {
+    return create(baseDir, DirectorySegment(name))
+  }
+
+  fun createFile(baseDir: AbstractFile, name: String): AbstractFile? {
+    return create(baseDir, FileSegment(name))
+  }
+
+  fun create(baseDir: AbstractFile, segment: Segment): AbstractFile? {
+    return create(baseDir, listOf(segment))
+  }
+
+  fun create(baseDir: AbstractFile, vararg segments: Segment): AbstractFile? {
+    return create(baseDir, segments.toList())
+  }
+
+  override fun create(baseDir: AbstractFile, segments: List<Segment>): AbstractFile? {
+    require(segments.isNotEmpty()) { "No segments provided" }
+
+    return managers[baseDir.getFileManagerId()]?.create(baseDir.clone(), segments)
+      ?: throw NotImplementedError("Not implemented for ${baseDir.javaClass.name}")
   }
 
   /**
@@ -271,10 +288,9 @@ class FileManager(
       // /456/111/2.txt
       // /456/222/3.txt
       //
-      val fileInNewDirectory = create(
-        destDir
-          .clone()
-          .appendFileNameSegment(file.getFullPath().removePrefix(prefix))
+      val fileInNewDirectory = createFile(
+        destDir,
+        file.getFullPath().removePrefix(prefix)
       )
 
       if (fileInNewDirectory == null) {
@@ -575,13 +591,13 @@ class FileManager(
             }
 
             val root = if (docFile.isDirectory) {
-              AbstractFile.Root.DirRoot(docFile)
+              Root.DirRoot(docFile)
             } else {
-              AbstractFile.Root.FileRoot(docFile, docFile.name!!)
+              Root.FileRoot(docFile, docFile.name!!)
             }
 
             return@map Pair(
-              ExternalFile(appContext, root as AbstractFile.Root<CachingDocumentFile>),
+              ExternalFile(appContext, root as Root<CachingDocumentFile>),
               docFile
             )
           }

@@ -7,7 +7,7 @@ import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
 import com.github.k1rakishou.fsaf.document_file.SnapshotDocumentFile
-import com.github.k1rakishou.fsaf.file.AbstractFile
+import com.github.k1rakishou.fsaf.file.Segment
 import java.util.*
 
 object SAFHelper {
@@ -28,7 +28,7 @@ object SAFHelper {
   fun findDeepFile(
     appContext: Context,
     parentUri: Uri,
-    segments: List<AbstractFile.Segment>
+    segments: List<Segment>
   ): SnapshotDocumentFile? {
     check(segments.isNotEmpty()) { "segments must not be empty" }
 

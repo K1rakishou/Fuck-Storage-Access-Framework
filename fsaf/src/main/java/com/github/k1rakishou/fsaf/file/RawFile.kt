@@ -8,19 +8,9 @@ class RawFile(
   segments: MutableList<Segment> = mutableListOf()
 ) : AbstractFile(root, segments) {
 
-  override fun appendSubDirSegment(name: String): RawFile {
-    check(root !is Root.FileRoot) { "root is already FileRoot, cannot append anything anymore" }
-    return super.appendSubDirSegmentInner(name) as RawFile
-  }
-
-  override fun appendFileNameSegment(name: String): RawFile {
-    check(root !is Root.FileRoot) { "root is already FileRoot, cannot append anything anymore" }
-    return super.appendFileNameSegmentInner(name) as RawFile
-  }
-
-  override fun clone(): RawFile = RawFile(
+  override fun cloneInternal(newSegments: List<Segment>): RawFile = RawFile(
     root.clone() as Root<File>,
-    segments.toMutableList()
+    segments.toMutableList().apply { addAll(newSegments) }
   )
 
   override fun getFullPath(): String {

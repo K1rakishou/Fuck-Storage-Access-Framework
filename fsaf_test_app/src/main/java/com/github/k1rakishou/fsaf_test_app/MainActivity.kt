@@ -15,8 +15,8 @@ import com.github.k1rakishou.fsaf.FileManager
 import com.github.k1rakishou.fsaf.callback.DirectoryChooserCallback
 import com.github.k1rakishou.fsaf.callback.FSAFActivityCallbacks
 import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
-import com.github.k1rakishou.fsaf.file.AbstractFile
 import com.github.k1rakishou.fsaf.file.ExternalFile
+import com.github.k1rakishou.fsaf.file.Root
 import com.github.k1rakishou.fsaf.manager.ExternalFileManager
 import com.github.k1rakishou.fsaf_test_app.tests.TestSuite
 import kotlinx.android.synthetic.main.activity_main.*
@@ -93,7 +93,7 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
           DocumentFile.fromTreeUri(applicationContext, getTreeUri()!!)!!
         )
 
-        val root = AbstractFile.Root.DirRoot(dirDoc)
+        val root = Root.DirRoot(dirDoc)
         val baseDir = ExternalFile(
           applicationContext,
           root

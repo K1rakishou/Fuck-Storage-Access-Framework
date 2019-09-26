@@ -1,11 +1,6 @@
 package com.github.k1rakishou.fsaf.file
 
-import com.github.k1rakishou.fsaf.annotation.ImmutableMethod
-import com.github.k1rakishou.fsaf.annotation.MutableMethod
-import com.github.k1rakishou.fsaf.extensions.ENCODED_SEPARATOR
 import com.github.k1rakishou.fsaf.extensions.extension
-import com.github.k1rakishou.fsaf.extensions.splitIntoSegments
-import java.io.File
 
 // TODO: rewrite
 /**
@@ -119,129 +114,50 @@ abstract class AbstractFile(
     return root as Root<T>
   }
 
-  /**
-   * Appends a new subdirectory (or couple of subdirectories, e.g. "dir1/dir2/dir3")
-   * to the root directory
-   * */
-  @MutableMethod
-  abstract fun appendSubDirSegment(name: String): AbstractFile
-
-  /**
-   * Appends a file name to the root directory (or couple subdirectories with filename at the end,
-   * e.g. "dir1/dir2/dir3/test.txt"
-   * */
-  @MutableMethod
-  abstract fun appendFileNameSegment(name: String): AbstractFile
-
-  @ImmutableMethod
   abstract fun getFullPath(): String
+
+  /**
+   * Clone a file and append new segments (newSegments may be empty)
+   * */
+  fun clone(vararg newSegments: Segment): AbstractFile {
+    return clone(newSegments.toList())
+  }
+
+  /**
+   * Clone a file and append new segments
+   * */
+  fun clone(newSegments: List<Segment>): AbstractFile {
+    newSegments.forEach { segment ->
+      require(segment.name.isNotBlank()) { "Bad name: ${segment.name}" }
+    }
+    check(!isFilenameAppended()) { "Cannot append anything after file name has been appended" }
+
+    newSegments.forEachIndexed { index, segment ->
+      require(!(segment.name.extension() != null && index != newSegments.lastIndex)) {
+        "Only the last segment may have an extension, bad segment " +
+          "index = ${index}/${newSegments.lastIndex}, bad name = $segment.name"
+      }
+    }
+
+    return cloneInternal(newSegments)
+  }
 
   /**
    * When doing something with an [AbstractFile] (like appending a subdir or a filename) the
    * [AbstractFile] will change because it's mutable. So if you don't want to change the original
    * [AbstractFile] you need to make a copy via this method (like, if you want to search for
    * a couple of files in the same directory you would want to clone the directory
-   * [AbstractFile] and then append the filename to those copies)
+   * [AbstractFile] and then append the filename to those copies).
+   *
+   * [newSegments] parameter appends new segments to the original segments after cloning.
+   * May be empty
    * */
-  abstract fun clone(): AbstractFile
+  protected abstract fun cloneInternal(newSegments: List<Segment>): AbstractFile
 
-  protected fun appendSubDirSegmentInner(name: String): AbstractFile {
-    require(!name.isBlank()) { "Bad name: $name" }
-    check(!isFilenameAppended()) { "Cannot append anything after file name has been appended" }
-
-    name.splitIntoSegments()
-      .map { splitName -> Segment(splitName) }
-      .forEach { segment -> segments += segment }
-
-    return this
-  }
-
-  protected fun appendFileNameSegmentInner(name: String): AbstractFile {
-    require(!name.isBlank()) { "Bad name: $name" }
-    check(!isFilenameAppended()) { "Cannot append anything after file name has been appended" }
-
-    val nameList = name.splitIntoSegments()
-
-    if (name.contains(File.separatorChar) || name.contains(ENCODED_SEPARATOR)) {
-      check(nameList.size >= 2) { "Should have at least two entries, name = $name" }
-    }
-
-    require(nameList.last().extension() != null) { "Last segment must be a filename" }
-
-    for ((index, splitName) in nameList.withIndex()) {
-      require(!(splitName.extension() != null && index != nameList.lastIndex)) {
-        "Only the last split segment may have a file name, " +
-          "bad segment index = ${index}/${nameList.lastIndex}, bad name = $splitName"
-      }
-
-      val isFileName = index == nameList.lastIndex
-      segments += Segment(splitName, isFileName)
-    }
-
-    return this
-  }
-
-  private fun isFilenameAppended(): Boolean = segments.lastOrNull()?.isFileName ?: false
+  private fun isFilenameAppended(): Boolean =
+    segments.lastOrNull()?.isFileName ?: false
 
   override fun toString(): String {
     return getFullPath()
   }
-
-  /**
-   * We can have the root to be a directory or a file.
-   * If it's a directory, that means that we can append sub directories to it.
-   * If it's a file we can't do that so usually when attempting to append something to the FileRoot
-   * an exception will be thrown
-   *
-   * @param holder either DocumentFile or File.
-   * */
-  sealed class Root<T>(val holder: T) {
-
-    fun name(): String? {
-      if (this is FileRoot) {
-        return this.fileName
-      }
-
-      return null
-    }
-
-    fun clone(): Root<T> {
-      return when (this) {
-        is DirRoot<*> -> DirRoot(holder)
-        is FileRoot<*> -> FileRoot(holder, fileName)
-      }
-    }
-
-    /**
-     * /test/123/test2
-     * or
-     * /test/123/test2/5/6/7/8/112233
-     * */
-    class DirRoot<T>(holder: T) : Root<T>(holder)
-
-    /**
-     * /test/123/test2/filename.txt
-     * where holder = /test/123/test2/filename.txt (Uri),
-     * fileName = filename.txt (may have no extension)
-     * */
-    class FileRoot<T>(holder: T, val fileName: String) : Root<T>(holder)
-  }
-
-  /**
-   * Segment represents a sub directory or a file name, e.g:
-   * /test/123/test2/filename.txt
-   *  ^   ^    ^     ^
-   *  |   |    |     +--- File name segment (name = filename.txt, isFileName == true)
-   *  +---+----+-- Directory segments (names = [test, 123, test2], isFileName == false)
-   * */
-  class Segment(
-    val name: String,
-    val isFileName: Boolean = false
-  )
 }
-
-interface IsFileManager {
-  fun getFileManagerId(): FileManagerId
-}
-
-class FileManagerId(val id: String)
