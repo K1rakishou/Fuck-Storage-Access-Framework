@@ -85,7 +85,7 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
 
     run_tests_button.setOnClickListener {
       try {
-        val baseSAFDir = fastFileManager.fromUri(getTreeUri()!!)
+        val baseSAFDir = fastFileManager.fromUri(getTreeUri()!!)!!
         val baseFileApiDir = fastFileManager.fromRawFile(File(Environment.getDownloadCacheDirectory(), "test"))
 
         testSuite.runTests(

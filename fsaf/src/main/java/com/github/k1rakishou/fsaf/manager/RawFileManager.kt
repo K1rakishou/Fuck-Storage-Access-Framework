@@ -111,7 +111,7 @@ class RawFileManager : BaseFileManager {
     return clonedFile.outputStream()
   }
 
-  override fun getName(file: AbstractFile): String {
+  override fun getName(file: AbstractFile): String? {
     return toFile(file.clone()).name
   }
 
@@ -119,6 +119,10 @@ class RawFileManager : BaseFileManager {
     val root = dir.getFileRoot<File>()
     val segments = dir.getFileSegments()
     check(root !is Root.FileRoot) { "Cannot use FileRoot as directory" }
+
+    if (segments.isNotEmpty()) {
+      check(!segments.last().isFileName) { "Cannot do search when last segment is file" }
+    }
 
     val copy = File(root.holder.absolutePath)
     if (segments.isNotEmpty()) {

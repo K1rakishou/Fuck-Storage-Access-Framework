@@ -2,6 +2,7 @@ package com.github.k1rakishou.fsaf
 
 import android.content.Context
 import android.net.Uri
+import android.provider.DocumentsContract
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
@@ -102,13 +103,13 @@ class FileManager(
    * AbstractFile. If a file does not exist null is returned.
    * Does not create file on the disk automatically!
    * */
-  fun fromUri(uri: Uri): ExternalFile {
+  fun fromUri(uri: Uri): ExternalFile? {
     val documentFile = toDocumentFile(uri)
-      ?: throw IllegalStateException("toDocumentFile returned null, uri = $uri")
+      ?: return null
 
     return if (documentFile.isFile) {
       val filename = documentFile.name
-        ?: throw IllegalStateException("fromUri() DocumentFile.getName() returned null")
+        ?: return null
 
       ExternalFile(appContext, Root.FileRoot(documentFile, filename))
     } else {
@@ -517,16 +518,25 @@ class FileManager(
     try {
       func()
     } finally {
-      externalFileManager.uncacheFile(dir)
+      externalFileManager.uncacheFilesInSubTree(dir)
     }
   }
 
   private fun toDocumentFile(uri: Uri): CachingDocumentFile? {
     try {
       val file = try {
-        // Will throw an exception if uri is not a treeUri. Hacky as fuck but I don't know
-        // another way to check it.
-        DocumentFile.fromTreeUri(appContext, uri)
+        val docTreeFile = DocumentFile.fromTreeUri(appContext, uri)
+
+        // FIXME: Damn this is hacky as fuck and I don't even know whether it works 100% or not
+        //  and it constantly give me warnings like:
+        //  "W/DocumentFile: Failed query: java.lang.UnsupportedOperationException: Unsupported Uri"
+        //  but still works (!!!
+        if (docTreeFile != null && isBogusTreeUri(uri, docTreeFile.uri)) {
+          DocumentFile.fromSingleUri(appContext, uri)
+        } else {
+          docTreeFile
+        }
+
       } catch (ignored: IllegalArgumentException) {
         DocumentFile.fromSingleUri(appContext, uri)
       }
@@ -536,11 +546,33 @@ class FileManager(
         return null
       }
 
+      if (!file.exists()) {
+        return null
+      }
+
       return CachingDocumentFile(appContext, file)
     } catch (e: IllegalArgumentException) {
       Log.e(TAG, "Provided uri is neither a treeUri nor singleUri, uri = $uri")
       return null
     }
+  }
+
+  /**
+   * When we try to pass a bogus uri to DocumentFile.fromTreeUri it will return us the base tree uri.
+   * This means that it cannot be used as a tree uri so we need to use DocumentFile.fromSingleUri
+   * instead.
+   * */
+  private fun isBogusTreeUri(uri: Uri, docTreeUri: Uri): Boolean {
+    if (uri.toString() == docTreeUri.toString()) {
+      return false
+    }
+
+    val docUri = DocumentsContract.buildDocumentUriUsingTree(
+      uri,
+      DocumentsContract.getDocumentId(uri)
+    )
+
+    return docUri.toString() == docTreeUri.toString()
   }
 
   enum class TraverseMode {

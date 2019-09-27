@@ -1,6 +1,7 @@
 package com.github.k1rakishou.fsaf_test_app.tests
 
 import com.github.k1rakishou.fsaf.FileManager
+import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
 import com.github.k1rakishou.fsaf.file.AbstractFile
 import com.github.k1rakishou.fsaf.file.DirectorySegment
 import com.github.k1rakishou.fsaf.file.FileSegment
@@ -15,7 +16,7 @@ class SimpleTest(
     fileManager.deleteContent(baseDir)
     checkDirEmpty(fileManager, baseDir)
 
-    kotlin.run {
+    runTest(fileManager, baseDir) {
       val time = measureTimeMillis {
         test1(fileManager, baseDir)
       }
@@ -23,7 +24,7 @@ class SimpleTest(
       log("test1 took ${time}ms")
     }
 
-    kotlin.run {
+    runTest(fileManager, baseDir) {
       val time = measureTimeMillis {
         test2(fileManager, baseDir)
       }
@@ -31,40 +32,20 @@ class SimpleTest(
       log("test2 took ${time}ms")
     }
 
-    kotlin.run {
+    runTest(fileManager, baseDir) {
       val time = measureTimeMillis {
         test3(fileManager, baseDir)
       }
 
       log("test3 took ${time}ms")
     }
-  }
 
-  private fun test3(fileManager: FileManager, baseDir: AbstractFile) {
-    val externalFile = fileManager.create(
-      baseDir,
-      DirectorySegment("123"),
-      DirectorySegment("456"),
-      DirectorySegment("789"),
-      FileSegment("test123.txt")
-    )
-
-    if (externalFile == null || !fileManager.exists(externalFile)) {
-      throw TestException("Couldn't create test123.txt")
-    }
-
-    for (i in 0 until 1000) {
-      if (!fileManager.exists(externalFile)) {
-        throw TestException("Does not exist")
+    runTest(fileManager, baseDir) {
+      val time = measureTimeMillis {
+        basicFileTests(fileManager, baseDir)
       }
 
-      if (!fileManager.isFile(externalFile)) {
-        throw TestException("Not a file")
-      }
-
-      if (fileManager.isDirectory(externalFile)) {
-        throw TestException("Is a directory")
-      }
+      log("basicFileTests took ${time}ms")
     }
   }
 
@@ -150,6 +131,87 @@ class SimpleTest(
     val foundFile = fileManager.findFile(dir, "filename.json")
     if (foundFile == null || !fileManager.exists(foundFile)) {
       throw TestException("Couldn't find filename.json")
+    }
+  }
+
+  private fun test3(fileManager: FileManager, baseDir: AbstractFile) {
+    val externalFile = fileManager.create(
+      baseDir,
+      DirectorySegment("123"),
+      DirectorySegment("456"),
+      DirectorySegment("789"),
+      FileSegment("test123.txt")
+    )
+
+    if (externalFile == null || !fileManager.exists(externalFile)) {
+      throw TestException("Couldn't create test123.txt")
+    }
+
+    for (i in 0 until 1000) {
+      if (!fileManager.exists(externalFile)) {
+        throw TestException("Does not exist")
+      }
+
+      if (!fileManager.isFile(externalFile)) {
+        throw TestException("Not a file")
+      }
+
+      if (fileManager.isDirectory(externalFile)) {
+        throw TestException("Is a directory")
+      }
+    }
+  }
+
+  private fun basicFileTests(fileManager: FileManager, baseDir: AbstractFile) {
+    val createdDir1 =  run {
+      val createdDir1 = fileManager.createDir(baseDir, "1")
+        ?: throw TestException("Couldn't create dir 1")
+      val createdDir2 = fileManager.createDir(createdDir1, "2")
+        ?: throw TestException("Couldn't create dir 2")
+      val createdDir3 = fileManager.createDir(createdDir2, "3")
+        ?: throw TestException("Couldn't create dir 3")
+      fileManager.createFile(createdDir3, "file.txt")
+        ?: throw TestException("Couldn't create file.txt")
+
+      return@run createdDir1
+    }
+
+    check(fileManager.isDirectory(createdDir1)) { "Dir 1 is not a dir" }
+    check(!fileManager.isFile(createdDir1)) { "Dir 1 is a file" }
+    check(fileManager.exists(createdDir1)) { "Dir 1 does not exist" }
+    check(fileManager.getName(createdDir1) == "1") { "Dir 1 has wrong name" }
+    check(fileManager.canRead(createdDir1)) { "Cannot read dir 1" }
+    check(fileManager.canRead(createdDir1)) { "Cannot write to dir 1" }
+
+    val createdDir2 = checkNotNull(fileManager.findFile(createdDir1, "2")) { "Couldn't find dir 2" }
+    check(fileManager.isDirectory(createdDir2)) { "Dir 2 is not a dir" }
+    check(!fileManager.isFile(createdDir2)) { "Dir 2 is a file" }
+    check(fileManager.exists(createdDir2)) { "Dir 2 does not exist" }
+    check(fileManager.getName(createdDir2) == "2") { "Dir 2 has wrong name" }
+    check(fileManager.canRead(createdDir2)) { "Cannot read dir 2" }
+    check(fileManager.canRead(createdDir2)) { "Cannot write to dir 2" }
+
+    val createdDir3 = checkNotNull(fileManager.findFile(createdDir2, "3")) { "Couldn't find dir 3" }
+    check(fileManager.isDirectory(createdDir3)) { "Dir 3 is not a dir" }
+    check(!fileManager.isFile(createdDir3)) { "Dir 3 is a file" }
+    check(fileManager.exists(createdDir3)) { "Dir 3 does not exist" }
+    check(fileManager.getName(createdDir3) == "3") { "Dir 3 has wrong name" }
+    check(fileManager.canRead(createdDir3)) { "Cannot read dir 3" }
+    check(fileManager.canRead(createdDir3)) { "Cannot write to dir 3" }
+
+    val createdFile = checkNotNull(fileManager.findFile(createdDir3, "file.txt")) { "Couldn't find file.txt" }
+    check(!fileManager.isDirectory(createdFile)) { "file.txt is a dir" }
+    check(fileManager.isFile(createdFile)) { "file.txt is not a file" }
+    check(fileManager.exists(createdFile)) { "file.txt does not exist" }
+    check(fileManager.getName(createdFile) == "file.txt") { "file.txt has wrong name" }
+    check(fileManager.canRead(createdFile)) { "Cannot read file.txt" }
+    check(fileManager.canRead(createdFile)) { "Cannot write to file.txt" }
+
+    val rootUri = baseDir.getFileRoot<CachingDocumentFile>().holder.uri
+    val nonExistingFileUri = rootUri.buildUpon().appendPath("211314").build()
+
+    if (fileManager.fromUri(nonExistingFileUri) != null) {
+      throw TestException("fileManager.fromUri(nonExistingFileUri) returned non-null value")
     }
   }
 

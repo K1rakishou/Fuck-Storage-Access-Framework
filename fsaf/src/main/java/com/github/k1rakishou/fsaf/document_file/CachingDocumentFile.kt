@@ -8,7 +8,7 @@ open class CachingDocumentFile(
   protected val appContext: Context,
   val delegate: DocumentFile
 ) {
-  open val exists: Boolean by lazy { true }
+  open val exists: Boolean by lazy { delegate.exists() }
   open val isFile: Boolean by lazy { delegate.isFile }
   open val isDirectory: Boolean by lazy { delegate.isDirectory }
   open val canRead: Boolean by lazy { delegate.canRead() }

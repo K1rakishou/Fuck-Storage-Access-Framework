@@ -12,10 +12,16 @@ abstract class BaseTest(
     println("$tag, isFastMode = $isFastMode, $message")
   }
 
-  protected fun checkDirEmpty(fileManager: FileManager, dirUri: AbstractFile) {
-    val files = fileManager.listFiles(dirUri)
+  protected fun checkDirEmpty(fileManager: FileManager, dir: AbstractFile) {
+    val files = fileManager.listFiles(dir)
     if (files.isNotEmpty()) {
       throw TestException("Couldn't not delete some files in the base directory: ${files}")
     }
+  }
+
+  protected fun runTest(fileManager: FileManager, dir: AbstractFile, block: () -> Unit) {
+    fileManager.deleteContent(dir)
+
+    block()
   }
 }

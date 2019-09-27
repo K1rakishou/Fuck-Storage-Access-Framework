@@ -27,6 +27,9 @@ class ExternalFileManager(
   // For tests
   fun getFastFileSearchTree() = fastFileSearchTree
 
+  /**
+   * Caches multiple files associated with their SnapshotDocumentFile into FastFileSearchTree
+   * */
   fun cacheFiles(files: List<Pair<ExternalFile, SnapshotDocumentFile>>) {
     for ((externalFile, snapshotDocFile) in files) {
       val segments = externalFile.getFullPath().splitIntoSegments()
@@ -39,7 +42,13 @@ class ExternalFileManager(
     }
   }
 
-  fun uncacheFile(file: AbstractFile) {
+  /**
+   * Removes a whole sub-tree from the FastFileSearchTree.
+   * Lets say there is a sub-tree "/1/2/3/<XXX>" which may contain a lot of cached files. After calling
+   * this method all of the <XXX> files will be removed from the FastFileSearchTree and only the
+   * "/1/2/3/" will be left
+   * */
+  fun uncacheFilesInSubTree(file: AbstractFile) {
     val segments = file.getFullPath().splitIntoSegments()
     if (segments.isEmpty()) {
       Log.e(TAG, "uncacheFile.splitIntoSegments() returned empty list")
@@ -242,7 +251,7 @@ class ExternalFileManager(
     return contentResolver.openOutputStream(documentFile.uri)
   }
 
-  override fun getName(file: AbstractFile): String {
+  override fun getName(file: AbstractFile): String? {
     val segments = file.getFileSegments()
     if (segments.isNotEmpty() && segments.last().isFileName) {
       return segments.last().name
@@ -252,7 +261,6 @@ class ExternalFileManager(
       ?: throw IllegalStateException("getName() toDocumentFile() returned null")
 
     return documentFile.name
-      ?: throw IllegalStateException("Could not extract file name from document file")
   }
 
   override fun findFile(dir: AbstractFile, fileName: String): ExternalFile? {
@@ -260,7 +268,9 @@ class ExternalFileManager(
     val segments = dir.getFileSegments()
 
     check(root !is Root.FileRoot) { "Cannot use FileRoot as directory" }
-    check(!segments.last().isFileName) { "Cannot do search when last segment is file" }
+    if (segments.isNotEmpty()) {
+      check(!segments.last().isFileName) { "Cannot do search when last segment is file" }
+    }
 
     val parentDocFile = if (segments.isNotEmpty()) {
       SAFHelper.findDeepFile(appContext, root.holder.uri, segments)
