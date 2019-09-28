@@ -13,20 +13,43 @@ class CreateFilesTest(
   isFastMode: Boolean
 ) : BaseTest(tag, isFastMode) {
 
+  // TODO: test deleting non existing file / directory
+
   fun runTests(fileManager: FileManager, baseDir: AbstractFile) {
-    kotlin.run {
+    runTest(fileManager, baseDir) {
       val time = measureTimeMillis {
         test1(fileManager, baseDir)
       }
 
       log("test1 took ${time}ms")
     }
+
+    runTest(fileManager, baseDir) {
+      testCreateFileWithTheSameNameShouldNotCreateNewFile(fileManager, baseDir)
+    }
+  }
+
+  private fun testCreateFileWithTheSameNameShouldNotCreateNewFile(
+    fileManager: FileManager,
+    baseDir: AbstractFile
+  ) {
+    val dir1 = fileManager.createDir(baseDir, "test")
+    if (dir1 == null || !fileManager.exists(dir1) || !fileManager.isDirectory(dir1)) {
+      throw TestException("Couldn't create directory")
+    }
+
+    val dir2 = fileManager.createDir(baseDir, "test")
+    if (dir2 == null || !fileManager.exists(dir2) || !fileManager.isDirectory(dir2)) {
+      throw TestException("Couldn't create directory")
+    }
+
+    val totalFiles = fileManager.listFiles(baseDir).size
+    if (totalFiles != 1) {
+      throw TestException("New file was created when it shouldn't have been, totalFiles = $totalFiles")
+    }
   }
 
   private fun test1(fileManager: FileManager, baseDir: AbstractFile) {
-    fileManager.deleteContent(baseDir)
-    checkDirEmpty(fileManager, baseDir)
-
     val dir = fileManager.createDir(
       baseDir,
       "test"

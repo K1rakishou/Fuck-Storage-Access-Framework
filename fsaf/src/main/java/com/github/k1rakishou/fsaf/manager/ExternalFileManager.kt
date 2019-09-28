@@ -77,6 +77,25 @@ class ExternalFileManager(
         DocumentsContract.Document.MIME_TYPE_DIR
       }
 
+      // Check whether this segment already exists on the disk
+      val foundFile = SAFHelper.findCachingFile(
+        appContext,
+        innerFile.uri,
+        segment.name
+      )
+
+      if (foundFile != null) {
+        if (foundFile.isFile) {
+          // Ignore any left segments (which we shouldn't have) after encountering fileName
+          // segment
+          return ExternalFile(appContext, Root.FileRoot(foundFile, segment.name))
+        } else {
+          newFile = foundFile
+        }
+
+        continue
+      }
+
       val newUri = DocumentsContract.createDocument(
         appContext.contentResolver,
         innerFile.uri,
@@ -106,12 +125,13 @@ class ExternalFileManager(
       if (segment.isFileName) {
         // Ignore any left segments (which we shouldn't have) after encountering fileName
         // segment
-        return ExternalFile(
-          appContext, Root.FileRoot(
-            CachingDocumentFile(appContext, createdFile),
-            segment.name
-          )
+
+        val newRoot = Root.FileRoot(
+          CachingDocumentFile(appContext, createdFile),
+          segment.name
         )
+
+        return ExternalFile(appContext, newRoot)
       } else {
         newFile = CachingDocumentFile(appContext, createdFile)
       }

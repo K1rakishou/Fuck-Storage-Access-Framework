@@ -157,6 +157,9 @@ abstract class AbstractFile(
   private fun isFilenameAppended(): Boolean =
     segments.lastOrNull()?.isFileName ?: false
 
+  // TODO: equals and hashcode
+  // TODO: test equals and hashcode
+
   override fun toString(): String {
     return getFullPath()
   }

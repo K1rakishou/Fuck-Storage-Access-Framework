@@ -29,4 +29,14 @@ class ExtensionsTest {
     assertEquals("0EF0-1C1F%3Atest", segments[4])
     assertEquals("test", segments[5])
   }
+
+  @Test
+  fun testSplitBadSegments() {
+    val string = "%2F0"
+
+    val segments = string.splitIntoSegments()
+    assertEquals(1, segments.size)
+
+    assertEquals("0", segments.first())
+  }
 }

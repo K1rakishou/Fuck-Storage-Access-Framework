@@ -96,6 +96,7 @@ internal fun String.splitIntoSegments(): List<String> {
       .flatMap { names -> names.split(FILE_SEPARATOR2) }
       // Then try to split every part again by the "%2F" symbol
       .flatMap { names -> names.split(ENCODED_SEPARATOR) }
+      .filter { name -> name.isNotBlank() }
 
     split
   } else {

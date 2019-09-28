@@ -37,6 +37,7 @@ class TestSuite(
       SimpleTest("$TAG SimpleTest", true).runTests(fileManager, baseDirSAF)
       CreateFilesTest("$TAG CreateFilesTest", true).runTests(fileManager, baseDirSAF)
       SnapshotTest("$TAG SnapshotTest", true).runTests(fileManager, baseDirSAF)
+      CopyTest("$TAG CopyTest", true).runTests(fileManager, baseDirSAF, baseDirFile)
     }
 
     println("$TAG runTestsWithCaching took ${time}ms")
@@ -51,6 +52,7 @@ class TestSuite(
       SimpleTest("$TAG SimpleTest", false).runTests(fileManager, baseDirSAF)
       CreateFilesTest("$TAG CreateFilesTest", false).runTests(fileManager, baseDirSAF)
       SnapshotTest("$TAG SnapshotTest", false).runTests(fileManager, baseDirSAF)
+      CopyTest("$TAG CopyTest", false).runTests(fileManager, baseDirSAF, baseDirFile)
     }
 
     println("$TAG runTestsWithoutCaching took ${time}ms")

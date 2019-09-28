@@ -14,7 +14,7 @@ class SnapshotTest(
 ) : BaseTest(tag, isFastMode) {
 
   fun runTests(fileManager: FileManager, baseDir: AbstractFile) {
-    kotlin.run {
+    runTest(fileManager, baseDir) {
       val time = measureTimeMillis {
         test1(fileManager, baseDir)
       }
@@ -24,9 +24,6 @@ class SnapshotTest(
   }
 
   private fun test1(fileManager: FileManager, baseDir: AbstractFile) {
-    fileManager.deleteContent(baseDir)
-    checkDirEmpty(fileManager, baseDir)
-
     val dir = fileManager.createDir(
       baseDir,
       "test"
