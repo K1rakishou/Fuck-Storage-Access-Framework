@@ -41,12 +41,16 @@ class RawFileManager : BaseFileManager {
 
   override fun exists(file: AbstractFile): Boolean =
     toFile(file.clone()).exists()
+
   override fun isFile(file: AbstractFile): Boolean =
     toFile(file.clone()).isFile
+
   override fun isDirectory(file: AbstractFile): Boolean =
     toFile(file.clone()).isDirectory
+
   override fun canRead(file: AbstractFile): Boolean =
     toFile(file.clone()).canRead()
+
   override fun canWrite(file: AbstractFile): Boolean =
     toFile(file.clone()).canWrite()
 
@@ -159,9 +163,31 @@ class RawFileManager : BaseFileManager {
       ?: emptyList()
   }
 
+  /**
+   * We do not support FastFileSearchTree for RawFile so this method just calls listFiles instead
+   * */
   override fun listSnapshotFiles(dir: AbstractFile, recursively: Boolean): List<AbstractFile> {
-    Log.e(TAG, "listSnapshotFiles is not supported for RawFiles")
-    return emptyList()
+    if (!recursively) {
+      return listFiles(dir)
+    }
+
+    val resultFiles = ArrayList<AbstractFile>(32)
+    val files = listFiles(dir)
+    if (files.isEmpty()) {
+      return emptyList()
+    }
+
+    files.forEach { file ->
+      val jFile = toFile(file)
+
+      if (jFile.isDirectory) {
+        resultFiles += listSnapshotFiles(file, recursively)
+      } else {
+        resultFiles += file
+      }
+    }
+
+    return resultFiles
   }
 
   override fun <T> withFileDescriptor(
@@ -174,7 +200,10 @@ class RawFileManager : BaseFileManager {
     return when (fileDescriptorMode) {
       FileDescriptorMode.Read -> FileInputStream(fileCopy).use { fis -> func(fis.fd) }
       FileDescriptorMode.Write -> FileOutputStream(fileCopy, false).use { fos -> func(fos.fd) }
-      FileDescriptorMode.WriteTruncate -> FileOutputStream(fileCopy, true).use { fos -> func(fos.fd) }
+      FileDescriptorMode.WriteTruncate -> FileOutputStream(
+        fileCopy,
+        true
+      ).use { fos -> func(fos.fd) }
       else -> throw NotImplementedError("Not implemented for fileDescriptorMode = ${fileDescriptorMode.name}")
     }
   }
