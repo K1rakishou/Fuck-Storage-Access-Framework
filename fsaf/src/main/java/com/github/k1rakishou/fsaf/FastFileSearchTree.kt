@@ -15,9 +15,37 @@ class FastFileSearchTree<T>(
   val root: FastFileSearchTreeNode<T> = FastFileSearchTreeNode(segmentName = FastFileSearchTreeNode.ROOT)
 ) {
 
-  fun visitEverySegmentInPath(segments: List<String>, func: (Int, FastFileSearchTreeNode<T>) -> Unit) {
+  /**
+   * Visits every node on the [segments]' path, e.g:
+   * Lets say we have these segments we want to visit: /123/456/789
+   * In this case the callback will be called on every segment, i.e. on 123, 456 and 789
+   * */
+  fun visitEverySegmentDuringPath(segments: List<String>, func: (Int, FastFileSearchTreeNode<T>) -> Unit) {
     require(segments.isNotEmpty()) { "Segments to visit list must not be empty" }
-    root.visitEverySegmentInPath(segments, 0, func)
+    root.visitEverySegmentDuringPath(segments, 0, func)
+  }
+
+  /**
+   * Visits every node after the [segments] have been passed, e.g:
+   * Lets say we have this path /123/456/789 and we want to visit everything inside /789,
+   * and there are couple of files inside /789, let's say 1.txt, 2.txt, 3.txt, 4.txt,
+   * so the whole structure looks like this:
+   *
+   * /123/456/789/1.txt
+   * /123/456/789/2.txt
+   * /123/456/789/3.txt
+   * /123/456/789/4.txt
+   *
+   * In this case the callback will be called on every file segment, i.e. 1.txt, 2.txt, 3.txt and
+   * 4.txt it won't be called on 123, 456 and 789
+   * */
+  fun visitEverySegmentAfterPath(
+    segments: List<String>,
+    recursively: Boolean,
+    func: (FastFileSearchTreeNode<T>) -> Unit
+  ) {
+    require(segments.isNotEmpty()) { "Segments to visit list must not be empty" }
+    root.visitEverySegmentAfterPath(segments, 0, recursively, func)
   }
 
   fun visitAllSegments(func: (FastFileSearchTreeNode<T>) -> Unit) {
@@ -170,24 +198,111 @@ class FastFileSearchTreeNode<V>(
     children = singletonMap()
   }
 
-  internal fun visitEverySegmentInPath(
+  internal fun visitEverySegmentDuringPath(
     segments: List<String>,
     index: Int,
     func: (Int, FastFileSearchTreeNode<V>) -> Unit
   ) {
-    if (children === SINGLETON_MAP) {
-      return
-    }
-
     val currentSegmentName = segments.getOrNull(index)
       ?: return
+
+    if (isRoot()) {
+      val nextNode = children[currentSegmentName]
+        ?: return
+
+      return nextNode.visitEverySegmentDuringPath(segments, index, func)
+    }
 
     if (currentSegmentName != segmentName) {
       return
     }
 
     func(index, this)
-    children[currentSegmentName]?.visitEverySegmentInPath(segments, index + 1, func)
+
+    if (children === SINGLETON_MAP) {
+      return
+    }
+
+    val nextSegment = segments.getOrNull(index + 1)
+    val isLastSegment = nextSegment == null
+
+    if (isLastSegment) {
+      return
+    }
+
+    val nextNode = children[nextSegment]
+      ?: return
+
+    nextNode.visitEverySegmentDuringPath(segments, index + 1, func)
+  }
+
+  internal fun visitEverySegmentAfterPath(
+    segments: List<String>,
+    index: Int,
+    recursively: Boolean,
+    func: (FastFileSearchTreeNode<V>) -> Unit
+  ) {
+    val currentSegmentName = segments.getOrNull(index)
+      ?: return
+
+    if (isRoot()) {
+      val nextNode = children[currentSegmentName]
+        ?: return
+
+      return nextNode.visitEverySegmentAfterPath(segments, index, recursively, func)
+    }
+
+    if (currentSegmentName != segmentName) {
+      return
+    }
+
+    val nextSegment = segments.getOrNull(index + 1)
+    val isLastSegment = nextSegment == null
+
+    if (!isLastSegment) {
+      children[nextSegment]?.visitEverySegmentAfterPath(
+        segments,
+        index + 1,
+        recursively,
+        func
+      )
+
+      return
+    }
+
+    if (children === SINGLETON_MAP) {
+      return
+    }
+
+    // We have reached our destination, now we need to traverse all of the children
+    visitChildren(children.map { it.value }, recursively, func)
+  }
+
+  private fun visitChildren(
+    nodes: Collection<FastFileSearchTreeNode<V>>,
+    recursively: Boolean,
+    func: (FastFileSearchTreeNode<V>) -> Unit
+  ) {
+    if (nodes.isEmpty()) {
+      return
+    }
+
+    nodes.forEach { node -> func(node) }
+
+    if (!recursively) {
+      return
+    }
+
+    val innerNodes = nodes
+      .map { node -> node.children }
+      .filter { node -> node !== SINGLETON_MAP }
+      .flatMap { node -> node.values }
+
+    visitChildren(
+      innerNodes,
+      recursively,
+      func
+    )
   }
 
   internal fun visitAllSegments(func: (FastFileSearchTreeNode<V>) -> Unit) {
@@ -208,6 +323,7 @@ class FastFileSearchTreeNode<V>(
   ): Boolean {
     val currentSegment = segments.getOrNull(index)
       ?: return false
+
     val nextSegment = segments.getOrNull(index + 1)
     val isLastSegment = nextSegment == null
     this.segmentName = currentSegment

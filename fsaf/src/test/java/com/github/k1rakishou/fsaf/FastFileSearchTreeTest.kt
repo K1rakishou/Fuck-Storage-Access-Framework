@@ -76,11 +76,21 @@ class FastFileSearchTreeTest {
     assertTrue(fastFileSearchTree.insertManySegments(pairs))
     assertEquals(10, fastFileSearchTree.root.getNodeChildren().size)
 
+    var index = 0
+
     balancedSegmentsList.forEach { pathToVisit ->
-      fastFileSearchTree.visitEverySegmentInPath(pathToVisit) { index, node ->
-        assertEquals(pathToVisit[index], node.getNodeName())
-        assertEquals(1, node.getNodeChildren().size)
-        assertEquals(valuesList[index], node.getNodeChildren())
+      fastFileSearchTree.visitEverySegmentDuringPath(pathToVisit) { nodeIndex, node ->
+        assertEquals(pathToVisit[nodeIndex], node.getNodeName())
+
+        if (node.isLeaf()) {
+          assertEquals(valuesList[index], node.getNodeValue())
+          assertEquals(0, node.getNodeChildren().size)
+
+          ++index
+        } else {
+          assertNull(node.getNodeValue())
+          assertEquals(1, node.getNodeChildren().size)
+        }
       }
     }
 
@@ -99,11 +109,21 @@ class FastFileSearchTreeTest {
     assertTrue(fastFileSearchTree.insertManySegments(pairs))
     assertEquals(10, fastFileSearchTree.root.getNodeChildren().size)
 
+    var index = 0
+
     balancedSegmentsList.forEach { pathToVisit ->
-      fastFileSearchTree.visitEverySegmentInPath(pathToVisit) { index, node ->
-        assertEquals(pathToVisit[index], node.getNodeName())
-        assertEquals(1, node.getNodeChildren().size)
-        assertEquals(valuesList[index], node.getNodeChildren())
+      fastFileSearchTree.visitEverySegmentDuringPath(pathToVisit) { nodeIndex, node ->
+        assertEquals(pathToVisit[nodeIndex], node.getNodeName())
+
+        if (node.isLeaf()) {
+          assertEquals(valuesList[index], node.getNodeValue())
+          assertEquals(0, node.getNodeChildren().size)
+
+          ++index
+        } else {
+          assertNull(node.getNodeValue())
+          assertEquals(1, node.getNodeChildren().size)
+        }
       }
     }
 
@@ -205,7 +225,117 @@ class FastFileSearchTreeTest {
     assertTrue(fastFileSearchTree.containsSegment(segments.take(1)))
   }
 
-  // TODO: visit tests
+  @Test
+  fun `test visit during path`() {
+    val fastFileSearchTree = FastFileSearchTree<Int>()
+
+    val testSegments = listOf(
+      listOf("0", "00", "000.txt"),
+      listOf("0", "00", "111.txt"),
+      listOf("0", "00", "222.txt"),
+      listOf("0", "00", "333.txt")
+    )
+
+    for ((index, segments) in testSegments.withIndex()) {
+      assertTrue(fastFileSearchTree.insertSegments(segments, index))
+    }
+
+    val resultNodeNames = mutableListOf<String>()
+
+    fastFileSearchTree.visitEverySegmentDuringPath(listOf("0", "00", "000.txt")) { index, node ->
+      resultNodeNames += node.getNodeName()!!
+    }
+
+    assertEquals(3, resultNodeNames.size)
+    assertTrue("0" in resultNodeNames)
+    assertTrue("00" in resultNodeNames)
+    assertTrue("000.txt" in resultNodeNames)
+  }
+
+  @Test
+  fun `test visit after path not recursively`() {
+    val fastFileSearchTree = FastFileSearchTree<Int>()
+
+    val testSegments = listOf(
+      listOf("0", "00", "000.txt"),
+      listOf("0", "00", "111.txt"),
+      listOf("0", "00", "222.txt"),
+      listOf("0", "00", "333.txt"),
+      listOf("0", "00", "000"),
+      listOf("0", "00", "000", "444.txt"),
+      listOf("0", "00", "000", "555.txt"),
+      listOf("0", "00", "000", "666.txt"),
+      listOf("0", "00", "111"),
+      listOf("0", "00", "111", "777.txt"),
+      listOf("0", "00", "111", "888.txt"),
+      listOf("0", "00", "111", "999.txt")
+    )
+
+    for ((index, segments) in testSegments.withIndex()) {
+      assertTrue(fastFileSearchTree.insertSegments(segments, index))
+    }
+
+    val resultNodeNames = mutableListOf<String>()
+
+    fastFileSearchTree.visitEverySegmentAfterPath(listOf("0", "00"), false) { node ->
+      resultNodeNames += node.getNodeName()!!
+    }
+
+    assertEquals(6, resultNodeNames.size)
+
+    assertTrue("000.txt" in resultNodeNames)
+    assertTrue("111.txt" in resultNodeNames)
+    assertTrue("222.txt" in resultNodeNames)
+    assertTrue("333.txt" in resultNodeNames)
+    assertTrue("000" in resultNodeNames)
+    assertTrue("111" in resultNodeNames)
+  }
+
+  @Test
+  fun `test visit after path recursively`() {
+    val fastFileSearchTree = FastFileSearchTree<Int>()
+
+    val testSegments = listOf(
+      listOf("0", "00", "000.txt"),
+      listOf("0", "00", "111.txt"),
+      listOf("0", "00", "222.txt"),
+      listOf("0", "00", "333.txt"),
+      listOf("0", "00", "000"),
+      listOf("0", "00", "000", "444.txt"),
+      listOf("0", "00", "000", "555.txt"),
+      listOf("0", "00", "000", "666.txt"),
+      listOf("0", "00", "111"),
+      listOf("0", "00", "111", "777.txt"),
+      listOf("0", "00", "111", "888.txt"),
+      listOf("0", "00", "111", "999.txt")
+    )
+
+    for ((index, segments) in testSegments.withIndex()) {
+      assertTrue(fastFileSearchTree.insertSegments(segments, index))
+    }
+
+    val resultNodeNames = mutableListOf<String>()
+
+    fastFileSearchTree.visitEverySegmentAfterPath(listOf("0", "00"), true) { node ->
+      resultNodeNames += node.getNodeName()!!
+    }
+
+    assertEquals(12, resultNodeNames.size)
+
+    assertTrue("000.txt" in resultNodeNames)
+    assertTrue("111.txt" in resultNodeNames)
+    assertTrue("222.txt" in resultNodeNames)
+    assertTrue("333.txt" in resultNodeNames)
+    assertTrue("000" in resultNodeNames)
+    assertTrue("111" in resultNodeNames)
+    assertTrue("444.txt" in resultNodeNames)
+    assertTrue("555.txt" in resultNodeNames)
+    assertTrue("666.txt" in resultNodeNames)
+    assertTrue("777.txt" in resultNodeNames)
+    assertTrue("888.txt" in resultNodeNames)
+    assertTrue("999.txt" in resultNodeNames)
+  }
+
   // TODO: clear tests
 
   private fun assertChildrenAreLeafs(children: MutableMap<String, FastFileSearchTreeNode<Int>>) {

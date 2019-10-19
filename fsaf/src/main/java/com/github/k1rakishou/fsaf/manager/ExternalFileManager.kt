@@ -21,7 +21,7 @@ class ExternalFileManager(
   private val appContext: Context,
   private val searchMode: SearchMode,
   private val baseDirectoryManager: BaseDirectoryManager
-) : BaseFileManager {
+) : BaseExternalFileManager {
   private val mimeTypeMap = MimeTypeMap.getSingleton()
   private val fastFileSearchTree: FastFileSearchTree<CachingDocumentFile> = FastFileSearchTree()
 
@@ -33,14 +33,21 @@ class ExternalFileManager(
    * */
   fun cacheFiles(files: List<Pair<ExternalFile, SnapshotDocumentFile>>) {
     for ((externalFile, snapshotDocFile) in files) {
-      val segments = externalFile.getFullPath().splitIntoSegments()
-      if (segments.isEmpty()) {
-        Log.e(TAG, "cacheFile.splitIntoSegments() returned empty list")
-        continue
-      }
-
-      check(fastFileSearchTree.insertSegments(segments, snapshotDocFile))
+      cacheFile(externalFile, snapshotDocFile)
     }
+  }
+
+  private fun cacheFile(
+    externalFile: ExternalFile,
+    snapshotDocFile: SnapshotDocumentFile
+  ) {
+    val segments = externalFile.getFullPath().splitIntoSegments()
+    if (segments.isEmpty()) {
+      Log.e(TAG, "cacheFile.splitIntoSegments() returned empty list")
+      return
+    }
+
+    check(fastFileSearchTree.insertSegments(segments, snapshotDocFile))
   }
 
   /**
@@ -347,8 +354,28 @@ class ExternalFileManager(
       ?: return emptyList()
 
     return SAFHelper.listFilesFast(appContext, docFile.uri, baseDirectoryManager.isBaseDir(dir))
-      // TODO: update FastFileSearchTree here with fresh files
-      .map { documentFile -> ExternalFile(appContext, Root.DirRoot(documentFile)) }
+      .map { snapshotFile ->
+        val file = ExternalFile(appContext, Root.DirRoot(snapshotFile))
+        cacheFile(file, snapshotFile)
+
+        return@map file
+      }
+  }
+
+  override fun listCachedFile(dir: AbstractFile, recursively: Boolean): List<CachingDocumentFile> {
+    val root = dir.getFileRoot<CachingDocumentFile>()
+    check(root !is Root.FileRoot) { "Cannot use listFiles with FileRoot" }
+
+    val resultList = ArrayList<CachingDocumentFile>(32)
+
+    fastFileSearchTree.visitEverySegmentAfterPath(
+      dir.getFullPath().splitIntoSegments(),
+      recursively
+    ) { node ->
+      node.getNodeValue()?.let { resultList += it }
+    }
+
+    return resultList
   }
 
   override fun lastModified(file: AbstractFile): Long {
