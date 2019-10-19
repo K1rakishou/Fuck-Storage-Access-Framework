@@ -193,6 +193,10 @@ class FileManager(
   }
 
   override fun create(baseDir: AbstractFile, segments: List<Segment>): AbstractFile? {
+    if (segments.isEmpty() && exists(baseDir)) {
+      return baseDir
+    }
+
     require(segments.isNotEmpty()) { "No segments provided" }
 
     return managers[baseDir.getFileManagerId()]?.create(baseDir.clone(), segments)
