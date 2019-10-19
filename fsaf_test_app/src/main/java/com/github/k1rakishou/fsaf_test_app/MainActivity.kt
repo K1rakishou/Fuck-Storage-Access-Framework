@@ -11,8 +11,6 @@ import com.github.k1rakishou.fsaf.FileChooser
 import com.github.k1rakishou.fsaf.FileManager
 import com.github.k1rakishou.fsaf.callback.DirectoryChooserCallback
 import com.github.k1rakishou.fsaf.callback.FSAFActivityCallbacks
-import com.github.k1rakishou.fsaf.manager.BaseDirectoryManager
-import com.github.k1rakishou.fsaf.manager.ExternalFileManager
 import com.github.k1rakishou.fsaf.util.SAFHelper
 import com.github.k1rakishou.fsaf_test_app.tests.TestSuite
 import kotlinx.android.synthetic.main.activity_main.*
@@ -21,9 +19,7 @@ import java.io.File
 class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
   private lateinit var testSuite: TestSuite
 
-  private lateinit var baseDirectoryManager: BaseDirectoryManager
   private lateinit var fastFileManager: FileManager
-  private lateinit var slowFileManager: FileManager
   private lateinit var fileChooser: FileChooser
 
   private lateinit var sharedPreferences: SharedPreferences
@@ -33,33 +29,14 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
     setContentView(R.layout.activity_main)
 
     sharedPreferences = getSharedPreferences("test", MODE_PRIVATE)
-    baseDirectoryManager = BaseDirectoryManager()
 
-    fastFileManager = FileManager(
-      applicationContext,
-      baseDirectoryManager,
-      externalFileManager = ExternalFileManager(
-        applicationContext,
-        ExternalFileManager.SearchMode.Fast,
-        baseDirectoryManager
-      )
-    )
-    slowFileManager = FileManager(
-      applicationContext,
-      baseDirectoryManager,
-      externalFileManager = ExternalFileManager(
-        applicationContext,
-        ExternalFileManager.SearchMode.Slow,
-        baseDirectoryManager
-      )
-    )
-
+    fastFileManager = FileManager(applicationContext)
     fileChooser = FileChooser(applicationContext)
-    testSuite = TestSuite(fastFileManager, slowFileManager)
+    testSuite = TestSuite(fastFileManager)
     fileChooser.setCallbacks(this)
 
     if (getTreeUri() != null) {
-      baseDirectoryManager.registerBaseDir(TestBaseDirectory(getTreeUri()!!))
+      fastFileManager.registerBaseDir(TestBaseDirectory(getTreeUri()!!))
     }
 
     updateControls()
@@ -95,7 +72,7 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
 
     run_tests_button.setOnClickListener {
       try {
-        val baseSAFDir = fastFileManager.newBaseDirectoryFile(TestBaseDirectory.BASE_DIR_ID)!!
+        val baseSAFDir = fastFileManager.newBaseDirectoryFile(TestBaseDirectory.BASE_DIRECTORY_ID)!!
         val baseFileApiDir = fastFileManager.fromRawFile(File(Environment.getDownloadCacheDirectory(), "test"))
 
         testSuite.runTests(
@@ -143,7 +120,7 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
   }
 
   private fun storeTreeUri(uri: Uri) {
-    baseDirectoryManager.registerBaseDir(TestBaseDirectory(uri))
+    fastFileManager.registerBaseDir(TestBaseDirectory(uri))
     sharedPreferences.edit().putString(TREE_URI, uri.toString()).apply()
   }
 
@@ -155,7 +132,7 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
     }
 
     fileChooser.forgetSAFTree(treeUri)
-    baseDirectoryManager.unregisterBaseDir(treeUri)
+    fastFileManager.unregisterBaseDir(treeUri)
     sharedPreferences.edit().remove(TREE_URI).apply()
   }
 

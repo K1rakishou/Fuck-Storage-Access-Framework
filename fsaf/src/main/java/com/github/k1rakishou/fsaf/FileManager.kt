@@ -10,10 +10,11 @@ import com.github.k1rakishou.fsaf.document_file.SnapshotDocumentFile
 import com.github.k1rakishou.fsaf.extensions.copyInto
 import com.github.k1rakishou.fsaf.extensions.splitIntoSegments
 import com.github.k1rakishou.fsaf.file.*
-import com.github.k1rakishou.fsaf.manager.BaseDirectoryManager
 import com.github.k1rakishou.fsaf.manager.BaseFileManager
 import com.github.k1rakishou.fsaf.manager.ExternalFileManager
 import com.github.k1rakishou.fsaf.manager.RawFileManager
+import com.github.k1rakishou.fsaf.manager.base_directory.BaseDirectory
+import com.github.k1rakishou.fsaf.manager.base_directory.DirectoryManager
 import com.github.k1rakishou.fsaf.util.SAFHelper
 import java.io.*
 import java.util.*
@@ -21,11 +22,10 @@ import java.util.*
 
 class FileManager(
   private val appContext: Context,
-  private val baseDirectoryManager: BaseDirectoryManager,
+  private val directoryManager: DirectoryManager = DirectoryManager(),
   externalFileManager: ExternalFileManager = ExternalFileManager(
     appContext,
-    ExternalFileManager.SearchMode.Fast,
-    baseDirectoryManager
+    directoryManager
   ),
   rawFileManager: RawFileManager = RawFileManager()
 ) : BaseFileManager {
@@ -50,20 +50,6 @@ class FileManager(
       ?: throw IllegalStateException("RawFileManager is not added")
   }
 
-  fun baseDirectoryExists(baseDirId: String): Boolean {
-    val baseDirFile = newBaseDirectoryFile(baseDirId)
-    if (baseDirFile == null) {
-      Log.e(TAG, "baseDirectoryExists() newBaseDirectoryFile returned null")
-      return false
-    }
-
-    if (!exists(baseDirFile)) {
-      return false
-    }
-
-    return true
-  }
-
   /**
    * Creates a raw file from a path.
    * Use this method to convert a java File by this path into an AbstractFile.
@@ -86,6 +72,14 @@ class FileManager(
     return RawFile(Root.DirRoot(file))
   }
 
+  fun registerBaseDir(baseDirectory: BaseDirectory) {
+    directoryManager.registerBaseDir(baseDirectory)
+  }
+
+  fun unregisterBaseDir(dirUri: Uri) {
+    directoryManager.unregisterBaseDir(dirUri)
+  }
+
   /**
    * Instantiates a new AbstractFile with the root being in the base directory with [baseDirId]
    * base directory id.
@@ -93,32 +87,54 @@ class FileManager(
    * Does not create file on the disk automatically! (just like the Java File)
    * */
   fun newBaseDirectoryFile(baseDirId: String): AbstractFile? {
-    val baseDir = baseDirectoryManager.getBaseDirById(baseDirId)
+    val baseDir = directoryManager.getBaseDirById(baseDirId)
     if (baseDir == null) {
       Log.e(TAG, "Base directory with id $baseDirId is not registered")
       return null
     }
 
-    if (!SAFHelper.isTreeUri(baseDir.dirUri)) {
-      Log.e(TAG, "Not a tree uri ${baseDir.dirUri}")
-      return null
-    }
+    if (baseDir.dirUri != null) {
+      if (!SAFHelper.isTreeUri(baseDir)) {
+        Log.e(TAG, "Not a tree uri ${baseDir.dirPath()}")
+        return null
+      }
 
-    val treeDirectory = try {
-      DocumentFile.fromTreeUri(appContext, baseDir.dirUri)
-    } catch (error: Throwable) {
-      Log.e(TAG, "Error while trying to create TreeDocumentFile, dirUri = ${baseDir.dirUri}")
-      return null
-    }
+      val treeDirectory = try {
+        DocumentFile.fromTreeUri(appContext, baseDir.dirUri)
+      } catch (error: Throwable) {
+        Log.e(TAG, "Error while trying to create TreeDocumentFile, dirUri = ${baseDir.dirPath()}")
+        return null
+      }
 
-    if (treeDirectory == null) {
-      return null
-    }
+      if (treeDirectory == null) {
+        return null
+      }
 
-    return ExternalFile(
+      return ExternalFile(
         appContext,
         Root.DirRoot(CachingDocumentFile(appContext, treeDirectory))
       )
+    } else if (baseDir.dirFile != null) {
+       return RawFile(
+         Root.DirRoot(baseDir.dirFile)
+       )
+    }
+
+    throw IllegalStateException("${baseDir.javaClass.name} is not supported!")
+  }
+
+  fun baseDirectoryExists(baseDirId: String): Boolean {
+    val baseDirFile = newBaseDirectoryFile(baseDirId)
+    if (baseDirFile == null) {
+      Log.e(TAG, "baseDirectoryExists() newBaseDirectoryFile returned null")
+      return false
+    }
+
+    if (!exists(baseDirFile)) {
+      return false
+    }
+
+    return true
   }
 
   /**
@@ -534,7 +550,7 @@ class FileManager(
 
     for (directory in directories) {
       val parentUri = directory.getFileRoot<CachingDocumentFile>().holder.uri
-      val isBaseDir = baseDirectoryManager.isBaseDir(directory)
+      val isBaseDir = directoryManager.isBaseDir(directory)
 
       val documentFiles = SAFHelper.listFilesFast(appContext, parentUri, isBaseDir)
       if (documentFiles.isNotEmpty()) {

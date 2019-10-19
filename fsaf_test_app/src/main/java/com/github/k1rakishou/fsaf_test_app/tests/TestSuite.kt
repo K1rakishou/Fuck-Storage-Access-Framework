@@ -5,8 +5,7 @@ import com.github.k1rakishou.fsaf.file.AbstractFile
 import kotlin.system.measureTimeMillis
 
 class TestSuite(
-  private val fastFileManager: FileManager,
-  private val slowFileManager: FileManager
+  private val fileManager: FileManager
 ) {
   private val TAG = "TestSuite"
 
@@ -17,9 +16,7 @@ class TestSuite(
       println("$TAG baseDirSAF = ${baseDirSAF.getFullPath()}")
       println("$TAG baseDirFile = ${baseDirFile.getFullPath()}")
 
-      runTestsWithCaching(fastFileManager, baseDirSAF, baseDirFile)
-      println(TAG)
-      runTestsWithoutCaching(slowFileManager, baseDirSAF, baseDirFile)
+      runTestsWithCaching(fileManager, baseDirSAF, baseDirFile)
 
       println("$TAG =============== END TESTS ===============")
     } catch (error: Throwable) {
@@ -41,21 +38,6 @@ class TestSuite(
     }
 
     println("$TAG runTestsWithCaching took ${time}ms")
-  }
-
-  private fun runTestsWithoutCaching(
-    fileManager: FileManager,
-    baseDirSAF: AbstractFile,
-    baseDirFile: AbstractFile
-  ) {
-    val time = measureTimeMillis {
-      SimpleTest("$TAG SimpleTest", false).runTests(fileManager, baseDirSAF)
-      CreateFilesTest("$TAG CreateFilesTest", false).runTests(fileManager, baseDirSAF)
-      SnapshotTest("$TAG SnapshotTest", false).runTests(fileManager, baseDirSAF)
-      CopyTest("$TAG CopyTest", false).runTests(fileManager, baseDirSAF, baseDirFile)
-    }
-
-    println("$TAG runTestsWithoutCaching took ${time}ms")
   }
 
 }

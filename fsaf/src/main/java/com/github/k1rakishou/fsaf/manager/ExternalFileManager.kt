@@ -12,6 +12,7 @@ import com.github.k1rakishou.fsaf.document_file.SnapshotDocumentFile
 import com.github.k1rakishou.fsaf.extensions.getMimeFromFilename
 import com.github.k1rakishou.fsaf.extensions.splitIntoSegments
 import com.github.k1rakishou.fsaf.file.*
+import com.github.k1rakishou.fsaf.manager.base_directory.DirectoryManager
 import com.github.k1rakishou.fsaf.util.SAFHelper
 import java.io.FileDescriptor
 import java.io.InputStream
@@ -19,8 +20,7 @@ import java.io.OutputStream
 
 class ExternalFileManager(
   private val appContext: Context,
-  private val searchMode: SearchMode,
-  private val baseDirectoryManager: BaseDirectoryManager
+  private val directoryManager: DirectoryManager
 ) : BaseFileManager {
   private val mimeTypeMap = MimeTypeMap.getSingleton()
   private val fastFileSearchTree: FastFileSearchTree<CachingDocumentFile> = FastFileSearchTree()
@@ -90,7 +90,7 @@ class ExternalFileManager(
         appContext,
         innerFile.uri,
         segment.name,
-        baseDirectoryManager.isBaseDir(innerFile.uri)
+        directoryManager.isBaseDir(innerFile.uri)
       )
 
       if (foundFile != null) {
@@ -186,16 +186,14 @@ class ExternalFileManager(
     val documentFile = toDocumentFile(file.clone())
       ?: return true
 
-    if (searchMode == SearchMode.Fast) {
-      val segments = file
-        .toString()
-        .splitIntoSegments()
-      check(segments.isNotEmpty())
+    val segments = file
+      .toString()
+      .splitIntoSegments()
+    check(segments.isNotEmpty())
 
-      if (!fastFileSearchTree.removeSegments(segments)) {
-        Log.e(TAG, "delete(), Couldn't remove segments $segments from fastFileSearchTree")
-        return false
-      }
+    if (!fastFileSearchTree.removeSegments(segments)) {
+      Log.e(TAG, "delete(), Couldn't remove segments $segments from fastFileSearchTree")
+      return false
     }
 
     return documentFile.delete()
@@ -212,14 +210,12 @@ class ExternalFileManager(
 
     val filesInDirectory = documentFile.listFiles()
 
-    if (searchMode == SearchMode.Fast) {
-      for (fileInDirectory in filesInDirectory) {
-        val segments = fileInDirectory.uri.toString().splitIntoSegments()
+    for (fileInDirectory in filesInDirectory) {
+      val segments = fileInDirectory.uri.toString().splitIntoSegments()
 
-        if (!fastFileSearchTree.removeSegments(segments)) {
-          Log.e(TAG, "deleteContent() Couldn't remove segments $segments from fastFileSearchTree")
-          return
-        }
+      if (!fastFileSearchTree.removeSegments(segments)) {
+        Log.e(TAG, "deleteContent() Couldn't remove segments $segments from fastFileSearchTree")
+        return
       }
     }
 
@@ -306,7 +302,7 @@ class ExternalFileManager(
         appContext,
         root.holder.uri,
         segments,
-        baseDirectoryManager
+        directoryManager
       )
     } else {
       val docFile = DocumentFile.fromSingleUri(appContext, root.holder.uri)
@@ -325,7 +321,7 @@ class ExternalFileManager(
       appContext,
       parentDocFile.uri,
       fileName,
-      baseDirectoryManager.isBaseDir(parentDocFile.uri)
+      directoryManager.isBaseDir(parentDocFile.uri)
     )
 
     if (cachingDocFile == null || !cachingDocFile.exists) {
@@ -353,7 +349,7 @@ class ExternalFileManager(
     val docFile = toDocumentFile(dir.clone())
       ?: return emptyList()
 
-    return SAFHelper.listFilesFast(appContext, docFile.uri, baseDirectoryManager.isBaseDir(dir))
+    return SAFHelper.listFilesFast(appContext, docFile.uri, directoryManager.isBaseDir(dir))
       .map { snapshotFile ->
         val file = ExternalFile(appContext, Root.DirRoot(snapshotFile))
         cacheFile(file, snapshotFile)
@@ -408,7 +404,7 @@ class ExternalFileManager(
       appContext,
       parentUri,
       segments,
-      baseDirectoryManager
+      directoryManager
     )
   }
 
@@ -420,20 +416,6 @@ class ExternalFileManager(
       file.getFileRoot<DocumentFile>().holder.uri,
       fileDescriptorMode.mode
     )
-  }
-
-  /**
-   * For tests only!
-   * */
-  enum class SearchMode {
-    /**
-     * Fast search mode uses FastFileSearchTree
-     * */
-    Fast,
-    /**
-     * Slow search mode doesn't use FastFileSearchTree
-     * */
-    Slow
   }
 
   companion object {

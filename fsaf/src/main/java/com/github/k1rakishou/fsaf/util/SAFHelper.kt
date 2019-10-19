@@ -11,7 +11,8 @@ import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
 import com.github.k1rakishou.fsaf.document_file.SnapshotDocumentFile
 import com.github.k1rakishou.fsaf.extensions.safeCapacity
 import com.github.k1rakishou.fsaf.file.Segment
-import com.github.k1rakishou.fsaf.manager.BaseDirectoryManager
+import com.github.k1rakishou.fsaf.manager.base_directory.BaseDirectory
+import com.github.k1rakishou.fsaf.manager.base_directory.DirectoryManager
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -36,7 +37,7 @@ object SAFHelper {
     appContext: Context,
     parentUri: Uri,
     segments: List<Segment>,
-    baseDirectoryManager: BaseDirectoryManager
+    directoryManager: DirectoryManager
   ): SnapshotDocumentFile? {
     check(segments.isNotEmpty()) { "segments must not be empty" }
 
@@ -48,7 +49,7 @@ object SAFHelper {
         appContext,
         uri,
         segment.name,
-        baseDirectoryManager.isBaseDir(uri)
+        directoryManager.isBaseDir(uri)
       )
 
       if (file == null) {
@@ -330,6 +331,14 @@ object SAFHelper {
         DocumentsContract.getDocumentId(parentUri)
       )
     }
+  }
+
+  fun isTreeUri(baseDir: BaseDirectory): Boolean {
+    if (baseDir.dirUri == null) {
+      return false
+    }
+
+    return isTreeUri(baseDir.dirUri)
   }
 
   fun isTreeUri(uri: Uri): Boolean {
