@@ -7,6 +7,7 @@ import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import java.util.regex.Pattern
 
 internal const val BINARY_FILE_MIME_TYPE = "application/octet-stream"
 
@@ -17,6 +18,8 @@ internal val uriTypes = arrayOf(CONTENT_TYPE, FILE_TYPE)
 internal const val ENCODED_SEPARATOR = "%2F"
 internal const val FILE_SEPARATOR1 = "/"
 internal const val FILE_SEPARATOR2 = "\\"
+
+private val SPLIT_PATTERN = Pattern.compile("%2F|/|\\\\")
 
 @Throws(IOException::class)
 internal fun InputStream.copyInto(outputStream: OutputStream) {
@@ -90,16 +93,24 @@ internal fun String.splitIntoSegments(): List<String> {
     || string.contains(ENCODED_SEPARATOR)
   ) {
     val split = string
-      // First of all split by the "/" symbol
-      .split(FILE_SEPARATOR1)
-      // Then try to split every part again by the "\" symbol
-      .flatMap { names -> names.split(FILE_SEPARATOR2) }
-      // Then try to split every part again by the "%2F" symbol
-      .flatMap { names -> names.split(ENCODED_SEPARATOR) }
+      .split(SPLIT_PATTERN)
       .filter { name -> name.isNotBlank() }
 
     split
   } else {
     listOf(string)
+  }
+}
+
+internal fun safeCapacity(list: List<*>, divider: Int = 2): Int {
+  return if (list.size <= 1) {
+    1
+  } else {
+    val result = list.size / divider
+    if (result <= 1) {
+      1
+    } else {
+      result
+    }
   }
 }

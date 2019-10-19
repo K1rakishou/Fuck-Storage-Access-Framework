@@ -9,6 +9,7 @@ import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
 import com.github.k1rakishou.fsaf.extensions.copyInto
 import com.github.k1rakishou.fsaf.extensions.splitIntoSegments
 import com.github.k1rakishou.fsaf.file.*
+import com.github.k1rakishou.fsaf.manager.BaseDirectoryManager
 import com.github.k1rakishou.fsaf.manager.BaseFileManager
 import com.github.k1rakishou.fsaf.manager.ExternalFileManager
 import com.github.k1rakishou.fsaf.manager.RawFileManager
@@ -19,9 +20,11 @@ import java.util.*
 
 class FileManager(
   private val appContext: Context,
+  private val baseDirectoryManager: BaseDirectoryManager,
   externalFileManager: ExternalFileManager = ExternalFileManager(
     appContext,
-    ExternalFileManager.SearchMode.Fast
+    ExternalFileManager.SearchMode.Fast,
+    baseDirectoryManager
   ),
   rawFileManager: RawFileManager = RawFileManager()
 ) : BaseFileManager {
@@ -46,38 +49,22 @@ class FileManager(
       ?: throw IllegalStateException("RawFileManager is not added")
   }
 
-  //=======================================================
-  // Api to convert native file/documentFile classes into our own abstractions
-  //=======================================================
+  fun baseDirectoryExists(baseDirId: String): Boolean {
+    val baseDirFile = newBaseDirectoryFile(baseDirId)
+    if (baseDirFile == null) {
+      Log.e(TAG, "baseDirectoryExists() newBaseDirectoryFile returned null")
+      return false
+    }
 
-//  fun baseSaveLocalDirectoryExists(): Boolean {
-//    val baseDirFile = newSaveLocationFile()
-//    if (baseDirFile == null) {
-//      return false
-//    }
-//
-//    if (!baseDirFile.exists()) {
-//      return false
-//    }
-//
-//    return true
-//  }
-//
-//  fun baseLocalThreadsDirectoryExists(): Boolean {
-//    val baseDirFile = newLocalThreadFile()
-//    if (baseDirFile == null) {
-//      return false
-//    }
-//
-//    if (!baseDirFile.exists()) {
-//      return false
-//    }
-//
-//    return true
-//  }
+    if (!exists(baseDirFile)) {
+      return false
+    }
+
+    return true
+  }
 
   /**
-   * Create a raw file from a path.
+   * Creates a raw file from a path.
    * Use this method to convert a java File by this path into an AbstractFile.
    * Does not create file on the disk automatically!
    * */
@@ -86,7 +73,7 @@ class FileManager(
   }
 
   /**
-   * Create RawFile from Java File.
+   * Creates RawFile from the Java File.
    * Use this method to convert a java File into an AbstractFile.
    * Does not create file on the disk automatically!
    * */
@@ -99,91 +86,43 @@ class FileManager(
   }
 
   /**
-   * Creates an external file from Uri.
-   * Use this method to convert external file uri (file that may be located at sd card) into an
-   * AbstractFile. If a file does not exist null is returned.
-   * Does not create file on the disk automatically!
+   * Instantiates a new AbstractFile with the root being in the base directory with [baseDirId]
+   * base directory id.
+   *
+   * Does not create file on the disk automatically! (just like the Java File)
    * */
-  fun fromUri(uri: Uri): ExternalFile? {
-    val documentFile = toDocumentFile(uri)
-      ?: return null
-
-    return if (documentFile.isFile) {
-      val filename = documentFile.name
-        ?: return null
-
-      ExternalFile(appContext, Root.FileRoot(documentFile, filename))
-    } else {
-      ExternalFile(appContext, Root.DirRoot(documentFile))
+  fun newBaseDirectoryFile(baseDirId: String): AbstractFile? {
+    val baseDir = baseDirectoryManager.getBaseDirById(baseDirId)
+    if (baseDir == null) {
+      Log.e(TAG, "Base directory with id $baseDirId is not registered")
+      return null
     }
+
+    if (!SAFHelper.isTreeUri(baseDir.dirUri)) {
+      Log.e(TAG, "Not a tree uri ${baseDir.dirUri}")
+      return null
+    }
+
+    val treeDirectory = try {
+      DocumentFile.fromTreeUri(appContext, baseDir.dirUri)
+    } catch (error: Throwable) {
+      Log.e(TAG, "Error while trying to create TreeDocumentFile, dirUri = ${baseDir.dirUri}")
+      return null
+    }
+
+    if (treeDirectory == null) {
+      return null
+    }
+
+    return ExternalFile(
+        appContext,
+        Root.DirRoot(CachingDocumentFile(appContext, treeDirectory))
+      )
   }
 
-//  /**
-//   * Instantiates a new AbstractFile with the root being in the local threads directory.
-//   * Does not create file on the disk automatically!
-//   * */
-//  fun newLocalThreadFile(): AbstractFile? {
-//    if (ChanSettings.localThreadLocation.get().isEmpty()
-//      && ChanSettings.localThreadsLocationUri.get().isEmpty()
-//    ) {
-//      // wtf?
-//      throw RuntimeException(
-//        "Both local thread save locations are empty! " +
-//          "Something went terribly wrong."
-//      )
-//    }
-//
-//    val uri = ChanSettings.localThreadsLocationUri.get()
-//    if (uri.isNotEmpty()) {
-//      // When we change localThreadsLocation we also set localThreadsLocationUri to an
-//      // empty string, so we need to check whether the localThreadsLocationUri is empty or not,
-//      // because saveLocation is never empty
-//      val rootDirectory = DocumentFile.fromTreeUri(appContext, Uri.parse(uri))
-//      if (rootDirectory == null) {
-//        return null
-//      }
-//
-//      return ExternalFile(
-//        appContext,
-//        AbstractFile.Root.DirRoot(rootDirectory)
-//      )
-//    }
-//
-//    val path = ChanSettings.localThreadLocation.get()
-//    return RawFile(AbstractFile.Root.DirRoot(File(path)))
-//  }
-//
-//  /**
-//   * Instantiates a new AbstractFile with the root being in the app's base directory (either the Kuroba
-//   * directory in case of using raw file api or the user's selected directory in case of using SAF).
-//   * Does not create file on the disk automatically!
-//   * */
-//  fun newSaveLocationFile(): AbstractFile? {
-//    if (ChanSettings.saveLocation.get().isEmpty() && ChanSettings.saveLocationUri.get().isEmpty()) {
-//      // wtf?
-//      throw RuntimeException("Both save locations are empty! Something went terribly wrong.")
-//    }
-//
-//    val uri = ChanSettings.saveLocationUri.get()
-//    if (uri.isNotEmpty()) {
-//      // When we change saveLocation we also set saveLocationUri to an empty string, so we need
-//      // to check whether the saveLocationUri is empty or not, because saveLocation is never
-//      // empty
-//      val rootDirectory = DocumentFile.fromTreeUri(appContext, Uri.parse(uri))
-//      if (rootDirectory == null) {
-//        return null
-//      }
-//
-//      return ExternalFile(
-//        appContext,
-//        AbstractFile.Root.DirRoot(rootDirectory)
-//      )
-//    }
-//
-//    val path = ChanSettings.saveLocation.get()
-//    return RawFile(AbstractFile.Root.DirRoot(File(path)))
-//  }
-
+  /**
+   * [name] should not contain an extension
+   * */
   fun createDir(baseDir: AbstractFile, name: String): AbstractFile? {
     return create(baseDir, DirectorySegment(name))
   }
@@ -208,7 +147,7 @@ class FileManager(
   }
 
   /**
-   * Copy one file's contents into another
+   * Copies one file's contents into another. Does not, in any way, modify the source file
    * */
   fun copyFileContents(sourceFile: AbstractFile, destinationFile: AbstractFile): Boolean {
     return try {
@@ -225,7 +164,10 @@ class FileManager(
   }
 
   /**
-   * VERY SLOW!!! DO NOT EVEN THINK RUNNING THIS ON THE MAIN THREAD!!!
+   * VERY SLOW!!!
+   *
+   * [recursively] will [sourceDir]'s sub directories and files as well, if false then only the
+   * contents of the [sourceDir] will be copied into the [destDir].
    *
    * [updateFunc] is a callback that has two parameters:
    * 1 - How many files have been copied
@@ -300,7 +242,7 @@ class FileManager(
       // /456/111/2.txt
       // /456/222/3.txt
       //
-      // This is the idea of this hack.
+      // Such is the idea of this hack.
 
       val rawSegments = file.getFullPath()
         .removePrefix(prefix)
@@ -568,8 +510,9 @@ class FileManager(
 
     for (directory in directories) {
       val parentUri = directory.getFileRoot<CachingDocumentFile>().holder.uri
-      val documentFiles = SAFHelper.listFilesFast(appContext, parentUri)
+      val isBaseDir = baseDirectoryManager.isBaseDir(directory)
 
+      val documentFiles = SAFHelper.listFilesFast(appContext, parentUri, isBaseDir)
       if (documentFiles.isNotEmpty()) {
         val pairs = documentFiles
           .map { docFile ->

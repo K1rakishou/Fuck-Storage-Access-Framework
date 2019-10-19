@@ -1,10 +1,10 @@
 package com.github.k1rakishou.fsaf_test_app.tests
 
 import com.github.k1rakishou.fsaf.FileManager
-import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
 import com.github.k1rakishou.fsaf.file.AbstractFile
 import com.github.k1rakishou.fsaf.file.DirectorySegment
 import com.github.k1rakishou.fsaf.file.FileSegment
+import com.github.k1rakishou.fsaf_test_app.TestBaseDirectory
 import kotlin.system.measureTimeMillis
 
 class SimpleTest(
@@ -207,10 +207,10 @@ class SimpleTest(
     check(fileManager.canRead(createdFile)) { "Cannot read file.txt" }
     check(fileManager.canRead(createdFile)) { "Cannot write to file.txt" }
 
-    val rootUri = baseDir.getFileRoot<CachingDocumentFile>().holder.uri
-    val nonExistingFileUri = rootUri.buildUpon().appendPath("211314").build()
+    val nonExistingDir = fileManager.newBaseDirectoryFile(TestBaseDirectory.BASE_DIR_ID)!!
+      .clone(DirectorySegment("211314"))
 
-    if (fileManager.fromUri(nonExistingFileUri) != null) {
+    if (fileManager.exists(nonExistingDir)) {
       throw TestException("fileManager.fromUri(nonExistingFileUri) returned non-null value")
     }
   }

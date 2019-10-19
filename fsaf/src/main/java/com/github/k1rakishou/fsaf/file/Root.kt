@@ -1,12 +1,17 @@
 package com.github.k1rakishou.fsaf.file
 
 /**
- * We can have the root to be a directory or a file.
+ * Root is a real path to the file (raw or external). It may be incomplete (in this case
+ * AbstractFile will have not empty segments). When building a file path we first append new path
+ * segments and when doing some file operation (like checking it's existence or creating it)
+ * we append the segments to the Root.
+ *
+ * Root may be a directory or a file.
  * If it's a directory, that means that we can append sub directories to it.
  * If it's a file we can't do that so usually when attempting to append something to the FileRoot
  * an exception will be thrown
  *
- * @param holder either DocumentFile or File.
+ * [holder] either SAF DocumentFile or Java File.
  * */
 sealed class Root<T>(val holder: T) {
 

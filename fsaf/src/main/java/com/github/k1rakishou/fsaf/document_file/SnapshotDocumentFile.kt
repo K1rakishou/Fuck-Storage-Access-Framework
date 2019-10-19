@@ -33,7 +33,10 @@ class SnapshotDocumentFile(
   override val name: String?
     get() = fileName
   override val length: Long
-    get() = fileLength
+    get() {
+      check(!isDirectory) { "Cannot get the length of a directory" }
+      return fileLength
+    }
   override val lastModified: Long
     get() = fileLastModified
 

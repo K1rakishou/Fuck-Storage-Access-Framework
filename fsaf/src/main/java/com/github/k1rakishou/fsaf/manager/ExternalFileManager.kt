@@ -19,7 +19,8 @@ import java.io.OutputStream
 
 class ExternalFileManager(
   private val appContext: Context,
-  private val searchMode: SearchMode
+  private val searchMode: SearchMode,
+  private val baseDirectoryManager: BaseDirectoryManager
 ) : BaseFileManager {
   private val mimeTypeMap = MimeTypeMap.getSingleton()
   private val fastFileSearchTree: FastFileSearchTree<CachingDocumentFile> = FastFileSearchTree()
@@ -81,7 +82,8 @@ class ExternalFileManager(
       val foundFile = SAFHelper.findCachingFile(
         appContext,
         innerFile.uri,
-        segment.name
+        segment.name,
+        baseDirectoryManager.isBaseDir(innerFile.uri)
       )
 
       if (foundFile != null) {
@@ -293,7 +295,12 @@ class ExternalFileManager(
     }
 
     val parentDocFile = if (segments.isNotEmpty()) {
-      SAFHelper.findDeepFile(appContext, root.holder.uri, segments)
+      SAFHelper.findDeepFile(
+        appContext,
+        root.holder.uri,
+        segments,
+        baseDirectoryManager
+      )
     } else {
       val docFile = DocumentFile.fromSingleUri(appContext, root.holder.uri)
       if (docFile != null) {
@@ -307,7 +314,13 @@ class ExternalFileManager(
       return null
     }
 
-    val cachingDocFile = SAFHelper.findCachingFile(appContext, parentDocFile.uri, fileName)
+    val cachingDocFile = SAFHelper.findCachingFile(
+      appContext,
+      parentDocFile.uri,
+      fileName,
+      baseDirectoryManager.isBaseDir(parentDocFile.uri)
+    )
+
     if (cachingDocFile == null || !cachingDocFile.exists) {
       return null
     }
@@ -330,25 +343,16 @@ class ExternalFileManager(
     val root = dir.getFileRoot<CachingDocumentFile>()
     check(root !is Root.FileRoot) { "Cannot use listFiles with FileRoot" }
 
-    return toDocumentFile(dir.clone())
-      ?.listFiles()
+    val docFile = toDocumentFile(dir.clone())
+      ?: return emptyList()
+
+    return SAFHelper.listFilesFast(appContext, docFile.uri, baseDirectoryManager.isBaseDir(dir))
       // TODO: update FastFileSearchTree here with fresh files
-      ?.map { documentFile -> ExternalFile(appContext, Root.DirRoot(documentFile)) }
-      ?: emptyList()
+      .map { documentFile -> ExternalFile(appContext, Root.DirRoot(documentFile)) }
   }
 
   override fun lastModified(file: AbstractFile): Long {
     return toDocumentFile(file.clone())?.lastModified ?: 0L
-  }
-
-  private fun toDocumentFile(file: AbstractFile): CachingDocumentFile? {
-    val segments = file.getFileSegments()
-    if (segments.isEmpty()) {
-      return file.getFileRoot<CachingDocumentFile>().holder
-    }
-
-    val parentUri = file.getFileRoot<CachingDocumentFile>().holder.uri
-    return SAFHelper.findDeepFile(appContext, parentUri, segments)
   }
 
   override fun <T> withFileDescriptor(
@@ -362,6 +366,21 @@ class ExternalFileManager(
         "Could not get ParcelFileDescriptor " +
           "from root with uri = ${file.getFileRoot<DocumentFile>().holder.uri}"
       )
+  }
+
+  private fun toDocumentFile(file: AbstractFile): CachingDocumentFile? {
+    val segments = file.getFileSegments()
+    if (segments.isEmpty()) {
+      return file.getFileRoot<CachingDocumentFile>().holder
+    }
+
+    val parentUri = file.getFileRoot<CachingDocumentFile>().holder.uri
+    return SAFHelper.findDeepFile(
+      appContext,
+      parentUri,
+      segments,
+      baseDirectoryManager
+    )
   }
 
   private fun getParcelFileDescriptor(

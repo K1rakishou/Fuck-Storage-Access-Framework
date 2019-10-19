@@ -1,5 +1,5 @@
 package com.github.k1rakishou.fsaf.file
 
-interface IsFileManager {
+interface HasFileManagerId {
   fun getFileManagerId(): FileManagerId
 }
