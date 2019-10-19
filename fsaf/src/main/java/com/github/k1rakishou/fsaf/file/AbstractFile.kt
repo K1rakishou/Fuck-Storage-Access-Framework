@@ -37,6 +37,13 @@ abstract class AbstractFile(
   /**
    * Clones the file and appends new segments (newSegments may be empty)
    * */
+  fun clone(vararg newSegments: Segment): AbstractFile {
+    return clone(newSegments.toList())
+  }
+
+  /**
+   * Clones the file and appends new segments (newSegments may be empty)
+   * */
   fun clone(newSegments: List<Segment>): AbstractFile {
     newSegments.forEach { segment ->
       require(segment.name.isNotBlank()) { "Bad name: ${segment.name}" }
