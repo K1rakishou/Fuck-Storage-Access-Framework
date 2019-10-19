@@ -60,6 +60,26 @@ class FileManager(
   }
 
   /**
+   * Create an external file from Uri.
+   * Use this method to convert external file uri (file that may be located at sd card) into an
+   * AbstractFile. If a file does not exist null is returned.
+   * Does not create file on the disk automatically!
+   * */
+  fun fromUri(uri: Uri): ExternalFile {
+    val documentFile = toDocumentFile(uri)
+      ?: throw IllegalStateException("toDocumentFile returned null, uri = $uri")
+
+    return if (documentFile.isFile) {
+      val filename = documentFile.name
+        ?: throw IllegalStateException("fromUri() queryTreeName() returned null")
+
+      ExternalFile(appContext, Root.FileRoot(documentFile, filename))
+    } else {
+      ExternalFile(appContext, Root.DirRoot(documentFile))
+    }
+  }
+
+  /**
    * Creates RawFile from the Java File.
    * Use this method to convert a java File into an AbstractFile.
    * Does not create file on the disk automatically!
