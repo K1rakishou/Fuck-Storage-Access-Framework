@@ -197,9 +197,17 @@ class FileManager(
       return baseDir
     }
 
-    require(segments.isNotEmpty()) { "No segments provided" }
+    val segmentsToAppend = if (segments.isEmpty()) {
+      if (baseDir.getFileSegments().isEmpty()) {
+        throw IllegalArgumentException("No segments provided")
+      } else {
+        baseDir.getFileSegments()
+      }
+    } else {
+      segments
+    }
 
-    return managers[baseDir.getFileManagerId()]?.create(baseDir.clone(), segments)
+    return managers[baseDir.getFileManagerId()]?.create(baseDir.clone(), segmentsToAppend)
       ?: throw NotImplementedError("Not implemented for ${baseDir.javaClass.name}")
   }
 
