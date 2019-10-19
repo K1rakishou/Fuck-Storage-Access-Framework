@@ -28,6 +28,13 @@ abstract class AbstractFile(
   abstract fun getFullPath(): String
 
   /**
+   * Clones the file and appends new segment
+   * */
+  fun clone(newSegment: Segment): AbstractFile {
+    return clone(listOf(newSegment))
+  }
+
+  /**
    * Clones the file and appends new segments (newSegments may be empty)
    * */
   fun clone(vararg newSegments: Segment): AbstractFile {
