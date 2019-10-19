@@ -36,7 +36,7 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
     fileChooser.setCallbacks(this)
 
     if (getTreeUri() != null) {
-      fastFileManager.registerBaseDir(TestBaseDirectory(getTreeUri()!!))
+      fastFileManager.registerBaseDir(TestBaseDirectory::class.java, TestBaseDirectory(getTreeUri()!!))
     }
 
     updateControls()
@@ -72,7 +72,7 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
 
     run_tests_button.setOnClickListener {
       try {
-        val baseSAFDir = fastFileManager.newBaseDirectoryFile(TestBaseDirectory.BASE_DIRECTORY_ID)!!
+        val baseSAFDir = fastFileManager.newBaseDirectoryFile<TestBaseDirectory>()!!
         val baseFileApiDir = fastFileManager.fromRawFile(File(Environment.getDownloadCacheDirectory(), "test"))
 
         testSuite.runTests(
@@ -120,7 +120,7 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
   }
 
   private fun storeTreeUri(uri: Uri) {
-    fastFileManager.registerBaseDir(TestBaseDirectory(uri))
+    fastFileManager.registerBaseDir<TestBaseDirectory>(TestBaseDirectory(uri))
     sharedPreferences.edit().putString(TREE_URI, uri.toString()).apply()
   }
 
@@ -132,7 +132,7 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
     }
 
     fileChooser.forgetSAFTree(treeUri)
-    fastFileManager.unregisterBaseDir(treeUri)
+    fastFileManager.unregisterBaseDir<TestBaseDirectory>()
     sharedPreferences.edit().remove(TREE_URI).apply()
   }
 

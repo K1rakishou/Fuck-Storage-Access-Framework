@@ -72,24 +72,36 @@ class FileManager(
     return RawFile(Root.DirRoot(file))
   }
 
-  fun registerBaseDir(baseDirectory: BaseDirectory) {
-    directoryManager.registerBaseDir(baseDirectory)
+  inline fun <reified T> registerBaseDir(baseDirectory: BaseDirectory) {
+    registerBaseDir(T::class.java, baseDirectory)
   }
 
-  fun unregisterBaseDir(dirUri: Uri) {
-    directoryManager.unregisterBaseDir(dirUri)
+  fun registerBaseDir(clazz: Class<*>, baseDirectory: BaseDirectory) {
+    directoryManager.registerBaseDir(clazz, baseDirectory)
+  }
+
+  inline fun <reified T> unregisterBaseDir() {
+    unregisterBaseDir(T::class.java)
+  }
+
+  fun unregisterBaseDir(clazz: Class<*>) {
+    directoryManager.unregisterBaseDir(clazz)
+  }
+
+  inline fun <reified T> newBaseDirectoryFile(): AbstractFile? {
+    return newBaseDirectoryFile(T::class.java)
   }
 
   /**
-   * Instantiates a new AbstractFile with the root being in the base directory with [baseDirId]
+   * Instantiates a new AbstractFile with the root being in the base directory with [clazz]
    * base directory id.
    *
    * Does not create file on the disk automatically! (just like the Java File)
    * */
-  fun newBaseDirectoryFile(baseDirId: String): AbstractFile? {
-    val baseDir = directoryManager.getBaseDirById(baseDirId)
+  fun newBaseDirectoryFile(clazz: Class<*>): AbstractFile? {
+    val baseDir = directoryManager.getBaseDirByClass(clazz)
     if (baseDir == null) {
-      Log.e(TAG, "Base directory with id $baseDirId is not registered")
+      Log.e(TAG, "Base directory with class $clazz is not registered")
       return null
     }
 
@@ -115,16 +127,20 @@ class FileManager(
         Root.DirRoot(CachingDocumentFile(appContext, treeDirectory))
       )
     } else if (baseDir.dirFile != null) {
-       return RawFile(
-         Root.DirRoot(baseDir.dirFile)
-       )
+      return RawFile(
+        Root.DirRoot(baseDir.dirFile)
+      )
     }
 
     throw IllegalStateException("${baseDir.javaClass.name} is not supported!")
   }
 
-  fun baseDirectoryExists(baseDirId: String): Boolean {
-    val baseDirFile = newBaseDirectoryFile(baseDirId)
+  inline fun <reified T> baseDirectoryExists(): Boolean {
+    return baseDirectoryExists(T::class.java)
+  }
+
+  fun baseDirectoryExists(clazz: Class<*>): Boolean {
+    val baseDirFile = newBaseDirectoryFile(clazz as Class<BaseDirectory>)
     if (baseDirFile == null) {
       Log.e(TAG, "baseDirectoryExists() newBaseDirectoryFile returned null")
       return false

@@ -6,18 +6,14 @@ import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
 import com.github.k1rakishou.fsaf.file.AbstractFile
 
 class DirectoryManager {
-  private val baseDirList = mutableMapOf<String, BaseDirectory>()
+  private val baseDirList = mutableMapOf<Class<BaseDirectory>, BaseDirectory>()
 
-  fun registerBaseDir(baseDirectory: BaseDirectory) {
-    baseDirList.put(baseDirectory.baseDirectoryId, baseDirectory)
+  fun registerBaseDir(clazz: Class<*>, baseDirectory: BaseDirectory) {
+    baseDirList.put(clazz as Class<BaseDirectory>, baseDirectory)
   }
 
-  fun unregisterBaseDir(baseDirectory: BaseDirectory) {
-    baseDirList.remove(baseDirectory.baseDirectoryId)
-  }
-
-  fun unregisterBaseDir(dirUri: Uri) {
-    getBaseDir(dirUri)?.let { baseDir -> unregisterBaseDir(baseDir) }
+  fun unregisterBaseDir(clazz: Class<*>) {
+    baseDirList.remove(clazz)
   }
 
   fun isBaseDir(dir: AbstractFile): Boolean {
@@ -41,8 +37,12 @@ class DirectoryManager {
     }
   }
 
-  fun getBaseDirById(baseDirId: String): BaseDirectory? {
-    return baseDirList[baseDirId]
+  inline fun <reified T : BaseDirectory> getBaseDirByClass(): BaseDirectory? {
+    return getBaseDirByClass(T::class.java)
+  }
+
+  fun getBaseDirByClass(clazz: Class<*>): BaseDirectory? {
+    return baseDirList[clazz as Class<BaseDirectory>]
   }
 
   fun getBaseDir(dir: Uri): BaseDirectory? {

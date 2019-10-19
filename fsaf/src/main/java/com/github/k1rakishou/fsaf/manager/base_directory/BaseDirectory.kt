@@ -12,7 +12,6 @@ import java.io.File
  * But there must be at least one!
  * */
 abstract class BaseDirectory(
-  val baseDirectoryId: String,
   val dirUri: Uri?,
   val dirFile: File?
 ) {

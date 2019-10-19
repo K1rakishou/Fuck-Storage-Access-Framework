@@ -207,7 +207,7 @@ class SimpleTest(
     check(fileManager.canRead(createdFile)) { "Cannot read file.txt" }
     check(fileManager.canRead(createdFile)) { "Cannot write to file.txt" }
 
-    val nonExistingDir = fileManager.newBaseDirectoryFile(TestBaseDirectory.BASE_DIRECTORY_ID)!!
+    val nonExistingDir = fileManager.newBaseDirectoryFile<TestBaseDirectory>()!!
       .clone(DirectorySegment("211314"))
 
     if (fileManager.exists(nonExistingDir)) {
