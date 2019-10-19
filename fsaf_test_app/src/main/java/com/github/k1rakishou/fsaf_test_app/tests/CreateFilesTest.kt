@@ -18,10 +18,10 @@ class CreateFilesTest(
   fun runTests(fileManager: FileManager, baseDir: AbstractFile) {
     runTest(fileManager, baseDir) {
       val time = measureTimeMillis {
-        test1(fileManager, baseDir)
+        testCreateBunchOfFilesEachAtATime(fileManager, baseDir)
       }
 
-      log("test1 took ${time}ms")
+      log("testCreateBunchOfFileEchAtATime took ${time}ms")
     }
 
     runTest(fileManager, baseDir) {
@@ -49,7 +49,7 @@ class CreateFilesTest(
     }
   }
 
-  private fun test1(fileManager: FileManager, baseDir: AbstractFile) {
+  private fun testCreateBunchOfFilesEachAtATime(fileManager: FileManager, baseDir: AbstractFile) {
     val dir = fileManager.createDir(
       baseDir,
       "test"

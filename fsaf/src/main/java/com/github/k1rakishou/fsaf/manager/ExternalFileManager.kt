@@ -21,7 +21,7 @@ class ExternalFileManager(
   private val appContext: Context,
   private val searchMode: SearchMode,
   private val baseDirectoryManager: BaseDirectoryManager
-) : BaseExternalFileManager {
+) : BaseFileManager {
   private val mimeTypeMap = MimeTypeMap.getSingleton()
   private val fastFileSearchTree: FastFileSearchTree<CachingDocumentFile> = FastFileSearchTree()
 
@@ -362,20 +362,22 @@ class ExternalFileManager(
       }
   }
 
-  override fun listCachedFile(dir: AbstractFile, recursively: Boolean): List<CachingDocumentFile> {
+  override fun listSnapshotFiles(dir: AbstractFile, recursively: Boolean): List<AbstractFile> {
     val root = dir.getFileRoot<CachingDocumentFile>()
     check(root !is Root.FileRoot) { "Cannot use listFiles with FileRoot" }
 
-    val resultList = ArrayList<CachingDocumentFile>(32)
+    val resultList = ArrayList<SnapshotDocumentFile>(32)
 
     fastFileSearchTree.visitEverySegmentAfterPath(
       dir.getFullPath().splitIntoSegments(),
       recursively
     ) { node ->
-      node.getNodeValue()?.let { resultList += it }
+      node.getNodeValue()?.let { resultList += it as SnapshotDocumentFile}
     }
 
-    return resultList
+    return resultList.map { snapshotFile ->
+      ExternalFile(appContext, Root.DirRoot(snapshotFile))
+    }
   }
 
   override fun lastModified(file: AbstractFile): Long {

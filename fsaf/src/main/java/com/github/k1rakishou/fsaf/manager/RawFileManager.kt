@@ -159,6 +159,11 @@ class RawFileManager : BaseFileManager {
       ?: emptyList()
   }
 
+  override fun listSnapshotFiles(dir: AbstractFile, recursively: Boolean): List<AbstractFile> {
+    Log.e(TAG, "listSnapshotFiles is not supported for RawFiles")
+    return emptyList()
+  }
+
   override fun <T> withFileDescriptor(
     file: AbstractFile,
     fileDescriptorMode: FileDescriptorMode,

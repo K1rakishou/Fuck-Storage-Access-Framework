@@ -86,6 +86,11 @@ interface BaseFileManager {
   fun listFiles(dir: AbstractFile): List<AbstractFile>
 
   /**
+   * Returns a list of all files and directories inside this cached in FastFileSearchTree directory.
+   * */
+  fun listSnapshotFiles(dir: AbstractFile, recursively: Boolean): List<AbstractFile>
+
+  /**
    * Returns lastModified parameters of this file or directory
    * */
   fun lastModified(file: AbstractFile): Long

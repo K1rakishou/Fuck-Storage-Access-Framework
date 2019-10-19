@@ -36,7 +36,7 @@ class SnapshotTest(
     createFiles(fileManager, dir)
 
     fileManager.snapshot(dir as ExternalFile, true) {
-      val files = fileManager.listFiles(dir)
+      val files = fileManager.listSnapshotFiles(dir, false)
 
       val tests = 10
       for (i in 0 until tests) {

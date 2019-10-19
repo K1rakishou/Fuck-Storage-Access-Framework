@@ -6,6 +6,7 @@ import android.provider.DocumentsContract
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
+import com.github.k1rakishou.fsaf.document_file.SnapshotDocumentFile
 import com.github.k1rakishou.fsaf.extensions.copyInto
 import com.github.k1rakishou.fsaf.extensions.splitIntoSegments
 import com.github.k1rakishou.fsaf.file.*
@@ -483,6 +484,11 @@ class FileManager(
       )
   }
 
+  override fun listSnapshotFiles(dir: AbstractFile, recursively: Boolean): List<AbstractFile> {
+    return managers[ExternalFile.FILE_MANAGER_ID]?.listSnapshotFiles(dir, recursively)
+      ?: throw NotImplementedError("Only implemented for ExternalFiles!")
+  }
+
   override fun lastModified(file: AbstractFile): Long {
     return managers[file.getFileManagerId()]?.lastModified(file)
       ?: throw NotImplementedError(
@@ -501,6 +507,24 @@ class FileManager(
   }
 
   fun snapshot(dir: ExternalFile, includeSubDirs: Boolean = false, func: () -> Unit) {
+
+    fun combine(docFile: SnapshotDocumentFile): Pair<ExternalFile, SnapshotDocumentFile>? {
+      if (docFile.name == null) {
+        return null
+      }
+
+      val root = if (docFile.isDirectory) {
+        Root.DirRoot(docFile)
+      } else {
+        Root.FileRoot(docFile, docFile.name!!)
+      }
+
+      return Pair(
+        ExternalFile(appContext, root as Root<CachingDocumentFile>),
+        docFile
+      )
+    }
+
     val externalFileManager = getExternalFileManager()
     val directories = arrayListOf<ExternalFile>().apply { this.ensureCapacity(16) }
 
@@ -514,25 +538,7 @@ class FileManager(
 
       val documentFiles = SAFHelper.listFilesFast(appContext, parentUri, isBaseDir)
       if (documentFiles.isNotEmpty()) {
-        val pairs = documentFiles
-          .map { docFile ->
-            if (docFile.name == null) {
-              return@map null
-            }
-
-            val root = if (docFile.isDirectory) {
-              Root.DirRoot(docFile)
-            } else {
-              Root.FileRoot(docFile, docFile.name!!)
-            }
-
-            return@map Pair(
-              ExternalFile(appContext, root as Root<CachingDocumentFile>),
-              docFile
-            )
-          }
-          .filterNotNull()
-
+        val pairs = documentFiles.mapNotNull { docFile -> combine(docFile) }
         externalFileManager.cacheFiles(pairs)
       }
     }
