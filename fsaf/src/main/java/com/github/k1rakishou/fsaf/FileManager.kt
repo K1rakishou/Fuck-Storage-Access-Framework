@@ -604,7 +604,7 @@ class FileManager(
     )
   }
 
-  fun <T> withSnapshot(dir: ExternalFile, includeSubDirs: Boolean = false, func: () -> T?): T? {
+  fun <T> withSnapshot(dir: AbstractFile, includeSubDirs: Boolean = false, func: () -> T?): T? {
     createSnapshot(dir, includeSubDirs)
 
     try {
@@ -615,8 +615,12 @@ class FileManager(
   }
 
   /**
-   * Manually create a snapshot of a directory (with sub diesctories if [includeSubDirs] is true)
-   * DON'T FORGET TO RELEASE THE SNAPSHOT ONCE YOU ARE DONE WITH IT!!!
+   * Manually create a snapshot of a directory (with sub directories if [includeSubDirs] is true).
+   * Snapshot is only created for ExternalFiles! RawFiles are not supported and snapshot won't be
+   * created. This method exists to make bulk Storage Access Framework operations faster!
+   *
+   * !!!DON'T FORGET TO RELEASE THE SNAPSHOT ONCE YOU ARE DONE WITH IT!!!
+   * Or just use [withSnapshot] instead.
    *
    * Usually you should just follow this scheme:
    * You have a directory with lots of files and maybe even sub directories with their own files.
@@ -627,32 +631,40 @@ class FileManager(
    * operation non-snapshot operation. After you are done - release the snapshot or use
    * [withSnapshot] which will do it for you.
    * */
-  fun createSnapshot(dir: ExternalFile, includeSubDirs: Boolean = false) {
-    val externalFileManager = getExternalFileManager()
-    val directories = arrayListOf<ExternalFile>().apply { this.ensureCapacity(16) }
+  fun createSnapshot(dir: AbstractFile, includeSubDirs: Boolean = false) {
+    if (dir is ExternalFile) {
+      val externalFileManager = getExternalFileManager()
+      val directories = arrayListOf<ExternalFile>().apply { this.ensureCapacity(16) }
 
-    traverseDirectory(dir, includeSubDirs, TraverseMode.OnlyDirs) { file ->
-      directories += file as ExternalFile
-    }
-
-    for (directory in directories) {
-      val parentUri = directory.getFileRoot<CachingDocumentFile>().holder.uri
-      val isBaseDir = directoryManager.isBaseDir(directory)
-
-      val documentFiles = SAFHelper.listFilesFast(appContext, parentUri, isBaseDir)
-      if (documentFiles.isNotEmpty()) {
-        val pairs = documentFiles.mapNotNull { docFile -> combine(docFile) }
-        externalFileManager.cacheFiles(pairs)
+      traverseDirectory(dir, includeSubDirs, TraverseMode.OnlyDirs) { file ->
+        directories += file as ExternalFile
       }
+
+      for (directory in directories) {
+        val parentUri = directory.getFileRoot<CachingDocumentFile>().holder.uri
+        val isBaseDir = directoryManager.isBaseDir(directory)
+
+        val documentFiles = SAFHelper.listFilesFast(appContext, parentUri, isBaseDir)
+        if (documentFiles.isNotEmpty()) {
+          val pairs = documentFiles.mapNotNull { docFile -> combine(docFile) }
+          externalFileManager.cacheFiles(pairs)
+        }
+      }
+    } else {
+      Log.d(TAG, "createSnapshot called for RawFile backed directory. Snapshot was not created.")
     }
   }
 
   /**
-   * Removes the whole sub tree in the FastFileSearchTree with all of the cached files
+   * Removes the whole sub tree from the FastFileSearchTree with all of the cached files
    * */
-  fun releaseSnapshot(dir: ExternalFile) {
-    val externalFileManager = getExternalFileManager()
-    externalFileManager.uncacheFilesInSubTree(dir)
+  fun releaseSnapshot(dir: AbstractFile) {
+    if (dir is ExternalFile) {
+      val externalFileManager = getExternalFileManager()
+      externalFileManager.uncacheFilesInSubTree(dir)
+    } else {
+      Log.d(TAG, "createSnapshot called for RawFile backed directory. Snapshot was not created.")
+    }
   }
 
   private fun toDocumentFile(uri: Uri): CachingDocumentFile? {
