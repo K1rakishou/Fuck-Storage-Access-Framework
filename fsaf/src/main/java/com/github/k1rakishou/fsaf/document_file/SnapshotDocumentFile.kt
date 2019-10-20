@@ -17,32 +17,20 @@ class SnapshotDocumentFile(
   private val fileLength: Long
 ) : CachingDocumentFile(appContext, delegate) {
 
-  override val exists: Boolean
-    get() = true
-  override val isFile: Boolean
-    get() {
-      return !(DocumentsContract.Document.MIME_TYPE_DIR == fileMimeType
-        || TextUtils.isEmpty(fileMimeType))
-    }
-  override val isDirectory: Boolean
-    get() = DocumentsContract.Document.MIME_TYPE_DIR == fileMimeType
-  override val canRead: Boolean
-    get() = canRead()
-  override val canWrite: Boolean
-    get() = canWrite()
-  override val name: String?
-    get() = fileName
-  override val length: Long
-    get() {
-      check(!isDirectory) { "Cannot get the length of a directory" }
-      return fileLength
-    }
-  override val lastModified: Long
-    get() = fileLastModified
+  override fun exists(): Boolean = true
 
-  private fun canRead(): Boolean {
+  override fun isFile(): Boolean {
+    return !(DocumentsContract.Document.MIME_TYPE_DIR == fileMimeType
+      || TextUtils.isEmpty(fileMimeType))
+  }
+
+  override fun isDirectory(): Boolean {
+    return DocumentsContract.Document.MIME_TYPE_DIR == fileMimeType
+  }
+
+  override fun canRead(): Boolean {
     val result = appContext.checkCallingOrSelfUriPermission(
-      uri,
+      uri(),
       Intent.FLAG_GRANT_READ_URI_PERMISSION
     )
 
@@ -53,9 +41,9 @@ class SnapshotDocumentFile(
     return !TextUtils.isEmpty(fileMimeType)
   }
 
-  private fun canWrite(): Boolean {
+  override fun canWrite(): Boolean {
     val result = appContext.checkCallingOrSelfUriPermission(
-      uri,
+      uri(),
       Intent.FLAG_GRANT_READ_URI_PERMISSION
     )
 
@@ -84,5 +72,14 @@ class SnapshotDocumentFile(
 
     return false
   }
+
+  override fun name(): String? = fileName
+
+  override fun length(): Long {
+    check(!isDirectory()) { "Cannot get the length of a directory" }
+    return fileLength
+  }
+
+  override fun lastModified(): Long = fileLastModified
 
 }

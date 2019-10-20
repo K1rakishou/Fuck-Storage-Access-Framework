@@ -27,13 +27,13 @@ class DirectoryManager {
   }
 
   fun isBaseDir(dir: CachingDocumentFile): Boolean {
-    if (!dir.isDirectory) {
-      Log.e(TAG, "dir ${dir.uri} is not a directory")
+    if (!dir.isDirectory()) {
+      Log.e(TAG, "dir ${dir.uri()} is not a directory")
       return false
     }
 
     return baseDirList.values.any { baseDir ->
-      baseDir.isBaseDir(dir.uri)
+      baseDir.isBaseDir(dir.uri())
     }
   }
 

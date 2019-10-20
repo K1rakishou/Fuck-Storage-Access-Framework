@@ -13,7 +13,7 @@ class ExternalFile(
 
   @Suppress("UNCHECKED_CAST")
   override fun getFullPath(): String {
-    return Uri.parse((root as Root<CachingDocumentFile>).holder.uri.toString()).buildUpon()
+    return Uri.parse((root as Root<CachingDocumentFile>).holder.uri().toString()).buildUpon()
       .appendMany(segments.map { segment -> segment.name })
       .build()
       .toString()

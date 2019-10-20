@@ -69,8 +69,8 @@ class FileManager(
     val documentFile = toDocumentFile(uri)
       ?: throw IllegalStateException("toDocumentFile returned null, uri = $uri")
 
-    return if (documentFile.isFile) {
-      val filename = documentFile.name
+    return if (documentFile.isFile()) {
+      val filename = documentFile.name()
         ?: throw IllegalStateException("fromUri() queryTreeName() returned null")
 
       ExternalFile(appContext, Root.FileRoot(documentFile, filename))
@@ -317,7 +317,7 @@ class FileManager(
       // Such is the idea of this hack.
 
 
-      if (directoryManager.isBaseDir(file.getFileRoot<CachingDocumentFile>().holder.uri)) {
+      if (directoryManager.isBaseDir(file.getFileRoot<CachingDocumentFile>().holder.uri())) {
         // Base directory
         continue
       }
@@ -588,14 +588,14 @@ class FileManager(
   }
 
   private fun combine(docFile: SnapshotDocumentFile): Pair<ExternalFile, SnapshotDocumentFile>? {
-    if (docFile.name == null) {
+    if (docFile.name() == null) {
       return null
     }
 
-    val root = if (docFile.isDirectory) {
+    val root = if (docFile.isDirectory()) {
       Root.DirRoot(docFile)
     } else {
-      Root.FileRoot(docFile, docFile.name!!)
+      Root.FileRoot(docFile, docFile.name()!!)
     }
 
     return Pair(
@@ -641,7 +641,7 @@ class FileManager(
       }
 
       for (directory in directories) {
-        val parentUri = directory.getFileRoot<CachingDocumentFile>().holder.uri
+        val parentUri = directory.getFileRoot<CachingDocumentFile>().holder.uri()
         val isBaseDir = directoryManager.isBaseDir(directory)
 
         val documentFiles = SAFHelper.listFilesFast(appContext, parentUri, isBaseDir)

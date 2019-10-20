@@ -8,36 +8,89 @@ open class CachingDocumentFile(
   protected val appContext: Context,
   val delegate: DocumentFile
 ) {
-  open val exists: Boolean by lazy { delegate.exists() }
-  open val isFile: Boolean by lazy { delegate.isFile }
-  open val isDirectory: Boolean by lazy { delegate.isDirectory }
-  open val canRead: Boolean by lazy { delegate.canRead() }
-  open val canWrite: Boolean by lazy { delegate.canWrite() }
-  open val name: String? by lazy { delegate.name }
-  open val length: Long by lazy { delegate.length() }
-  open val lastModified: Long by lazy { delegate.lastModified() }
-  open val uri: Uri by lazy { delegate.uri }
+  private var cachedExists: Boolean? = null
+  private var cachedIsFile: Boolean? = null
+  private var cachedIsDirectory: Boolean? = null
+  private var cachedCanRead: Boolean? = null
+  private var cachedCanWrite: Boolean? = null
+  private var cachedName: String? = null
+  private var cachedLen: Long? = null
+  private var cachedLastModified: Long? = null
 
-  fun listFiles(): List<CachingDocumentFile> =
-    delegate.listFiles().map { file ->
-      CachingDocumentFile(
-        appContext,
-        file
-      )
+  open fun exists(): Boolean {
+    if (cachedExists != null) {
+      return cachedExists!!
     }
 
-  fun createDirectory(name: String): CachingDocumentFile? {
-    val result = delegate.createDirectory(name)
-      ?: return null
-
-    return CachingDocumentFile(appContext, result)
+    cachedExists = delegate.exists()
+    return cachedExists!!
   }
 
-  fun createFile(mime: String, name: String): CachingDocumentFile? {
-    val result = delegate.createFile(mime, name)
-      ?: return null
+  open fun isFile(): Boolean {
+    if (cachedIsFile != null) {
+      return cachedIsFile!!
+    }
 
-    return CachingDocumentFile(appContext, result)
+    cachedIsFile = delegate.isFile
+    return cachedIsFile!!
+  }
+
+  open fun isDirectory(): Boolean {
+    if (cachedIsDirectory != null) {
+      return cachedIsDirectory!!
+    }
+
+    cachedIsDirectory = delegate.isDirectory
+    return cachedIsDirectory!!
+  }
+
+  open fun canRead(): Boolean {
+    if (cachedCanRead != null) {
+      return cachedCanRead!!
+    }
+
+    cachedCanRead = delegate.canRead()
+    return cachedCanRead!!
+  }
+
+  open fun canWrite(): Boolean {
+    if (cachedCanWrite != null) {
+      return cachedCanWrite!!
+    }
+
+    cachedCanWrite = delegate.canWrite()
+    return cachedCanWrite!!
+  }
+
+  open fun name(): String? {
+    if (cachedName != null) {
+      return cachedName!!
+    }
+
+    cachedName = delegate.name
+    return cachedName
+  }
+
+  open fun length(): Long {
+    if (cachedLen != null) {
+      return cachedLen!!
+    }
+
+    cachedLen = delegate.length()
+    return cachedLen!!
+  }
+
+  open fun lastModified(): Long {
+    if (cachedLastModified != null) {
+      return cachedLastModified!!
+    }
+
+    cachedLastModified = delegate.lastModified()
+    return cachedLastModified!!
+  }
+
+  open fun uri(): Uri {
+    return delegate.uri
   }
 
   fun delete(): Boolean {

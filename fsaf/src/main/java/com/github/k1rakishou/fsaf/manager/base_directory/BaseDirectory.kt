@@ -49,7 +49,7 @@ abstract class BaseDirectory(
         return false
       }
 
-      return dir.getFileRoot<CachingDocumentFile>().holder.uri == getDirUri()
+      return dir.getFileRoot<CachingDocumentFile>().holder.uri() == getDirUri()
     } else if (dir is RawFile) {
       if (getDirFile() == null) {
         return false

@@ -43,7 +43,7 @@ object SAFHelper {
 
     var file: SnapshotDocumentFile? = null
     for (segment in segments) {
-      val uri = file?.uri ?: parentUri
+      val uri = file?.uri() ?: parentUri
 
       file = findSnapshotFile(
         appContext,
@@ -66,10 +66,15 @@ object SAFHelper {
     name: String,
     isTreeUri: Boolean
   ): CachingDocumentFile? {
-    return findFile(appContext, parentUri, name, isTreeUri) { documentFile, _ ->
-      return@findFile CachingDocumentFile(
+    return findFile(appContext, parentUri, name, isTreeUri) { documentFile, preloadedInfo ->
+      return@findFile SnapshotDocumentFile(
         appContext,
-        documentFile
+        documentFile,
+        preloadedInfo.displayName,
+        preloadedInfo.mimeType,
+        preloadedInfo.flags,
+        preloadedInfo.lastModified,
+        preloadedInfo.size
       )
     }
   }
