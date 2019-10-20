@@ -125,14 +125,15 @@ class FileManager(
       return null
     }
 
-    if (baseDir.dirUri != null) {
+    val dirUri = baseDir.getDirUri()
+    if (dirUri != null) {
       if (!SAFHelper.isTreeUri(baseDir)) {
         Log.e(TAG, "Not a tree uri ${baseDir.dirPath()}")
         return null
       }
 
       val treeDirectory = try {
-        DocumentFile.fromTreeUri(appContext, baseDir.dirUri)
+        DocumentFile.fromTreeUri(appContext, dirUri)
       } catch (error: Throwable) {
         Log.e(TAG, "Error while trying to create TreeDocumentFile, dirUri = ${baseDir.dirPath()}")
         return null
@@ -146,9 +147,12 @@ class FileManager(
         appContext,
         Root.DirRoot(CachingDocumentFile(appContext, treeDirectory))
       )
-    } else if (baseDir.dirFile != null) {
+    }
+
+    val dirFile = baseDir.getDirFile()
+    if (dirFile != null) {
       return RawFile(
-        Root.DirRoot(baseDir.dirFile)
+        Root.DirRoot(dirFile)
       )
     }
 

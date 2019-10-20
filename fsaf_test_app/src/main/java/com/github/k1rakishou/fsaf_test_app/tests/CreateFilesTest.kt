@@ -21,7 +21,7 @@ class CreateFilesTest(
         testCreateBunchOfFilesEachAtATime(fileManager, baseDir)
       }
 
-      log("testCreateBunchOfFileEchAtATime took ${time}ms")
+      log("testCreateBunchOfFilesEachAtATime took ${time}ms")
     }
 
     runTest(fileManager, baseDir) {

@@ -12,53 +12,67 @@ import java.io.File
  * But there must be at least one!
  * */
 abstract class BaseDirectory(
-  val dirUri: Uri?,
-  val dirFile: File?
+  private val debugMode: Boolean
 ) {
 
-  init {
-    check(!(dirUri == null && dirFile == null)) { "Cannot have both dirUri and dirFile be null!" }
-  }
-
   fun isBaseDir(dirPath: Uri): Boolean {
-    if (dirUri == null) {
+    if (debugMode) {
+      check(!(getDirUri() == null && getDirFile() == null)) { "Both dirUri and dirFile are nulls!" }
+    }
+
+    if (getDirUri() == null) {
       return false
     }
 
-    return dirUri == dirPath
+    return getDirUri() == dirPath
   }
 
   fun isBaseDir(dirPath: File): Boolean {
-    if (dirFile == null) {
+    if (debugMode) {
+      check(!(getDirUri() == null && getDirFile() == null)) { "Both dirUri and dirFile are nulls!" }
+    }
+
+    if (getDirFile() == null) {
       return false
     }
 
-    return dirFile == dirPath
+    return getDirFile() == dirPath
   }
 
   fun isBaseDir(dir: AbstractFile): Boolean {
+    if (debugMode) {
+      check(!(getDirUri() == null && getDirFile() == null)) { "Both dirUri and dirFile are nulls!" }
+    }
+
     if (dir is ExternalFile) {
-      if (dirUri == null) {
+      if (getDirUri() == null) {
         return false
       }
 
-      return dir.getFileRoot<CachingDocumentFile>().holder.uri == dirUri
+      return dir.getFileRoot<CachingDocumentFile>().holder.uri == getDirUri()
     } else if (dir is RawFile) {
-      if (dirFile == null) {
+      if (getDirFile() == null) {
         return false
       }
 
-      return dir.getFileRoot<File>().holder.absolutePath == dirFile.absolutePath
+      return dir.getFileRoot<File>().holder.absolutePath == getDirFile()?.absolutePath
     }
 
     throw IllegalStateException("${dir.javaClass.name} is not supported!")
   }
 
   fun dirPath(): String {
-    if (dirUri != null) {
-      return dirUri.toString()
+    if (debugMode) {
+      check(!(getDirUri() == null && getDirFile() == null)) { "Both dirUri and dirFile are nulls!" }
     }
 
-    return dirFile!!.absolutePath
+    if (getDirUri() != null) {
+      return getDirUri().toString()
+    }
+
+    return getDirFile()!!.absolutePath
   }
+
+  abstract fun getDirUri(): Uri?
+  abstract fun getDirFile(): File?
 }

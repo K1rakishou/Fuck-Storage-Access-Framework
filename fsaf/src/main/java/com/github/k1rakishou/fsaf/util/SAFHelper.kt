@@ -334,11 +334,10 @@ object SAFHelper {
   }
 
   fun isTreeUri(baseDir: BaseDirectory): Boolean {
-    if (baseDir.dirUri == null) {
-      return false
-    }
+    val dirUri = baseDir.getDirUri()
+      ?: return false
 
-    return isTreeUri(baseDir.dirUri)
+    return isTreeUri(dirUri)
   }
 
   fun isTreeUri(uri: Uri): Boolean {

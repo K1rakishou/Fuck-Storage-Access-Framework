@@ -24,6 +24,12 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
 
   private lateinit var sharedPreferences: SharedPreferences
 
+  private val testBaseDirectory = TestBaseDirectory({
+    getTreeUri()
+  }, {
+    null
+  })
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_main)
@@ -36,7 +42,7 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
     fileChooser.setCallbacks(this)
 
     if (getTreeUri() != null) {
-      fastFileManager.registerBaseDir(TestBaseDirectory::class.java, TestBaseDirectory(getTreeUri()!!))
+      fastFileManager.registerBaseDir(TestBaseDirectory::class.java, testBaseDirectory)
     }
 
     updateControls()
@@ -120,7 +126,7 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
   }
 
   private fun storeTreeUri(uri: Uri) {
-    fastFileManager.registerBaseDir<TestBaseDirectory>(TestBaseDirectory(uri))
+    fastFileManager.registerBaseDir<TestBaseDirectory>(testBaseDirectory)
     sharedPreferences.edit().putString(TREE_URI, uri.toString()).apply()
   }
 
