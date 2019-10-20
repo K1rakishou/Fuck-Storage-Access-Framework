@@ -35,7 +35,7 @@ class SnapshotTest(
 
     createFiles(fileManager, dir)
 
-    fileManager.snapshot(dir as ExternalFile, true) {
+    fileManager.withSnapshot(dir as ExternalFile, true) {
       val files = fileManager.listSnapshotFiles(dir, false)
 
       val tests = 10
@@ -70,7 +70,7 @@ class SnapshotTest(
           }
         }
 
-        log("snapshot test ${i} out of $tests, time = ${time}ms")
+        log("withSnapshot test ${i} out of $tests, time = ${time}ms")
       }
     }
 

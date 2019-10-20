@@ -587,25 +587,34 @@ class FileManager(
       ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
   }
 
-  fun snapshot(dir: ExternalFile, includeSubDirs: Boolean = false, func: () -> Unit) {
-
-    fun combine(docFile: SnapshotDocumentFile): Pair<ExternalFile, SnapshotDocumentFile>? {
-      if (docFile.name == null) {
-        return null
-      }
-
-      val root = if (docFile.isDirectory) {
-        Root.DirRoot(docFile)
-      } else {
-        Root.FileRoot(docFile, docFile.name!!)
-      }
-
-      return Pair(
-        ExternalFile(appContext, root as Root<CachingDocumentFile>),
-        docFile
-      )
+  private fun combine(docFile: SnapshotDocumentFile): Pair<ExternalFile, SnapshotDocumentFile>? {
+    if (docFile.name == null) {
+      return null
     }
 
+    val root = if (docFile.isDirectory) {
+      Root.DirRoot(docFile)
+    } else {
+      Root.FileRoot(docFile, docFile.name!!)
+    }
+
+    return Pair(
+      ExternalFile(appContext, root as Root<CachingDocumentFile>),
+      docFile
+    )
+  }
+
+  fun <T> withSnapshot(dir: ExternalFile, includeSubDirs: Boolean = false, func: () -> T?): T? {
+    createSnapshot(dir, includeSubDirs)
+
+    try {
+      return func()
+    } finally {
+      releaseSnapshot(dir)
+    }
+  }
+
+  fun createSnapshot(dir: ExternalFile, includeSubDirs: Boolean = false) {
     val externalFileManager = getExternalFileManager()
     val directories = arrayListOf<ExternalFile>().apply { this.ensureCapacity(16) }
 
@@ -623,12 +632,11 @@ class FileManager(
         externalFileManager.cacheFiles(pairs)
       }
     }
+  }
 
-    try {
-      func()
-    } finally {
-      externalFileManager.uncacheFilesInSubTree(dir)
-    }
+  fun releaseSnapshot(dir: ExternalFile) {
+    val externalFileManager = getExternalFileManager()
+    externalFileManager.uncacheFilesInSubTree(dir)
   }
 
   private fun toDocumentFile(uri: Uri): CachingDocumentFile? {
