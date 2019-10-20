@@ -241,6 +241,9 @@ class FileManager(
    * [updateFunc] is a callback that has two parameters:
    * 1 - How many files have been copied
    * 2 - Total amount of files to be copied
+   *
+   * if [updateFunc] returns true that means that we need to cancel the copying. If [updateFunc] is
+   * not provided then there is no way to cancel this method
    * */
   fun copyDirectoryWithContent(
     sourceDir: AbstractFile,
@@ -248,7 +251,7 @@ class FileManager(
     recursively: Boolean,
     // You may want to show some kind of a progress dialog which will show how many files have
     // been copied so far and how many are left
-    updateFunc: ((Int, Int) -> Unit)? = null
+    updateFunc: ((Int, Int) -> Boolean)? = null
   ): Boolean {
     if (!exists(sourceDir)) {
       Log.e(TAG, "Source directory does not exists, path = ${sourceDir.getFullPath()}")
@@ -313,12 +316,18 @@ class FileManager(
       //
       // Such is the idea of this hack.
 
+
+      if (directoryManager.isBaseDir(file.getFileRoot<CachingDocumentFile>().holder.uri)) {
+        // Base directory
+        continue
+      }
+
       val rawSegments = file.getFullPath()
         .removePrefix(prefix)
         .splitIntoSegments()
 
       if (rawSegments.isEmpty()) {
-        // Base directory
+        // The sourceDir itself
         continue
       }
 
@@ -354,7 +363,11 @@ class FileManager(
         }
       }
 
-      updateFunc?.invoke(currentFileIndex, totalFilesCount)
+      val result = updateFunc?.invoke(currentFileIndex, totalFilesCount) ?: false
+      if (result) {
+        Log.e(TAG, "Cancelled")
+        return true
+      }
     }
 
     return true
