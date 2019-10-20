@@ -614,6 +614,19 @@ class FileManager(
     }
   }
 
+  /**
+   * Manually create a snapshot of a directory (with sub diesctories if [includeSubDirs] is true)
+   * DON'T FORGET TO RELEASE THE SNAPSHOT ONCE YOU ARE DONE WITH IT!!!
+   *
+   * Usually you should just follow this scheme:
+   * You have a directory with lots of files and maybe even sub directories with their own files.
+   * You want to search for multiple files get their names, sizes check whether they exist or not.
+   * This is an ideal case for making a snapshot. It will load the whole directory with sub
+   * directories and files into memory pre-load all of the files properties (like size/name etc)
+   * so when you do some file operation (like exists()) it will be way faster than a normal
+   * operation non-snapshot operation. After you are done - release the snapshot or use
+   * [withSnapshot] which will do it for you.
+   * */
   fun createSnapshot(dir: ExternalFile, includeSubDirs: Boolean = false) {
     val externalFileManager = getExternalFileManager()
     val directories = arrayListOf<ExternalFile>().apply { this.ensureCapacity(16) }
@@ -634,6 +647,9 @@ class FileManager(
     }
   }
 
+  /**
+   * Removes the whole sub tree in the FastFileSearchTree with all of the cached files
+   * */
   fun releaseSnapshot(dir: ExternalFile) {
     val externalFileManager = getExternalFileManager()
     externalFileManager.uncacheFilesInSubTree(dir)
