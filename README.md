@@ -1,4 +1,6 @@
-# (WIP) Fuck Storage Access Framework or just FSAF
+# !!!WIP!!! 
+# Fuck Storage Access Framework (FSAF)
+
 This library in under heavy development so it's not a good idea to use it yet. Some API changes may happen in the future.
 
 If you ever had to deal with Storage Access Framework you must understand the pain imposed on you by it's API and lack of any good examples.
