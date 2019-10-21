@@ -15,4 +15,4 @@ Samples
 ---
 
 Right now you may look at the app that is being used to test this library which is located in "fsaf_test_app" directory. 
-More samples to be added in the future.
+More samples will be added in the future.
