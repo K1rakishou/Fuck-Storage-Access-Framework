@@ -11,5 +11,8 @@ The SAF is slow, especially when you want to do some file operations on many dif
 
 When moving away from the Java File API to SAF, you may encounter problems with migration because some users may not want to change their directories with files right away (And it will probably be a pain in the ass to do that manually). Yet another goal of this library is to make this migration seamless. 
 
-Samples (TODO)
+Samples
 ---
+
+Right now you may look at the app that is being used to test this library which is located in "fsaf_test_app" directory. 
+More samples to be added in the future.
