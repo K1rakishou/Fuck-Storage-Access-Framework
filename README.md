@@ -9,7 +9,7 @@ This tiny library attempts to hide away that API, providing a well-known Java Fi
 
 The SAF is slow, especially when you want to do some file operations with many different files. The other goal of this library is to provide an API that will significantly improve the file operations speed when dealing with lots of files or with nested directories with files, etc.
 
-When moving away from the Java File API to SAF, you may encounter problems with migration because some users may not want to change their directories with files right away (And it will probably be a pain in the ass to do that manually). Yet another goal of this library is to make this migration seamless. 
+When moving away from the Java File API to SAF, you may encounter problems with migration because some users may not want to change their directories with files right away (And it will probably be a pain in the ass to do that manually). Yet another goal of this library is to make this migration seamless. Or even leave both variants.
 
 Samples
 ---
