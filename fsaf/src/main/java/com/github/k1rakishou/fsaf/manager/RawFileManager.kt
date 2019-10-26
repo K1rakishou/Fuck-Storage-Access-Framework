@@ -2,6 +2,7 @@ package com.github.k1rakishou.fsaf.manager
 
 import android.util.Log
 import com.github.k1rakishou.fsaf.extensions.appendMany
+import com.github.k1rakishou.fsaf.extensions.extension
 import com.github.k1rakishou.fsaf.file.*
 import com.github.k1rakishou.fsaf.util.FSAFUtils
 import java.io.*
@@ -14,7 +15,30 @@ class RawFileManager : BaseFileManager {
       "create() root is already FileRoot, cannot append anything anymore"
     }
 
-    check(segments.isNotEmpty()) { "root has already been created" }
+    if (segments.isEmpty()) {
+      if (exists(baseDir)) {
+        return baseDir as RawFile
+      }
+
+      val rootFile = baseDir.getFileRoot<File>().holder
+
+      // Hacky but there is no other way since there are no segments
+      if (rootFile.name.extension() != null) {
+        if (rootFile.createNewFile()) {
+          return baseDir as RawFile
+        }
+
+        Log.e(TAG, "create() Couldn't create root file")
+        return null
+      } else {
+        if (rootFile.mkdirs()) {
+          return baseDir as RawFile
+        }
+
+        Log.e(TAG, "create() Couldn't create root directory")
+        return null
+      }
+    }
 
     var newFile = root.holder
     for (segment in segments) {

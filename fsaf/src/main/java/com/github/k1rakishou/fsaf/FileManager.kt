@@ -211,8 +211,6 @@ class FileManager(
   }
 
   fun create(baseDir: AbstractFile, vararg segments: Segment): AbstractFile? {
-    check(segments.isNotEmpty()) { "Segments are empty" }
-
     return create(baseDir, segments.toList())
   }
 
@@ -223,7 +221,7 @@ class FileManager(
 
     val segmentsToAppend = if (segments.isEmpty()) {
       if (baseDir.getFileSegments().isEmpty()) {
-        throw IllegalArgumentException("No segments provided")
+        emptyList()
       } else {
         baseDir.getFileSegments()
       }

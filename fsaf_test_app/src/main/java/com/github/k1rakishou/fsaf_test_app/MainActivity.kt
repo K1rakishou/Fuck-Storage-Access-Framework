@@ -93,13 +93,11 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
 
     try {
       val baseSAFDir = fastFileManager.newBaseDirectoryFile<TestBaseDirectory>()!!
+      val baseFileApiDir = fastFileManager.fromRawFile(
+        File(getExternalFilesDir(DIRECTORY_DOWNLOADS), "test")
+      )
 
-      val file = File(getExternalFilesDir(DIRECTORY_DOWNLOADS), "test")
-      if (!file.exists()) {
-        check(file.mkdir()) { "Couldn't create test dir" }
-      }
-
-      val baseFileApiDir = fastFileManager.fromRawFile(file)
+      fastFileManager.create(baseFileApiDir)
 
       testSuite.runTests(
         baseSAFDir,

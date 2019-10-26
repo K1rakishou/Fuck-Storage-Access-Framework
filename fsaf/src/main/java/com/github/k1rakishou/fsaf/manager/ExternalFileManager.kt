@@ -73,7 +73,14 @@ class ExternalFileManager(
       "create() root is already FileRoot, cannot append anything anymore"
     }
 
-    check(segments.isNotEmpty()) { "root has already been created" }
+    if (segments.isEmpty()) {
+      if (exists(baseDir)) {
+        return baseDir as ExternalFile
+      }
+
+      throw IllegalStateException("Segments are empty")
+    }
+
     var newFile: CachingDocumentFile? = null
 
     for (segment in segments) {
