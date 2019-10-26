@@ -10,7 +10,6 @@ class TestSuite(
   private val TAG = "TestSuite"
 
   // TODO: findFile tests with dir and file
-  // TODO: test deleting non existing file / directory
 
   fun runTests(baseDirSAF: AbstractFile, baseDirFile: AbstractFile) {
     try {
@@ -40,6 +39,7 @@ class TestSuite(
       SimpleTest("$TAG SimpleTest").runTests(fileManager, baseDirSAF)
       CreateFilesTest("$TAG CreateFilesTest").runTests(fileManager, baseDirSAF)
       SnapshotTest("$TAG SnapshotTest").runTests(fileManager, baseDirSAF)
+      DeleteTest("$TAG DeleteTest").runTests(fileManager, baseDirSAF)
       CopyTest("$TAG CopyTest").runTests(
         fileManager,
         baseDirSAF,
@@ -60,6 +60,7 @@ class TestSuite(
       SimpleTest("$TAG SimpleTest").runTests(fileManager, baseDirFile)
       CreateFilesTest("$TAG CreateFilesTest").runTests(fileManager, baseDirFile)
       SnapshotTest("$TAG SnapshotTest").runTests(fileManager, baseDirFile)
+      DeleteTest("$TAG DeleteTest").runTests(fileManager, baseDirFile)
       CopyTest("$TAG CopyTest").runTests(
         fileManager,
         baseDirFile,

@@ -61,6 +61,10 @@ class RawFileManager : BaseFileManager {
   }
 
   override fun delete(file: AbstractFile): Boolean {
+    if (!exists(file)) {
+      return true
+    }
+
     val javaFile = toFile(file.clone())
     if (javaFile.isFile) {
       return javaFile.delete()

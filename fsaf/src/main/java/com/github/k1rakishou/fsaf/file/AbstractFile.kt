@@ -40,7 +40,7 @@ abstract class AbstractFile(
     val segmentStrings = path.splitIntoSegments()
 
     val segments = segmentStrings.mapIndexed { index, segmentString ->
-      if (index == segmentStrings.size && segmentString.extension() != null) {
+      if (index == segmentStrings.lastIndex && segmentString.extension() != null) {
         return@mapIndexed FileSegment(segmentString)
       }
 

@@ -183,6 +183,10 @@ class ExternalFileManager(
   }
 
   override fun delete(file: AbstractFile): Boolean {
+    if (!exists(file)) {
+      return true
+    }
+
     val documentFile = toDocumentFile(file.clone())
       ?: return true
 
