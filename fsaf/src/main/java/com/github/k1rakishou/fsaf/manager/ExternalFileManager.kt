@@ -454,7 +454,7 @@ class ExternalFileManager(
     fileDescriptorMode: FileDescriptorMode
   ): ParcelFileDescriptor? {
     return appContext.contentResolver.openFileDescriptor(
-      file.getFileRoot<DocumentFile>().holder.uri,
+      file.getFileRoot<CachingDocumentFile>().holder.uri(),
       fileDescriptorMode.mode
     )
   }
