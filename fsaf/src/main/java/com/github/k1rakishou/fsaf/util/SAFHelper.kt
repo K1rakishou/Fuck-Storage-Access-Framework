@@ -176,10 +176,8 @@ object SAFHelper {
       return emptyList()
     }
 
-    val initialCapacity = safeCapacity(nameList)
-
     val nameListBatched = nameList.chunked(SQLITE_IN_OPERATOR_BATCH_SIZE)
-    val resultList = ArrayList<T>(initialCapacity)
+    val resultList = ArrayList<T>(safeCapacity(nameList))
 
     for (batch in nameListBatched) {
       val selection = DocumentsContract.Document.COLUMN_DISPLAY_NAME +

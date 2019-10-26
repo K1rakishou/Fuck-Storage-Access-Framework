@@ -17,6 +17,7 @@ open class CachingDocumentFile(
   private var cachedLen: Long? = null
   private var cachedLastModified: Long? = null
 
+  @Synchronized
   open fun exists(): Boolean {
     if (cachedExists != null) {
       return cachedExists!!
@@ -26,6 +27,7 @@ open class CachingDocumentFile(
     return cachedExists!!
   }
 
+  @Synchronized
   open fun isFile(): Boolean {
     if (cachedIsFile != null) {
       return cachedIsFile!!
@@ -35,6 +37,7 @@ open class CachingDocumentFile(
     return cachedIsFile!!
   }
 
+  @Synchronized
   open fun isDirectory(): Boolean {
     if (cachedIsDirectory != null) {
       return cachedIsDirectory!!
@@ -44,6 +47,7 @@ open class CachingDocumentFile(
     return cachedIsDirectory!!
   }
 
+  @Synchronized
   open fun canRead(): Boolean {
     if (cachedCanRead != null) {
       return cachedCanRead!!
@@ -53,6 +57,7 @@ open class CachingDocumentFile(
     return cachedCanRead!!
   }
 
+  @Synchronized
   open fun canWrite(): Boolean {
     if (cachedCanWrite != null) {
       return cachedCanWrite!!
@@ -62,6 +67,7 @@ open class CachingDocumentFile(
     return cachedCanWrite!!
   }
 
+  @Synchronized
   open fun name(): String? {
     if (cachedName != null) {
       return cachedName!!
@@ -71,6 +77,7 @@ open class CachingDocumentFile(
     return cachedName
   }
 
+  @Synchronized
   open fun length(): Long {
     if (cachedLen != null) {
       return cachedLen!!
@@ -80,6 +87,7 @@ open class CachingDocumentFile(
     return cachedLen!!
   }
 
+  @Synchronized
   open fun lastModified(): Long {
     if (cachedLastModified != null) {
       return cachedLastModified!!

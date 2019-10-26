@@ -95,7 +95,10 @@ class SnapshotTest(
         fileName
       )
 
-      if (createdFile == null || !fileManager.exists(createdFile) || !fileManager.isFile(createdFile)) {
+      if (createdFile == null
+        || !fileManager.exists(createdFile)
+        || !fileManager.isFile(createdFile)
+      ) {
         throw TestException("Couldn't create file name")
       }
 

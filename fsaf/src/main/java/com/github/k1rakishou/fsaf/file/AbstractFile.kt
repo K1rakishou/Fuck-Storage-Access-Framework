@@ -1,6 +1,7 @@
 package com.github.k1rakishou.fsaf.file
 
 import com.github.k1rakishou.fsaf.extensions.extension
+import com.github.k1rakishou.fsaf.extensions.splitIntoSegments
 
 /**
  * An abstraction class over both the Java File and the new Storage Access Framework DocumentFile.
@@ -26,6 +27,28 @@ abstract class AbstractFile(
   }
 
   abstract fun getFullPath(): String
+
+  /**
+   * Takes a path string that may look like this: "123/456/" or like this "/123/456/" or like this
+   * "123/456" or like this "123/456/test.txt" and splits it into a list of [Segment]s
+   * If the last segment [path] has an extension assumes it as a [FileSegment], if it doesn't then
+   * assumes it as a [DirectorySegment]. This function is unsafe only use it if you are sure in your
+   * input. Otherwise use other versions of [clone]. This method exists only because sometimes it's
+   * really tedious to create segments by hand.
+   * */
+  fun cloneUnsafe(path: String): AbstractFile {
+    val segmentStrings = path.splitIntoSegments()
+
+    val segments = segmentStrings.mapIndexed { index, segmentString ->
+      if (index == segmentStrings.size && segmentString.extension() != null) {
+        return@mapIndexed FileSegment(segmentString)
+      }
+
+      return@mapIndexed DirectorySegment(segmentString)
+    }
+
+    return clone(segments)
+  }
 
   /**
    * Clones the file and appends new segment

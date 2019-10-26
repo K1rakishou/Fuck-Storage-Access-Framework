@@ -5,28 +5,28 @@ import android.util.Log
 import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
 import com.github.k1rakishou.fsaf.file.AbstractFile
 
-class DirectoryManager {
+open class DirectoryManager {
   private val baseDirList = mutableMapOf<Class<BaseDirectory>, BaseDirectory>()
 
-  fun registerBaseDir(clazz: Class<*>, baseDirectory: BaseDirectory) {
+  open fun registerBaseDir(clazz: Class<*>, baseDirectory: BaseDirectory) {
     baseDirList.put(clazz as Class<BaseDirectory>, baseDirectory)
   }
 
-  fun unregisterBaseDir(clazz: Class<*>) {
+  open fun unregisterBaseDir(clazz: Class<*>) {
     baseDirList.remove(clazz)
   }
 
-  fun isBaseDir(dir: AbstractFile): Boolean {
+  open fun isBaseDir(dir: AbstractFile): Boolean {
     return baseDirList.values.any { baseDir -> baseDir.isBaseDir(dir) }
   }
 
-  fun isBaseDir(dir: Uri): Boolean {
+  open fun isBaseDir(dir: Uri): Boolean {
     return baseDirList.values.any { baseDir ->
       baseDir.isBaseDir(dir)
     }
   }
 
-  fun isBaseDir(dir: CachingDocumentFile): Boolean {
+  open fun isBaseDir(dir: CachingDocumentFile): Boolean {
     if (!dir.isDirectory()) {
       Log.e(TAG, "dir ${dir.uri()} is not a directory")
       return false
@@ -41,11 +41,11 @@ class DirectoryManager {
     return getBaseDirByClass(T::class.java)
   }
 
-  fun getBaseDirByClass(clazz: Class<*>): BaseDirectory? {
+  open fun getBaseDirByClass(clazz: Class<*>): BaseDirectory? {
     return baseDirList[clazz as Class<BaseDirectory>]
   }
 
-  fun getBaseDir(dir: Uri): BaseDirectory? {
+  open fun getBaseDir(dir: Uri): BaseDirectory? {
     return baseDirList.values.firstOrNull { baseDir ->
       baseDir.isBaseDir(dir)
     }

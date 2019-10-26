@@ -8,6 +8,7 @@ import androidx.documentfile.provider.DocumentFile
 import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
 import com.github.k1rakishou.fsaf.document_file.SnapshotDocumentFile
 import com.github.k1rakishou.fsaf.extensions.copyInto
+import com.github.k1rakishou.fsaf.extensions.extension
 import com.github.k1rakishou.fsaf.extensions.splitIntoSegments
 import com.github.k1rakishou.fsaf.file.*
 import com.github.k1rakishou.fsaf.manager.BaseFileManager
@@ -22,14 +23,14 @@ import java.util.*
 
 class FileManager(
   private val appContext: Context,
-  private val directoryManager: DirectoryManager = DirectoryManager(),
-  externalFileManager: ExternalFileManager = ExternalFileManager(
-    appContext,
-    directoryManager
-  ),
-  rawFileManager: RawFileManager = RawFileManager()
+  private val directoryManager: DirectoryManager = DirectoryManager()
 ) : BaseFileManager {
   private val managers = mutableMapOf<FileManagerId, BaseFileManager>()
+  private val externalFileManager: BaseFileManager = ExternalFileManager(
+    appContext,
+    directoryManager
+  )
+  private val rawFileManager: BaseFileManager = RawFileManager()
 
   init {
     addCustomFileManager(ExternalFile.FILE_MANAGER_ID, externalFileManager)
@@ -178,6 +179,23 @@ class FileManager(
   }
 
   /**
+   * Similar to [AbstractFile.cloneUnsafe]. Use only if you are sure in your input.
+   * */
+  fun createUnsafe(baseDir: AbstractFile, path: String): AbstractFile? {
+    val segmentStrings = path.splitIntoSegments()
+
+    val segments = segmentStrings.mapIndexed { index, segmentString ->
+      if (index == segmentStrings.size && segmentString.extension() != null) {
+        return@mapIndexed FileSegment(segmentString)
+      }
+
+      return@mapIndexed DirectorySegment(segmentString)
+    }
+
+    return create(baseDir, segments)
+  }
+
+  /**
    * [name] should not contain an extension
    * */
   fun createDir(baseDir: AbstractFile, name: String): AbstractFile? {
@@ -233,8 +251,6 @@ class FileManager(
   }
 
   /**
-   * VERY SLOW!!!
-   *
    * [recursively] will [sourceDir]'s sub directories and files as well, if false then only the
    * contents of the [sourceDir] will be copied into the [destDir].
    *
@@ -316,7 +332,6 @@ class FileManager(
       //
       // Such is the idea of this hack.
 
-
       if (directoryManager.isBaseDir(file.getFileRoot<CachingDocumentFile>().holder.uri())) {
         // Base directory
         continue
@@ -334,7 +349,7 @@ class FileManager(
       // TODO: we probably can optimise this by filtering segments that are already a part of other
       //  segments, i.e. "/123/456" is a part of "/123/456/file.txt" so when we create
       //  "/123/456/file.txt" we also automatically create "/123/456" so we can filter it out
-      //  beforehand
+      //  beforehand thus reducing the needed amount of file operations
 
       val segments = if (isFile(file)) {
         // Last segment must be a file name
@@ -620,7 +635,7 @@ class FileManager(
    * created. This method exists to make bulk Storage Access Framework operations faster!
    *
    * !!!DON'T FORGET TO RELEASE THE SNAPSHOT ONCE YOU ARE DONE WITH IT!!!
-   * Or just use [withSnapshot] instead.
+   * Or just use [withSnapshot] instead which does it for you.
    *
    * Usually you should just follow this scheme:
    * You have a directory with lots of files and maybe even sub directories with their own files.
@@ -673,9 +688,6 @@ class FileManager(
         val docTreeFile = DocumentFile.fromTreeUri(appContext, uri)
 
         // FIXME: Damn this is hacky as fuck and I don't even know whether it works 100% or not
-        //  and it constantly give me warnings like:
-        //  "W/DocumentFile: Failed query: java.lang.UnsupportedOperationException: Unsupported Uri"
-        //  but still works (!!!)
         if (docTreeFile != null && isBogusTreeUri(uri, docTreeFile.uri)) {
           DocumentFile.fromSingleUri(appContext, uri)
         } else {

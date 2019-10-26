@@ -11,7 +11,7 @@ interface BaseFileManager {
 
   /**
    * Creates a new file that consists of the root directory and segments (sub dirs or the file name)
-   * Behave similarly to Java's mkdirs() method but work not only with directories but files as well.
+   * Behaves similarly to Java's mkdirs() method but work not only with directories but files as well.
    * */
   fun create(baseDir: AbstractFile, segments: List<Segment>): AbstractFile?
 
@@ -51,7 +51,7 @@ interface BaseFileManager {
   fun delete(file: AbstractFile): Boolean
 
   /**
-   * Deletes contents of this directory
+   * Deletes contents of this directory. Does nothing is [dir] is not actually a directory.
    * */
   fun deleteContent(dir: AbstractFile)
 
@@ -87,6 +87,7 @@ interface BaseFileManager {
 
   /**
    * Returns a list of all files and directories inside this cached in FastFileSearchTree directory.
+   * If [dir] is backed by a Java File then it just calls listFiles() on it.
    * */
   fun listSnapshotFiles(dir: AbstractFile, recursively: Boolean): List<AbstractFile>
 

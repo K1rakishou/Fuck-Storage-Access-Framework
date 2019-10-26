@@ -10,7 +10,7 @@ class RawFileManager : BaseFileManager {
   override fun create(baseDir: AbstractFile, segments: List<Segment>): RawFile? {
     val root = baseDir.getFileRoot<File>()
     check(root !is Root.FileRoot) {
-      "root is already FileRoot, cannot append anything anymore"
+      "create() root is already FileRoot, cannot append anything anymore"
     }
 
     check(segments.isNotEmpty()) { "root has already been created" }
@@ -21,12 +21,12 @@ class RawFileManager : BaseFileManager {
 
       if (segment.isFileName) {
         if (!newFile.exists() && !newFile.createNewFile()) {
-          Log.e(TAG, "Could not create a new file, path = " + newFile.absolutePath)
+          Log.e(TAG, "create() Could not create a new file, path = " + newFile.absolutePath)
           return null
         }
       } else {
         if (!newFile.exists() && !newFile.mkdir()) {
-          Log.e(TAG, "Could not create a new directory, path = " + newFile.absolutePath)
+          Log.e(TAG, "create() Could not create a new directory, path = " + newFile.absolutePath)
           return null
         }
       }
@@ -66,7 +66,7 @@ class RawFileManager : BaseFileManager {
   override fun deleteContent(dir: AbstractFile) {
     val file = toFile(dir.clone())
     if (!file.isDirectory) {
-      Log.e(TAG, "Only directories are supported (files can't have contents anyway)")
+      Log.e(TAG, "deleteContent() Only directories are supported (files can't have contents anyway)")
       return
     }
 
@@ -122,10 +122,10 @@ class RawFileManager : BaseFileManager {
   override fun findFile(dir: AbstractFile, fileName: String): RawFile? {
     val root = dir.getFileRoot<File>()
     val segments = dir.getFileSegments()
-    check(root !is Root.FileRoot) { "Cannot use FileRoot as directory" }
+    check(root !is Root.FileRoot) { "findFile() Cannot use FileRoot as directory" }
 
     if (segments.isNotEmpty()) {
-      check(!segments.last().isFileName) { "Cannot do search when last segment is file" }
+      check(!segments.last().isFileName) { "findFile() Cannot do search when last segment is file" }
     }
 
     val copy = File(root.holder.absolutePath)
@@ -155,7 +155,7 @@ class RawFileManager : BaseFileManager {
 
   override fun listFiles(dir: AbstractFile): List<RawFile> {
     val root = dir.getFileRoot<File>()
-    check(root !is Root.FileRoot) { "Cannot use listFiles with FileRoot" }
+    check(root !is Root.FileRoot) { "listFiles() Cannot use listFiles with FileRoot" }
 
     return toFile(dir.clone())
       .listFiles()
@@ -204,7 +204,10 @@ class RawFileManager : BaseFileManager {
         fileCopy,
         true
       ).use { fos -> func(fos.fd) }
-      else -> throw NotImplementedError("Not implemented for fileDescriptorMode = ${fileDescriptorMode.name}")
+      else -> {
+        throw NotImplementedError("withFileDescriptor() Not implemented for " +
+          "fileDescriptorMode = ${fileDescriptorMode.name}")
+      }
     }
   }
 

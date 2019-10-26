@@ -70,7 +70,7 @@ class ExternalFileManager(
   override fun create(baseDir: AbstractFile, segments: List<Segment>): ExternalFile? {
     val root = baseDir.getFileRoot<CachingDocumentFile>()
     check(root !is Root.FileRoot) {
-      "root is already FileRoot, cannot append anything anymore"
+      "create() root is already FileRoot, cannot append anything anymore"
     }
 
     check(segments.isNotEmpty()) { "root has already been created" }
@@ -147,7 +147,7 @@ class ExternalFileManager(
     }
 
     if (newFile == null) {
-      Log.e(TAG, "result file is null")
+      Log.e(TAG, "create() result file is null")
       return null
     }
 
@@ -204,7 +204,7 @@ class ExternalFileManager(
       ?: return
 
     if (!documentFile.isDirectory()) {
-      Log.e(TAG, "Only directories are supported (files can't have contents anyway)")
+      Log.e(TAG, "deleteContent() Only directories are supported (files can't have contents anyway)")
       return
     }
 
@@ -296,9 +296,9 @@ class ExternalFileManager(
     val root = dir.getFileRoot<CachingDocumentFile>()
     val segments = dir.getFileSegments()
 
-    check(root !is Root.FileRoot) { "Cannot use FileRoot as directory" }
+    check(root !is Root.FileRoot) { "findFile() Cannot use FileRoot as directory" }
     if (segments.isNotEmpty()) {
-      check(!segments.last().isFileName) { "Cannot do search when last segment is file" }
+      check(!segments.last().isFileName) { "findFile() Cannot do search when last segment is file" }
     }
 
     val parentDocFile = if (segments.isNotEmpty()) {
@@ -348,7 +348,7 @@ class ExternalFileManager(
 
   override fun listFiles(dir: AbstractFile): List<ExternalFile> {
     val root = dir.getFileRoot<CachingDocumentFile>()
-    check(root !is Root.FileRoot) { "Cannot use listFiles with FileRoot" }
+    check(root !is Root.FileRoot) { "listFiles() Cannot use listFiles with FileRoot" }
 
     val docFile = toDocumentFile(dir.clone())
       ?: return emptyList()
@@ -364,7 +364,7 @@ class ExternalFileManager(
 
   override fun listSnapshotFiles(dir: AbstractFile, recursively: Boolean): List<AbstractFile> {
     val root = dir.getFileRoot<CachingDocumentFile>()
-    check(root !is Root.FileRoot) { "Cannot use listFiles with FileRoot" }
+    check(root !is Root.FileRoot) { "listSnapshotFiles() Cannot use listFiles with FileRoot" }
 
     val resultList = ArrayList<SnapshotDocumentFile>(32)
 
@@ -392,7 +392,7 @@ class ExternalFileManager(
     return getParcelFileDescriptor(file, fileDescriptorMode)
       ?.use { pfd -> func(pfd.fileDescriptor) }
       ?: throw IllegalStateException(
-        "Could not get ParcelFileDescriptor " +
+        "withFileDescriptor() Could not get ParcelFileDescriptor " +
           "from root with uri = ${file.getFileRoot<DocumentFile>().holder.uri}"
       )
   }
@@ -429,7 +429,10 @@ class ExternalFileManager(
         notCachedFile
       )
 
-      check(result) { "Something went wrong when trying to insert new file" }
+      check(result) {
+        "toDocumentFile() Something went wrong when trying to " +
+          "insert a new file into fastFileSearchTree"
+      }
     }
 
     return notCachedFile

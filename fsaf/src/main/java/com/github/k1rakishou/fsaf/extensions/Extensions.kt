@@ -15,6 +15,9 @@ internal const val CONTENT_TYPE = "${ContentResolver.SCHEME_CONTENT}://"
 internal const val FILE_TYPE = "${ContentResolver.SCHEME_FILE}://"
 internal val uriTypes = arrayOf(CONTENT_TYPE, FILE_TYPE)
 
+/**
+ * I've encountered at least 3 different types of separators
+ * */
 internal const val ENCODED_SEPARATOR = "%2F"
 internal const val FILE_SEPARATOR1 = "/"
 internal const val FILE_SEPARATOR2 = "\\"

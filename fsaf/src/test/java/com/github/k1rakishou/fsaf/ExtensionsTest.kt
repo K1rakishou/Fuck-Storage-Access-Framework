@@ -39,4 +39,28 @@ class ExtensionsTest {
 
     assertEquals("0", segments.first())
   }
+
+  @Test
+  fun testSplitIntoSegments2() {
+    kotlin.run {
+      val path = "/123/456/"
+
+      val segments = path.splitIntoSegments()
+      assertEquals(2, segments.size)
+    }
+
+    kotlin.run {
+      val path = "123/456/"
+
+      val segments = path.splitIntoSegments()
+      assertEquals(2, segments.size)
+    }
+
+    kotlin.run {
+      val path = "123/456"
+
+      val segments = path.splitIntoSegments()
+      assertEquals(2, segments.size)
+    }
+  }
 }
