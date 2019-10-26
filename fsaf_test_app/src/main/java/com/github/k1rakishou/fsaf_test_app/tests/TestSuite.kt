@@ -10,13 +10,19 @@ class TestSuite(
   private val TAG = "TestSuite"
 
   // TODO: findFile tests with dir and file
+  // TODO: test deleting non existing file / directory
+
   fun runTests(baseDirSAF: AbstractFile, baseDirFile: AbstractFile) {
     try {
       println("$TAG =============== START TESTS ===============")
       println("$TAG baseDirSAF = ${baseDirSAF.getFullPath()}")
       println("$TAG baseDirFile = ${baseDirFile.getFullPath()}")
 
-      runTestsWithCaching(fileManager, baseDirSAF, baseDirFile)
+      runTestsWithSAFFiles(fileManager, baseDirSAF, baseDirFile)
+      runTestsWithJavaFiles(fileManager, baseDirSAF, baseDirFile)
+
+      fileManager.deleteContent(baseDirFile)
+      fileManager.deleteContent(baseDirSAF)
 
       println("$TAG =============== END TESTS ===============")
     } catch (error: Throwable) {
@@ -25,19 +31,43 @@ class TestSuite(
     }
   }
 
-  private fun runTestsWithCaching(
+  private fun runTestsWithSAFFiles(
     fileManager: FileManager,
     baseDirSAF: AbstractFile,
     baseDirFile: AbstractFile
   ) {
     val time = measureTimeMillis {
-      SimpleTest("$TAG SimpleTest", true).runTests(fileManager, baseDirSAF)
-      CreateFilesTest("$TAG CreateFilesTest", true).runTests(fileManager, baseDirSAF)
-      SnapshotTest("$TAG SnapshotTest", true).runTests(fileManager, baseDirSAF)
-      CopyTest("$TAG CopyTest", true).runTests(fileManager, baseDirSAF, baseDirFile)
+      SimpleTest("$TAG SimpleTest").runTests(fileManager, baseDirSAF)
+      CreateFilesTest("$TAG CreateFilesTest").runTests(fileManager, baseDirSAF)
+      SnapshotTest("$TAG SnapshotTest").runTests(fileManager, baseDirSAF)
+      CopyTest("$TAG CopyTest").runTests(
+        fileManager,
+        baseDirSAF,
+        baseDirFile,
+        CopyTestType.FromSafDirToRegularDir
+      )
     }
 
-    println("$TAG runTestsWithCaching took ${time}ms")
+    println("$TAG runTestsWithSAFFiles took ${time}ms")
   }
 
+  private fun runTestsWithJavaFiles(
+    fileManager: FileManager,
+    baseDirSAF: AbstractFile,
+    baseDirFile: AbstractFile
+  ) {
+    val time = measureTimeMillis {
+      SimpleTest("$TAG SimpleTest").runTests(fileManager, baseDirFile)
+      CreateFilesTest("$TAG CreateFilesTest").runTests(fileManager, baseDirFile)
+      SnapshotTest("$TAG SnapshotTest").runTests(fileManager, baseDirFile)
+      CopyTest("$TAG CopyTest").runTests(
+        fileManager,
+        baseDirFile,
+        baseDirSAF,
+        CopyTestType.FromRegularDitToSafDir
+      )
+    }
+
+    println("$TAG runTestsWithJavaFiles took ${time}ms")
+  }
 }

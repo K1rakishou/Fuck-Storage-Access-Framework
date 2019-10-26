@@ -3,6 +3,7 @@ package com.github.k1rakishou.fsaf.manager
 import android.util.Log
 import com.github.k1rakishou.fsaf.extensions.appendMany
 import com.github.k1rakishou.fsaf.file.*
+import com.github.k1rakishou.fsaf.util.FSAFUtils
 import java.io.*
 
 class RawFileManager : BaseFileManager {
@@ -60,17 +61,22 @@ class RawFileManager : BaseFileManager {
   }
 
   override fun delete(file: AbstractFile): Boolean {
-    return toFile(file.clone()).delete()
+    val javaFile = toFile(file.clone())
+    if (javaFile.isFile) {
+      return javaFile.delete()
+    }
+
+    return FSAFUtils.deleteDirectory(javaFile, true)
   }
 
   override fun deleteContent(dir: AbstractFile) {
-    val file = toFile(dir.clone())
-    if (!file.isDirectory) {
+    val directory = toFile(dir.clone())
+    if (!directory.isDirectory) {
       Log.e(TAG, "deleteContent() Only directories are supported (files can't have contents anyway)")
       return
     }
 
-    file.listFiles()?.forEach { f -> f.delete() }
+    FSAFUtils.deleteDirectory(directory, false)
   }
 
   override fun getInputStream(file: AbstractFile): InputStream? {
@@ -128,9 +134,9 @@ class RawFileManager : BaseFileManager {
       check(!segments.last().isFileName) { "findFile() Cannot do search when last segment is file" }
     }
 
-    val copy = File(root.holder.absolutePath)
+    var copy = File(root.holder.absolutePath)
     if (segments.isNotEmpty()) {
-      copy.appendMany(segments.map { segment -> segment.name })
+      copy = copy.appendMany(segments.map { segment -> segment.name })
     }
 
     val resultFile = File(copy.absolutePath, fileName)

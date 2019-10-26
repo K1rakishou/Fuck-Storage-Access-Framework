@@ -8,14 +8,10 @@ import com.github.k1rakishou.fsaf_test_app.TestBaseDirectory
 import kotlin.system.measureTimeMillis
 
 class SimpleTest(
-  tag: String,
-  isFastMode: Boolean
-) : BaseTest(tag, isFastMode) {
+  tag: String
+) : BaseTest(tag) {
 
   fun runTests(fileManager: FileManager, baseDir: AbstractFile) {
-    fileManager.deleteContent(baseDir)
-    checkDirEmpty(fileManager, baseDir)
-
     runTest(fileManager, baseDir) {
       val time = measureTimeMillis {
         test1(fileManager, baseDir)

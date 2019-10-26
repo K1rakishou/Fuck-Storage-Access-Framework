@@ -2,16 +2,14 @@ package com.github.k1rakishou.fsaf_test_app.tests
 
 import com.github.k1rakishou.fsaf.FileManager
 import com.github.k1rakishou.fsaf.file.AbstractFile
-import com.github.k1rakishou.fsaf.file.ExternalFile
 import com.github.k1rakishou.fsaf_test_app.extensions.splitIntoSegments
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import kotlin.system.measureTimeMillis
 
 class SnapshotTest(
-  tag: String,
-  isFastMode: Boolean
-) : BaseTest(tag, isFastMode) {
+  tag: String
+) : BaseTest(tag) {
 
   fun runTests(fileManager: FileManager, baseDir: AbstractFile) {
     runTest(fileManager, baseDir) {
@@ -35,7 +33,7 @@ class SnapshotTest(
 
     createFiles(fileManager, dir)
 
-    fileManager.withSnapshot(dir as ExternalFile, true) {
+    fileManager.withSnapshot(dir, true) {
       val files = fileManager.listSnapshotFiles(dir, false)
 
       val tests = 10

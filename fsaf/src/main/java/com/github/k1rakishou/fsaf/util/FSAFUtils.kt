@@ -1,6 +1,9 @@
 package com.github.k1rakishou.fsaf.util
 
-object SAFUtils {
+import java.io.File
+
+
+object FSAFUtils {
 
   /**
    * Merges paths that are fully contained in other paths, e.g.:
@@ -50,6 +53,33 @@ object SAFUtils {
     }
 
     return pathList.filterIndexed { index, _ -> index !in filtered }
+  }
+
+  fun deleteDirectory(directory: File, deleteRootDir: Boolean, depth: Int = 0): Boolean {
+    if (!directory.isDirectory) {
+      return false
+    }
+
+    val files = directory.listFiles()
+    if (files != null) {
+      for (f in files) {
+        if (f.isDirectory) {
+          if (!deleteDirectory(f, deleteRootDir, depth + 1)) {
+            return false
+          }
+        } else {
+          if (!f.delete()) {
+            return false
+          }
+        }
+      }
+    }
+
+    if (deleteRootDir || depth > 0) {
+      return directory.delete()
+    }
+
+    return true
   }
 
 }

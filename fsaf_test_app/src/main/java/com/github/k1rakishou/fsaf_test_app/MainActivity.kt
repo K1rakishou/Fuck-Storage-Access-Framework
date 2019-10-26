@@ -1,12 +1,16 @@
 package com.github.k1rakishou.fsaf_test_app
 
+import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
-import android.os.Environment
+import android.os.Environment.DIRECTORY_DOWNLOADS
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import com.github.k1rakishou.fsaf.FileChooser
 import com.github.k1rakishou.fsaf.FileManager
 import com.github.k1rakishou.fsaf.callback.DirectoryChooserCallback
@@ -77,22 +81,37 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
     }
 
     run_tests_button.setOnClickListener {
-      try {
-        val baseSAFDir = fastFileManager.newBaseDirectoryFile<TestBaseDirectory>()!!
-        val baseFileApiDir = fastFileManager.fromRawFile(File(Environment.getDownloadCacheDirectory(), "test"))
+      runTests()
+    }
+  }
 
-        testSuite.runTests(
-          baseSAFDir,
-          baseFileApiDir
-        )
+  private fun runTests() {
+    if (!isStoragePermissionGranted()) {
+      println("Permissions were not granted")
+      return
+    }
 
-        val message = "=== ALL TESTS HAVE PASSED ==="
-        println(message)
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-      } catch (error: Throwable) {
-        error.printStackTrace()
-        Toast.makeText(this, error.message ?: "Unknown error", Toast.LENGTH_SHORT).show()
+    try {
+      val baseSAFDir = fastFileManager.newBaseDirectoryFile<TestBaseDirectory>()!!
+
+      val file = File(getExternalFilesDir(DIRECTORY_DOWNLOADS), "test")
+      if (!file.exists()) {
+        check(file.mkdir()) { "Couldn't create test dir" }
       }
+
+      val baseFileApiDir = fastFileManager.fromRawFile(file)
+
+      testSuite.runTests(
+        baseSAFDir,
+        baseFileApiDir
+      )
+
+      val message = "=== ALL TESTS HAVE PASSED ==="
+      println(message)
+      Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    } catch (error: Throwable) {
+      error.printStackTrace()
+      Toast.makeText(this, error.message ?: "Unknown error", Toast.LENGTH_SHORT).show()
     }
   }
 
@@ -123,6 +142,35 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
     super.onActivityResult(requestCode, resultCode, data)
 
     fileChooser.onActivityResult(requestCode, resultCode, data)
+  }
+
+  private fun isStoragePermissionGranted(): Boolean {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+      if (checkSelfPermission(WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+        true
+      } else {
+
+        ActivityCompat.requestPermissions(
+          this,
+          arrayOf(WRITE_EXTERNAL_STORAGE),
+          1
+        )
+        false
+      }
+    } else {
+      true
+    }
+  }
+
+  override fun onRequestPermissionsResult(
+    requestCode: Int,
+    permissions: Array<String>,
+    grantResults: IntArray
+  ) {
+    super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+      runTests()
+    }
   }
 
   private fun storeTreeUri(uri: Uri) {

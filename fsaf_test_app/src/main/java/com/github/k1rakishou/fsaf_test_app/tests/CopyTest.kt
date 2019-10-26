@@ -8,20 +8,19 @@ import java.io.DataOutputStream
 import kotlin.system.measureTimeMillis
 
 class CopyTest(
-  tag: String,
-  isFastMode: Boolean
-) : BaseTest(tag, isFastMode) {
+  tag: String
+) : BaseTest(tag) {
   private val dirs = 5
   private val files = 25
 
-  fun runTests(fileManager: FileManager, baseDir: AbstractFile, baseDirFile: AbstractFile) {
-    runTest(fileManager, baseDir) {
-      val srcDir = fileManager.createDir(baseDir, "src")
+  fun runTests(fileManager: FileManager, _scrDir: AbstractFile, _dstDir: AbstractFile, copyTest: CopyTestType) {
+    runTest(fileManager, _scrDir) {
+      val srcDir = fileManager.createDir(_scrDir, "src")
       if (srcDir == null || !fileManager.exists(srcDir) || !fileManager.isDirectory(srcDir)) {
         throw TestException("Couldn't create src directory")
       }
 
-      val dstDir = fileManager.createDir(baseDir, "dst")
+      val dstDir = fileManager.createDir(_dstDir, "dst")
       if (dstDir == null || !fileManager.exists(dstDir) || !fileManager.isDirectory(dstDir)) {
         throw TestException("Couldn't create dst directory")
       }
@@ -30,7 +29,7 @@ class CopyTest(
         copyTest(fileManager, srcDir, dstDir)
       }
 
-      log("copyTest took ${time}ms")
+      log("copyTest (${copyTest.text}) took ${time}ms")
     }
   }
 
@@ -117,4 +116,10 @@ class CopyTest(
       }
     }
   }
+}
+
+
+enum class CopyTestType(val text: String) {
+  FromSafDirToRegularDir("SAF dir to Regular dir"),
+  FromRegularDitToSafDir("Regular dir to SAF dir")
 }

@@ -1,6 +1,6 @@
 package com.github.k1rakishou.fsaf
 
-import com.github.k1rakishou.fsaf.util.SAFUtils
+import com.github.k1rakishou.fsaf.util.FSAFUtils
 import junit.framework.Assert.assertEquals
 import junit.framework.Assert.assertTrue
 import org.junit.Test
@@ -20,7 +20,7 @@ class UtilsTest {
       "/123/456"
     )
 
-    val result = SAFUtils.mergePaths(paths)
+    val result = FSAFUtils.mergePaths(paths)
     assertEquals(2, result.size)
 
     assertTrue("/123/456/7" in result)
@@ -37,7 +37,7 @@ class UtilsTest {
       "/5/6/7/8/9"
     )
 
-    val result = SAFUtils.mergePaths(paths)
+    val result = FSAFUtils.mergePaths(paths)
     assertEquals(5, result.size)
 
     assertTrue(paths[0] in result)

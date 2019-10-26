@@ -9,11 +9,8 @@ import java.io.DataOutputStream
 import kotlin.system.measureTimeMillis
 
 class CreateFilesTest(
-  tag: String,
-  isFastMode: Boolean
-) : BaseTest(tag, isFastMode) {
-
-  // TODO: test deleting non existing file / directory
+  tag: String
+) : BaseTest(tag) {
 
   fun runTests(fileManager: FileManager, baseDir: AbstractFile) {
     runTest(fileManager, baseDir) {

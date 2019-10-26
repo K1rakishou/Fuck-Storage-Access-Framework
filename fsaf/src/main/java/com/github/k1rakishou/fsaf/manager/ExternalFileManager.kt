@@ -90,7 +90,7 @@ class ExternalFileManager(
         appContext,
         innerFile.uri(),
         segment.name,
-        directoryManager.isBaseDir(innerFile.uri())
+        directoryManager.isBaseDir(innerFile)
       )
 
       if (foundFile != null) {
@@ -325,7 +325,7 @@ class ExternalFileManager(
       appContext,
       parentDocFile.uri(),
       fileName,
-      directoryManager.isBaseDir(parentDocFile.uri())
+      directoryManager.isBaseDir(parentDocFile)
     )
 
     if (cachingDocFile == null || !cachingDocFile.exists()) {

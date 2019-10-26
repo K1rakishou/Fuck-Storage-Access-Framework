@@ -211,6 +211,8 @@ class FileManager(
   }
 
   fun create(baseDir: AbstractFile, vararg segments: Segment): AbstractFile? {
+    check(segments.isNotEmpty()) { "Segments are empty" }
+
     return create(baseDir, segments.toList())
   }
 
@@ -229,8 +231,13 @@ class FileManager(
       segments
     }
 
-    return managers[baseDir.getFileManagerId()]?.create(baseDir.clone(), segmentsToAppend)
-      ?: throw NotImplementedError("Not implemented for ${baseDir.javaClass.name}")
+    val manager = managers[baseDir.getFileManagerId()]
+      ?: throw NotImplementedError(
+        "Not implemented for ${baseDir.javaClass.name}, " +
+          "fileManagerId = ${baseDir.getFileManagerId()}"
+      )
+
+    return manager.create(baseDir.clone(), segmentsToAppend)
   }
 
   /**
@@ -332,7 +339,7 @@ class FileManager(
       //
       // Such is the idea of this hack.
 
-      if (directoryManager.isBaseDir(file.getFileRoot<CachingDocumentFile>().holder.uri())) {
+      if (directoryManager.isBaseDir(file)) {
         // Base directory
         continue
       }
@@ -598,8 +605,10 @@ class FileManager(
     fileDescriptorMode: FileDescriptorMode,
     func: (FileDescriptor) -> T?
   ): T? {
-    return managers[file.getFileManagerId()]?.withFileDescriptor(file, fileDescriptorMode, func)
+    val manager = managers[file.getFileManagerId()]
       ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+
+    return manager.withFileDescriptor(file, fileDescriptorMode, func)
   }
 
   private fun combine(docFile: SnapshotDocumentFile): Pair<ExternalFile, SnapshotDocumentFile>? {
