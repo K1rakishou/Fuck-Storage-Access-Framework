@@ -3,7 +3,7 @@ package com.github.k1rakishou.fsaf.util
 import java.io.File
 
 
-object FSAFUtils {
+internal object FSAFUtils {
 
   /**
    * Merges paths that are fully contained in other paths, e.g.:
@@ -55,6 +55,9 @@ object FSAFUtils {
     return pathList.filterIndexed { index, _ -> index !in filtered }
   }
 
+  /**
+   * Deletes all of the directory's contents and the directory itself if [deleteRootDir] is true
+   * */
   fun deleteDirectory(directory: File, deleteRootDir: Boolean, depth: Int = 0): Boolean {
     if (!directory.isDirectory) {
       return false

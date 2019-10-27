@@ -5,6 +5,9 @@ import android.util.Log
 import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
 import com.github.k1rakishou.fsaf.file.AbstractFile
 
+/**
+ * A class that is responsible for base directories registering/unregistering etc.
+ * */
 open class DirectoryManager {
   private val baseDirList = mutableMapOf<Class<BaseDirectory>, BaseDirectory>()
 

@@ -343,6 +343,9 @@ object SAFHelper {
     return isTreeUri(dirUri)
   }
 
+  /**
+   * Checks whether a [uri] is a tree uri
+   * */
   fun isTreeUri(uri: Uri): Boolean {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
       return DocumentsContract.isTreeUri(uri)

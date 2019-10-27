@@ -2,7 +2,7 @@ package com.github.k1rakishou.fsaf.file
 
 /**
  * Root is a real path to the file (raw or external). It may be incomplete (in this case
- * AbstractFile will have not empty segments). When building a file path we first append new path
+ * [AbstractFile] will have non empty segments). When building a file path we first append new path
  * segments and when doing some file operation (like checking it's existence or creating it)
  * we append the segments to the Root.
  *

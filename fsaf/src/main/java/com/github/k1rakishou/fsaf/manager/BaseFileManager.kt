@@ -31,12 +31,14 @@ interface BaseFileManager {
   fun isDirectory(file: AbstractFile): Boolean
 
   /**
-   * Check whether it is possible to read from this file (or whether a directory has a read permission)
+   * Check whether it is possible to read from this file (or whether a directory has a read
+   * permission)
    * */
   fun canRead(file: AbstractFile): Boolean
 
   /**
-   * Check whether it is possible to write into this file (or whether a directory has a write permission)
+   * Check whether it is possible to write into this file (or whether a directory has a write
+   * permission)
    * */
   fun canWrite(file: AbstractFile): Boolean
 
@@ -53,7 +55,7 @@ interface BaseFileManager {
   /**
    * Deletes contents of this directory. Does nothing is [dir] is not actually a directory.
    * */
-  fun deleteContent(dir: AbstractFile)
+  fun deleteContent(dir: AbstractFile): Boolean
 
   /**
    * Returns an input stream created from this file

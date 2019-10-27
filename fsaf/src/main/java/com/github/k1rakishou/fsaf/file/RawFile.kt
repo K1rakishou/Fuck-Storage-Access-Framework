@@ -5,7 +5,7 @@ import java.io.File
 
 class RawFile(
   root: Root<File>,
-  segments: MutableList<Segment> = mutableListOf()
+  segments: List<Segment> = listOf()
 ) : AbstractFile(root, segments) {
 
   override fun cloneInternal(newSegments: List<Segment>): RawFile = RawFile(

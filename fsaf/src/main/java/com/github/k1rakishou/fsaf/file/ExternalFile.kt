@@ -8,7 +8,7 @@ import com.github.k1rakishou.fsaf.extensions.appendMany
 class ExternalFile(
   private val appContext: Context,
   root: Root<CachingDocumentFile>,
-  segments: MutableList<Segment> = mutableListOf()
+  segments: List<Segment> = listOf()
 ) : AbstractFile(root, segments) {
 
   @Suppress("UNCHECKED_CAST")

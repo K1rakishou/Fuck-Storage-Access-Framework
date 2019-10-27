@@ -37,8 +37,24 @@ class FileManager(
     addCustomFileManager(RawFile.FILE_MANAGER_ID, rawFileManager)
   }
 
+  /**
+   * Add your own custom file managers (like, maybe, TestFileManager or something like that?)
+   * */
   fun addCustomFileManager(fileManagerId: FileManagerId, customManager: BaseFileManager) {
+    if (managers.containsKey(fileManagerId)) {
+      Log.e(TAG, "FileManager with id ${fileManagerId} has already been added!")
+      return
+    }
+
     managers[fileManagerId] = customManager
+  }
+
+  /**
+   * It's not a good idea to use this method to remove standard file managers (externalFileManager
+   * and rawFileManager) but you should use it to remove your own file managers.
+   * */
+  fun removeCustomFileManager(fileManagerId: FileManagerId) {
+    managers.remove(fileManagerId)
   }
 
   fun getExternalFileManager(): ExternalFileManager {
@@ -61,18 +77,18 @@ class FileManager(
   }
 
   /**
-   * Create an external file from Uri.
+   * Creates an external file from Uri.
    * Use this method to convert external file uri (file that may be located at sd card) into an
    * AbstractFile. If a file does not exist null is returned.
    * Does not create file on the disk automatically!
    * */
-  fun fromUri(uri: Uri): ExternalFile {
+  fun fromUri(uri: Uri): ExternalFile? {
     val documentFile = toDocumentFile(uri)
-      ?: throw IllegalStateException("toDocumentFile returned null, uri = $uri")
+      ?: return null
 
     return if (documentFile.isFile()) {
       val filename = documentFile.name()
-        ?: throw IllegalStateException("fromUri() queryTreeName() returned null")
+        ?: return null
 
       ExternalFile(appContext, Root.FileRoot(documentFile, filename))
     } else {
@@ -118,6 +134,7 @@ class FileManager(
    * base directory id.
    *
    * Does not create file on the disk automatically! (just like the Java File)
+   * Use one of the [create] methods to create a file on the disk.
    * */
   fun newBaseDirectoryFile(clazz: Class<*>): AbstractFile? {
     val baseDir = directoryManager.getBaseDirByClass(clazz)
@@ -164,6 +181,11 @@ class FileManager(
     return baseDirectoryExists(T::class.java)
   }
 
+  /**
+   * Checks whether at least one of the directory type exists for the current [BaseDirectory].
+   * [BaseDirectory] may have a SAF directory and a fallback java file backed directory. If neither
+   * of them is registered or they both return null this method will return null as well.
+   * */
   fun baseDirectoryExists(clazz: Class<*>): Boolean {
     val baseDirFile = newBaseDirectoryFile(clazz as Class<BaseDirectory>)
     if (baseDirFile == null) {
@@ -256,7 +278,7 @@ class FileManager(
   }
 
   /**
-   * [recursively] will [sourceDir]'s sub directories and files as well, if false then only the
+   * [recursively] will copy [sourceDir]'s sub directories and files as well, if false then only the
    * contents of the [sourceDir] will be copied into the [destDir].
    *
    * [updateFunc] is a callback that has two parameters:
@@ -460,7 +482,7 @@ class FileManager(
           }
         }
         else -> throw IllegalArgumentException(
-          "traverseMode does not include neither dir now files, " +
+          "traverseMode does not include neither dirs nor files, " +
             "traverseMode = ${traverseMode.name}"
         )
       }
@@ -470,72 +492,63 @@ class FileManager(
   override fun exists(file: AbstractFile): Boolean {
     return managers[file.getFileManagerId()]?.exists(file)
       ?: throw NotImplementedError(
-        "Not implemented for ${file.javaClass.name}, " +
-          "fileManagerId = ${file.getFileManagerId()}"
+        "Not implemented for ${file.javaClass.name}, fileManagerId = ${file.getFileManagerId()}"
       )
   }
 
   override fun isFile(file: AbstractFile): Boolean {
     return managers[file.getFileManagerId()]?.isFile(file)
       ?: throw NotImplementedError(
-        "Not implemented for ${file.javaClass.name}, " +
-          "fileManagerId = ${file.getFileManagerId()}"
+        "Not implemented for ${file.javaClass.name}, fileManagerId = ${file.getFileManagerId()}"
       )
   }
 
   override fun isDirectory(file: AbstractFile): Boolean {
     return managers[file.getFileManagerId()]?.isDirectory(file)
       ?: throw NotImplementedError(
-        "Not implemented for ${file.javaClass.name}, " +
-          "fileManagerId = ${file.getFileManagerId()}"
+        "Not implemented for ${file.javaClass.name}, fileManagerId = ${file.getFileManagerId()}"
       )
   }
 
   override fun canRead(file: AbstractFile): Boolean {
     return managers[file.getFileManagerId()]?.canRead(file)
       ?: throw NotImplementedError(
-        "Not implemented for ${file.javaClass.name}, " +
-          "fileManagerId = ${file.getFileManagerId()}"
+        "Not implemented for ${file.javaClass.name}, fileManagerId = ${file.getFileManagerId()}"
       )
   }
 
   override fun canWrite(file: AbstractFile): Boolean {
     return managers[file.getFileManagerId()]?.canWrite(file)
       ?: throw NotImplementedError(
-        "Not implemented for ${file.javaClass.name}, " +
-          "fileManagerId = ${file.getFileManagerId()}"
+        "Not implemented for ${file.javaClass.name}, fileManagerId = ${file.getFileManagerId()}"
       )
   }
 
   override fun getSegmentNames(file: AbstractFile): List<String> {
     return managers[file.getFileManagerId()]?.getSegmentNames(file)
       ?: throw NotImplementedError(
-        "Not implemented for ${file.javaClass.name}, " +
-          "fileManagerId = ${file.getFileManagerId()}"
+        "Not implemented for ${file.javaClass.name}, fileManagerId = ${file.getFileManagerId()}"
       )
   }
 
   override fun delete(file: AbstractFile): Boolean {
     return managers[file.getFileManagerId()]?.delete(file)
       ?: throw NotImplementedError(
-        "Not implemented for ${file.javaClass.name}, " +
-          "fileManagerId = ${file.getFileManagerId()}"
+        "Not implemented for ${file.javaClass.name}, fileManagerId = ${file.getFileManagerId()}"
       )
   }
 
-  override fun deleteContent(dir: AbstractFile) {
-    managers[dir.getFileManagerId()]?.deleteContent(dir)
+  override fun deleteContent(dir: AbstractFile): Boolean {
+    return managers[dir.getFileManagerId()]?.deleteContent(dir)
       ?: throw NotImplementedError(
-        "Not implemented for ${dir.javaClass.name}, " +
-          "fileManagerId = ${dir.getFileManagerId()}"
+        "Not implemented for ${dir.javaClass.name}, fileManagerId = ${dir.getFileManagerId()}"
       )
   }
 
   override fun getInputStream(file: AbstractFile): InputStream? {
     val manager = managers[file.getFileManagerId()]
       ?: throw NotImplementedError(
-        "Not implemented for ${file.javaClass.name}, " +
-          "fileManagerId = ${file.getFileManagerId()}"
+        "Not implemented for ${file.javaClass.name}, fileManagerId = ${file.getFileManagerId()}"
       )
 
     return manager.getInputStream(file)
@@ -544,8 +557,7 @@ class FileManager(
   override fun getOutputStream(file: AbstractFile): OutputStream? {
     val manager = managers[file.getFileManagerId()]
       ?: throw NotImplementedError(
-        "Not implemented for ${file.javaClass.name}, " +
-          "fileManagerId = ${file.getFileManagerId()}"
+        "Not implemented for ${file.javaClass.name}, fileManagerId = ${file.getFileManagerId()}"
       )
 
     return manager.getOutputStream(file)
@@ -554,16 +566,14 @@ class FileManager(
   override fun getName(file: AbstractFile): String {
     return managers[file.getFileManagerId()]?.getName(file)
       ?: throw NotImplementedError(
-        "Not implemented for ${file.javaClass.name}, " +
-          "fileManagerId = ${file.getFileManagerId()}"
+        "Not implemented for ${file.javaClass.name}, fileManagerId = ${file.getFileManagerId()}"
       )
   }
 
   override fun findFile(dir: AbstractFile, fileName: String): AbstractFile? {
     val manager = managers[dir.getFileManagerId()]
       ?: throw NotImplementedError(
-        "Not implemented for ${dir.javaClass.name}, " +
-          "fileManagerId = ${dir.getFileManagerId()}"
+        "Not implemented for ${dir.javaClass.name}, fileManagerId = ${dir.getFileManagerId()}"
       )
 
     return manager.findFile(dir, fileName)
@@ -572,22 +582,22 @@ class FileManager(
   override fun getLength(file: AbstractFile): Long {
     return managers[file.getFileManagerId()]?.getLength(file)
       ?: throw NotImplementedError(
-        "Not implemented for ${file.javaClass.name}, " +
-          "fileManagerId = ${file.getFileManagerId()}"
+        "Not implemented for ${file.javaClass.name}, fileManagerId = ${file.getFileManagerId()}"
       )
   }
 
   override fun listFiles(dir: AbstractFile): List<AbstractFile> {
     return managers[dir.getFileManagerId()]?.listFiles(dir)
       ?: throw NotImplementedError(
-        "Not implemented for ${dir.javaClass.name}, " +
-          "fileManagerId = ${dir.getFileManagerId()}"
+        "Not implemented for ${dir.javaClass.name}, fileManagerId = ${dir.getFileManagerId()}"
       )
   }
 
   override fun listSnapshotFiles(dir: AbstractFile, recursively: Boolean): List<AbstractFile> {
     return managers[ExternalFile.FILE_MANAGER_ID]?.listSnapshotFiles(dir, recursively)
-      ?: throw NotImplementedError("Only implemented for ExternalFiles!")
+      ?: throw NotImplementedError(
+        "Not implemented for ${dir.javaClass.name}, fileManagerId = ${dir.getFileManagerId()}"
+      )
   }
 
   override fun lastModified(file: AbstractFile): Long {
@@ -604,7 +614,9 @@ class FileManager(
     func: (FileDescriptor) -> T?
   ): T? {
     val manager = managers[file.getFileManagerId()]
-      ?: throw NotImplementedError("Not implemented for ${file.javaClass.name}")
+      ?: throw NotImplementedError(
+        "Not implemented for ${file.javaClass.name}, fileManagerId = ${file.getFileManagerId()}"
+      )
 
     return manager.withFileDescriptor(file, fileDescriptorMode, func)
   }

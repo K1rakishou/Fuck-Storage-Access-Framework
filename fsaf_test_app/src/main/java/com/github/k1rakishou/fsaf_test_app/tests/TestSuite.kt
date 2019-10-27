@@ -20,8 +20,8 @@ class TestSuite(
       runTestsWithSAFFiles(fileManager, baseDirSAF, baseDirFile)
       runTestsWithJavaFiles(fileManager, baseDirSAF, baseDirFile)
 
-      fileManager.deleteContent(baseDirFile)
-      fileManager.deleteContent(baseDirSAF)
+      check(fileManager.deleteContent(baseDirFile)) { "deleteContent baseDirFile returned false" }
+      check(fileManager.deleteContent(baseDirSAF)) { "deleteContent baseDirSAF returned false" }
 
       println("$TAG =============== END TESTS ===============")
     } catch (error: Throwable) {

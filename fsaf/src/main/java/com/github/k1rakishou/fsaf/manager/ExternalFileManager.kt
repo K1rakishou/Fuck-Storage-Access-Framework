@@ -18,6 +18,9 @@ import java.io.FileDescriptor
 import java.io.InputStream
 import java.io.OutputStream
 
+/**
+ * Provide an API to work with SAF files
+ * */
 class ExternalFileManager(
   private val appContext: Context,
   private val directoryManager: DirectoryManager
@@ -43,18 +46,20 @@ class ExternalFileManager(
   ) {
     val segments = externalFile.getFullPath().splitIntoSegments()
     if (segments.isEmpty()) {
-      Log.e(TAG, "cacheFile.splitIntoSegments() returned empty list")
+      Log.e(TAG, "cacheFile() splitIntoSegments() returned an empty list")
       return
     }
 
-    check(fastFileSearchTree.insertSegments(segments, snapshotDocFile))
+    check(fastFileSearchTree.insertSegments(segments, snapshotDocFile)) {
+      "cacheFile() Couldn't insert new segments into the tree"
+    }
   }
 
   /**
    * Removes a whole sub-tree from the FastFileSearchTree.
-   * Lets say there is a sub-tree "/1/2/3/<XXX>" which may contain a lot of cached files. After calling
-   * this method all of the <XXX> files will be removed from the FastFileSearchTree and only the
-   * "/1/2/3/" will be left
+   * Lets say there is a sub-tree "/1/2/3/<XXX>" which may contain a lot of cached files. After
+   * calling this method all of the <XXX> files will be removed from the FastFileSearchTree and
+   * only the "/1/2/3/" will be left
    * */
   fun uncacheFilesInSubTree(file: AbstractFile) {
     val segments = file.getFullPath().splitIntoSegments()
@@ -63,7 +68,9 @@ class ExternalFileManager(
       return
     }
 
-    fastFileSearchTree.removeSegments(segments)
+    check(fastFileSearchTree.removeSegments(segments)) {
+      "uncacheFilesInSubTree() Couldn't remove sub-tree"
+    }
   }
 
   @Suppress("UNCHECKED_CAST")
@@ -78,7 +85,7 @@ class ExternalFileManager(
         return baseDir as ExternalFile
       }
 
-      throw IllegalStateException("Segments are empty")
+      throw IllegalStateException("create() Segments are empty")
     }
 
     var newFile: CachingDocumentFile? = null
@@ -210,13 +217,13 @@ class ExternalFileManager(
     return documentFile.delete()
   }
 
-  override fun deleteContent(dir: AbstractFile) {
+  override fun deleteContent(dir: AbstractFile): Boolean {
     val documentFile = toDocumentFile(dir.clone())
-      ?: return
+      ?: return false
 
     if (!documentFile.isDirectory()) {
       Log.e(TAG, "deleteContent() Only directories are supported (files can't have contents anyway)")
-      return
+      return false
     }
 
     val filesInDirectory = SAFHelper.listFilesFast(
@@ -230,11 +237,13 @@ class ExternalFileManager(
 
       if (!fastFileSearchTree.removeSegments(segments)) {
         Log.e(TAG, "deleteContent() Couldn't remove segments $segments from fastFileSearchTree")
-        return
+        return false
       }
     }
 
-    filesInDirectory.forEach { it.delete() }
+    // This may delete only some files and leave other but at least you will know that something
+    // went wrong (just don't forget to check the result)
+    return filesInDirectory.all { file -> file.delete() }
   }
 
   override fun getInputStream(file: AbstractFile): InputStream? {

@@ -7,6 +7,9 @@ import com.github.k1rakishou.fsaf.file.*
 import com.github.k1rakishou.fsaf.util.FSAFUtils
 import java.io.*
 
+/**
+ * Provides an API to work with regular Java files
+ * */
 class RawFileManager : BaseFileManager {
 
   override fun create(baseDir: AbstractFile, segments: List<Segment>): RawFile? {
@@ -97,14 +100,14 @@ class RawFileManager : BaseFileManager {
     return FSAFUtils.deleteDirectory(javaFile, true)
   }
 
-  override fun deleteContent(dir: AbstractFile) {
+  override fun deleteContent(dir: AbstractFile): Boolean {
     val directory = toFile(dir.clone())
     if (!directory.isDirectory) {
       Log.e(TAG, "deleteContent() Only directories are supported (files can't have contents anyway)")
-      return
+      return false
     }
 
-    FSAFUtils.deleteDirectory(directory, false)
+    return FSAFUtils.deleteDirectory(directory, false)
   }
 
   override fun getInputStream(file: AbstractFile): InputStream? {

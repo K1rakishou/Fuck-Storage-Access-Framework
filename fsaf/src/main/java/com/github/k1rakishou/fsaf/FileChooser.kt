@@ -28,6 +28,11 @@ class FileChooser(
     this.fsafActivityCallbacks = null
   }
 
+  /**
+   * Use this method to get a user-selected directory for as your app's file dump directory.
+   * Automatically requests all the necessary permissions including the persist permissions so that
+   * the directory will stay visible for the app even after the phone reboots.
+   * */
   fun openChooseDirectoryDialog(directoryChooserCallback: DirectoryChooserCallback) {
     fsafActivityCallbacks?.let { callbacks ->
       val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
@@ -54,6 +59,9 @@ class FileChooser(
     }
   }
 
+  /**
+   * Use this method to get a single user-selected file with all of the necessary permissions.
+   * */
   fun openChooseFileDialog(fileChooserCallback: FileChooserCallback) {
     fsafActivityCallbacks?.let { callbacks ->
       val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
@@ -77,6 +85,10 @@ class FileChooser(
     }
   }
 
+  /**
+   * Use this method to get a user-selected path where a new file will be located with all of the
+   * necessary permissions.
+   * */
   fun openCreateFileDialog(
     fileName: String,
     fileCreateCallback: FileCreateCallback
@@ -105,6 +117,10 @@ class FileChooser(
     }
   }
 
+  /**
+   * Override the onActivityResult in your base activity and call this method inside so that the
+   * library can handle the SAF response from the system.
+   * */
   fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
     val callback = callbacksMap[requestCode]
     if (callback == null) {
@@ -303,6 +319,9 @@ class FileChooser(
     callback.onResult(treeUri)
   }
 
+  /**
+   * Use this method to remove all of the permissions from the base directory by it's uri
+   * */
   fun forgetSAFTree(directoryUri: Uri): Boolean {
     val directory = DocumentFile.fromTreeUri(appContext, directoryUri)
     if (directory == null) {
@@ -311,12 +330,14 @@ class FileChooser(
     }
 
     if (!directory.exists()) {
-      Log.e(TAG, "Couldn't revoke permissions from directory because it does not exist, path = $directoryUri")
+      Log.e(TAG, "Couldn't revoke permissions from directory because it does not exist, " +
+        "path = $directoryUri")
       return false
     }
 
     if (!directory.isDirectory) {
-      Log.e(TAG, "Couldn't revoke permissions from directory it is not a directory, path = $directoryUri")
+      Log.e(TAG, "Couldn't revoke permissions from directory it is not a directory, " +
+        "path = $directoryUri")
       return false
     }
 

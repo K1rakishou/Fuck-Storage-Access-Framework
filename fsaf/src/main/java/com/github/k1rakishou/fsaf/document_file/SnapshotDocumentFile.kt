@@ -55,7 +55,7 @@ class SnapshotDocumentFile(
       return false
     }
 
-    // Deletable documents considered writable
+    // Documents with DELETE flag are considered writable
     if (fileFlags and DocumentsContract.Document.FLAG_SUPPORTS_DELETE != 0) {
       return true
     }

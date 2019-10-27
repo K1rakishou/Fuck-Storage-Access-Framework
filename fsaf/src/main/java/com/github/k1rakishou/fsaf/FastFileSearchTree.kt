@@ -12,7 +12,8 @@ import java.io.File
  * want to search for many files.
  * */
 class FastFileSearchTree<T>(
-  val root: FastFileSearchTreeNode<T> = FastFileSearchTreeNode(segmentName = FastFileSearchTreeNode.ROOT)
+  val root: FastFileSearchTreeNode<T> =
+    FastFileSearchTreeNode(segmentName = FastFileSearchTreeNode.ROOT)
 ) {
 
   /**
@@ -20,7 +21,10 @@ class FastFileSearchTree<T>(
    * Lets say we have these segments we want to visit: /123/456/789
    * In this case the callback will be called on every segment, i.e. on 123, 456 and 789
    * */
-  fun visitEverySegmentDuringPath(segments: List<String>, func: (Int, FastFileSearchTreeNode<T>) -> Unit) {
+  fun visitEverySegmentDuringPath(
+    segments: List<String>,
+    func: (Int, FastFileSearchTreeNode<T>) -> Unit
+  ) {
     require(segments.isNotEmpty()) { "Segments to visit list must not be empty" }
     root.visitEverySegmentDuringPath(segments, 0, func)
   }
@@ -48,21 +52,31 @@ class FastFileSearchTree<T>(
     root.visitEverySegmentAfterPath(segments, 0, recursively, func)
   }
 
+  /**
+   * Visits every segment of the tree
+   * */
   fun visitAllSegments(func: (FastFileSearchTreeNode<T>) -> Unit) {
     func(root)
     root.visitAllSegments(func)
   }
 
-  // Clears the whole tree starting from the root
+  /**
+   * Clears the whole tree starting from the root
+   * */
   fun clearTree() {
     root.clearChildren()
   }
 
-  // Clears all of the children of this node
+  /**
+   * Clears all of the children of this node
+   * */
   fun clear(node: FastFileSearchTreeNode<T>) {
     node.clearChildren()
   }
 
+  /**
+   * Inserts a new value into the tree by the given segment path
+   * */
   fun insertSegments(segments: List<String>, value: T): Boolean {
     require(segments.isNotEmpty()) { "Segments must not be empty" }
     return root.insert(segments, value)
@@ -92,11 +106,17 @@ class FastFileSearchTree<T>(
     return root.remove(segmentNames)
   }
 
+  /**
+   * Checks whether a segment exists in the tree
+   * */
   fun containsSegment(segmentNames: List<String>): Boolean {
     require(segmentNames.isNotEmpty()) { "Segments must not be empty" }
     return root.contains(segmentNames)
   }
 
+  /**
+   * Returns a value of a segment or null if it doesn't exist in the tree
+   * */
   fun findSegment(segmentNames: List<String>): T? {
     require(segmentNames.isNotEmpty()) { "Segments must not be empty" }
     return root.find(segmentNames)
