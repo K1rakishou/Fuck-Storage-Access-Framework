@@ -209,7 +209,7 @@ class SimpleTest(
     check(fileManager.exists(createdDir1)) { "Dir 1 does not exist" }
     check(fileManager.getName(createdDir1) == "1") { "Dir 1 has wrong name" }
     check(fileManager.canRead(createdDir1)) { "Cannot read dir 1" }
-    check(fileManager.canRead(createdDir1)) { "Cannot write to dir 1" }
+    check(fileManager.canWrite(createdDir1)) { "Cannot write to dir 1" }
 
     val createdDir2 = checkNotNull(fileManager.findFile(createdDir1, "2")) { "Couldn't find dir 2" }
     check(fileManager.isDirectory(createdDir2)) { "Dir 2 is not a dir" }
@@ -217,7 +217,7 @@ class SimpleTest(
     check(fileManager.exists(createdDir2)) { "Dir 2 does not exist" }
     check(fileManager.getName(createdDir2) == "2") { "Dir 2 has wrong name" }
     check(fileManager.canRead(createdDir2)) { "Cannot read dir 2" }
-    check(fileManager.canRead(createdDir2)) { "Cannot write to dir 2" }
+    check(fileManager.canWrite(createdDir2)) { "Cannot write to dir 2" }
 
     val createdDir3 = checkNotNull(fileManager.findFile(createdDir2, "3")) { "Couldn't find dir 3" }
     check(fileManager.isDirectory(createdDir3)) { "Dir 3 is not a dir" }
@@ -225,7 +225,7 @@ class SimpleTest(
     check(fileManager.exists(createdDir3)) { "Dir 3 does not exist" }
     check(fileManager.getName(createdDir3) == "3") { "Dir 3 has wrong name" }
     check(fileManager.canRead(createdDir3)) { "Cannot read dir 3" }
-    check(fileManager.canRead(createdDir3)) { "Cannot write to dir 3" }
+    check(fileManager.canWrite(createdDir3)) { "Cannot write to dir 3" }
 
     val createdFile = checkNotNull(fileManager.findFile(createdDir3, "file.txt")) { "Couldn't find file.txt" }
     check(!fileManager.isDirectory(createdFile)) { "file.txt is a dir" }
@@ -233,13 +233,13 @@ class SimpleTest(
     check(fileManager.exists(createdFile)) { "file.txt does not exist" }
     check(fileManager.getName(createdFile) == "file.txt") { "file.txt has wrong name" }
     check(fileManager.canRead(createdFile)) { "Cannot read file.txt" }
-    check(fileManager.canRead(createdFile)) { "Cannot write to file.txt" }
+    check(fileManager.canWrite(createdFile)) { "Cannot write to file.txt" }
 
     val nonExistingDir = fileManager.newBaseDirectoryFile<TestBaseDirectory>()!!
       .clone(DirectorySegment("211314"))
 
     if (fileManager.exists(nonExistingDir)) {
-      throw TestException("fileManager.fromUri(nonExistingFileUri) returned non-null value")
+      throw TestException("TestBaseDirectory exists when it shouldn't")
     }
   }
 
