@@ -702,7 +702,7 @@ class FileManager(
   fun createSnapshot(dir: AbstractFile, includeSubDirs: Boolean = false) {
     if (dir is ExternalFile) {
       val externalFileManager = getExternalFileManager()
-      val directories = arrayListOf<ExternalFile>().apply { this.ensureCapacity(16) }
+      val directories = arrayListOf<ExternalFile>().apply { ensureCapacity(16) }
 
       traverseDirectory(dir, includeSubDirs, TraverseMode.OnlyDirs) { file ->
         directories += file as ExternalFile
@@ -733,6 +733,20 @@ class FileManager(
     } else {
       Log.d(TAG, "createSnapshot called for RawFile backed directory. Snapshot was not created.")
     }
+  }
+
+  inline fun <reified T> areTheSame(file1: AbstractFile, file2: AbstractFile): Boolean {
+    return areTheSame(T::class.java, file1, file2)
+  }
+
+  fun areTheSame(baseDirClass: Class<*>, file1: AbstractFile, file2: AbstractFile): Boolean {
+    val baseDir = directoryManager.getBaseDirByClass(baseDirClass)
+    if (baseDir == null) {
+      Log.e(TAG, "Base directory is not registered for class ${baseDirClass}")
+      return false
+    }
+
+    return baseDir.areTheSame(file1, file2)
   }
 
   private fun toDocumentFile(uri: Uri): CachingDocumentFile? {
