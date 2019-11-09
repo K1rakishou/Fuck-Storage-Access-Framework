@@ -739,10 +739,20 @@ class FileManager(
     return areTheSame(T::class.java, file1, file2)
   }
 
+  /**
+   * A handy method that returns true if the two [AbstractFile]s point to the same file or directory
+   * even when they are backed by the different file API (e.g. file1 is a RawFile and file2 is an
+   * ExternalFile)
+   * */
   fun areTheSame(baseDirClass: Class<*>, file1: AbstractFile, file2: AbstractFile): Boolean {
     val baseDir = directoryManager.getBaseDirByClass(baseDirClass)
     if (baseDir == null) {
       Log.e(TAG, "Base directory is not registered for class ${baseDirClass}")
+      return false
+    }
+
+    if (getName(file1) != getName(file2)) {
+      // Names differ
       return false
     }
 
