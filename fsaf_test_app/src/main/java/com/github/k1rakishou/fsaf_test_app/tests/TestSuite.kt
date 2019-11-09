@@ -17,6 +17,13 @@ class TestSuite(
       println("$TAG baseDirSAF = ${baseDirSAF.getFullPath()}")
       println("$TAG baseDirFile = ${baseDirFile.getFullPath()}")
 
+      check(fileManager.exists(baseDirSAF)) {
+        "Base directory does not exist! path = ${baseDirSAF.getFullPath()}"
+      }
+      check(fileManager.exists(baseDirFile)) {
+        "Base directory does not exist! path = ${baseDirFile.getFullPath()}"
+      }
+
       runTestsWithSAFFiles(fileManager, baseDirSAF, baseDirFile)
       runTestsWithJavaFiles(fileManager, baseDirSAF, baseDirFile)
 

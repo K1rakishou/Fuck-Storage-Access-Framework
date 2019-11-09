@@ -1,9 +1,26 @@
 package com.github.k1rakishou.fsaf.util
 
+import com.github.k1rakishou.fsaf.BadPathSymbolResolutionStrategy
+import com.github.k1rakishou.fsaf.extensions.safeCapacity
+import com.github.k1rakishou.fsaf.file.DirectorySegment
+import com.github.k1rakishou.fsaf.file.FileSegment
+import com.github.k1rakishou.fsaf.file.Segment
 import java.io.File
 
 
 internal object FSAFUtils {
+
+  /**
+   * Only spaces for now since SAF will crash if you try to pass a file or directory name with
+   * spaces in it. Every symbol must be unique!
+   * */
+  private const val BAD_SYMBOLS = " "
+
+  /**
+   * Order of the symbols should be the same as in [BAD_SYMBOLS].
+   * */
+  private const val BAD_SYMBOLS_REPLACEMENTS = "_"
+
 
   /**
    * Merges paths that are fully contained in other paths, e.g.:
@@ -83,6 +100,97 @@ internal object FSAFUtils {
     }
 
     return true
+  }
+
+  fun checkBadSymbolsAndApplyResolutionStrategy(
+    badSymbolResolutionStrategy: BadPathSymbolResolutionStrategy,
+    segments: List<Segment>
+  ): List<Segment> {
+    return segments.map { segment ->
+      val resultSegment = checkBadSymbolsAndApplyResolutionStrategy(
+        badSymbolResolutionStrategy,
+        segment.name
+      )
+
+      return@map when (segment.isFileName) {
+        true -> FileSegment(resultSegment)
+        false -> DirectorySegment(resultSegment)
+      }
+    }
+  }
+
+  /**
+   * Check whether an input string (that is either a file name or a directory name) has bad symbols
+   * (see [BAD_SYMBOLS]) and if has then applies a bad symbol resolution strategy (Either filters
+   * them or throws an exception). The default behavior is to replace all bad symbols with their
+   * replacements (see [BAD_SYMBOLS_REPLACEMENTS])
+   * */
+  fun checkBadSymbolsAndApplyResolutionStrategy(
+    badSymbolResolutionStrategy: BadPathSymbolResolutionStrategy,
+    inputString: String
+  ): String {
+    val firstBadSymbol = returnFirstBadSymbolIndexOrMinusOne(inputString)
+    if (firstBadSymbol == -1) {
+      // No bad symbols
+      return inputString
+    }
+
+    when (badSymbolResolutionStrategy) {
+      BadPathSymbolResolutionStrategy.ReplaceBadSymbols -> {
+        return replaceBadSymbols(firstBadSymbol, inputString)
+      }
+      BadPathSymbolResolutionStrategy.ThrowAnException -> {
+        throw IllegalArgumentException("Bad symbols encountered at index ${firstBadSymbol}, " +
+          "symbol = \'${inputString.getOrNull(firstBadSymbol)}\'")
+      }
+      else -> {
+        throw NotImplementedError("Not implemented for ${badSymbolResolutionStrategy.name}")
+      }
+    }
+  }
+
+  /**
+   * Check whether an input string has any characters from [BAD_SYMBOLS] and returns first
+   * encountered bad symbols or null if there are no bad symbols
+   * */
+  private fun returnFirstBadSymbolIndexOrMinusOne(inputString: String): Int {
+    if (inputString.isEmpty()) {
+      return -1
+    }
+
+    return inputString.indexOfFirst { char -> char in BAD_SYMBOLS }
+  }
+
+  private fun replaceBadSymbols(startIndex: Int, inputString: String): String {
+    if (inputString.isEmpty()) {
+      return inputString
+    }
+
+    require(startIndex <= inputString.length) {
+      "startIndex $startIndex is greater than the inputString length ${inputString.length}"
+    }
+
+    val resultStringBuilder = StringBuilder(safeCapacity(inputString))
+
+    for (index in startIndex until inputString.length) {
+      val ch = inputString[index]
+      val badSymbolIndex = BAD_SYMBOLS.indexOf(ch)
+      if (badSymbolIndex == -1) {
+        resultStringBuilder.append(ch)
+      } else {
+        val replacement = checkNotNull(BAD_SYMBOLS_REPLACEMENTS.getOrNull(badSymbolIndex)) {
+          "Couldn't find replacement for symbol \'$ch\' with index $badSymbolIndex"
+        }
+
+        resultStringBuilder.append(replacement)
+      }
+    }
+
+    if (startIndex > 0) {
+      resultStringBuilder.insert(0, inputString.substring(0, startIndex))
+    }
+
+    return resultStringBuilder.toString()
   }
 
 }

@@ -1,6 +1,7 @@
 package com.github.k1rakishou.fsaf_test_app.tests
 
 import com.github.k1rakishou.fsaf.FileManager
+import com.github.k1rakishou.fsaf.TraverseMode
 import com.github.k1rakishou.fsaf.file.AbstractFile
 import com.github.k1rakishou.fsaf.file.DirectorySegment
 import java.io.DataInputStream
@@ -43,7 +44,7 @@ class CopyTest(
 
     val destDirFiles = mutableListOf<AbstractFile>()
 
-    fileManager.traverseDirectory(dstDir, true, FileManager.TraverseMode.Both) { file ->
+    fileManager.traverseDirectory(dstDir, true, TraverseMode.Both) { file ->
       destDirFiles.add(file)
     }
 

@@ -1,6 +1,7 @@
 package com.github.k1rakishou.fsaf.manager
 
 import android.util.Log
+import com.github.k1rakishou.fsaf.BadPathSymbolResolutionStrategy
 import com.github.k1rakishou.fsaf.extensions.appendMany
 import com.github.k1rakishou.fsaf.extensions.extension
 import com.github.k1rakishou.fsaf.file.*
@@ -10,7 +11,9 @@ import java.io.*
 /**
  * Provides an API to work with regular Java files
  * */
-class RawFileManager : BaseFileManager {
+class RawFileManager(
+  private val badPathSymbolResolutionStrategy: BadPathSymbolResolutionStrategy
+) : BaseFileManager {
 
   override fun create(baseDir: AbstractFile, segments: List<Segment>): RawFile? {
     val root = baseDir.getFileRoot<File>()
@@ -60,11 +63,17 @@ class RawFileManager : BaseFileManager {
       }
 
       if (segment.isFileName) {
-        return RawFile(Root.FileRoot(newFile, segment.name))
+        return RawFile(
+          Root.FileRoot(newFile, segment.name),
+          badPathSymbolResolutionStrategy
+        )
       }
     }
 
-    return RawFile(Root.DirRoot(newFile))
+    return RawFile(
+      Root.DirRoot(newFile),
+      badPathSymbolResolutionStrategy
+    )
   }
 
   override fun exists(file: AbstractFile): Boolean =
@@ -181,7 +190,10 @@ class RawFileManager : BaseFileManager {
       Root.DirRoot(resultFile)
     }
 
-    return RawFile(newRoot)
+    return RawFile(
+      newRoot,
+      badPathSymbolResolutionStrategy
+    )
   }
 
   override fun getLength(file: AbstractFile): Long = toFile(file.clone()).length()
@@ -196,7 +208,7 @@ class RawFileManager : BaseFileManager {
 
     return toFile(dir.clone())
       .listFiles()
-      ?.map { file -> RawFile(Root.DirRoot(file)) }
+      ?.map { file -> RawFile(Root.DirRoot(file), badPathSymbolResolutionStrategy) }
       ?: emptyList()
   }
 

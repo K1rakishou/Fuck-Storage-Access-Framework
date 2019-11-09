@@ -1,12 +1,15 @@
 package com.github.k1rakishou.fsaf.file
 
+import com.github.k1rakishou.fsaf.BadPathSymbolResolutionStrategy
 import com.github.k1rakishou.fsaf.extensions.extension
 import com.github.k1rakishou.fsaf.extensions.splitIntoSegments
+import com.github.k1rakishou.fsaf.util.FSAFUtils
 
 /**
  * An abstraction class over both the Java File and the Storage Access Framework DocumentFile.
  * */
 abstract class AbstractFile(
+  protected val badSymbolResolutionStrategy: BadPathSymbolResolutionStrategy,
   protected val root: Root<*>,
   protected val segments: List<Segment>
 ) : HasFileManagerId {
@@ -86,19 +89,21 @@ abstract class AbstractFile(
       }
     }
 
-    return cloneInternal(newSegments)
+    return cloneInternal(
+      FSAFUtils.checkBadSymbolsAndApplyResolutionStrategy(badSymbolResolutionStrategy, newSegments)
+    )
   }
 
   /**
-   * When doing something with an [AbstractFile] (like appending a sub-dir or a filename) the
-   * [AbstractFile]'s internal state will be modified. So if you don't want to modify the original
-   * [AbstractFile] you need to create it's copy via one of the [clone] methods (for example,
-   * if you want to search for a couple of files in the same directory you would
-   * want to clone the directory's [AbstractFile] and then append the filenames to the copy.
-   * The original file won't be changed only the copy).
+   * Clones the current abstract file and appends new segments to it (if there are any).
+   * Basically you should use this method when you want to point to some file or
+   * directory somewhere inside the directory structure. This method does not create the file on the
+   * disk it only points to it (it may or may not already exist on the disk). Work exactly the same
+   * as the regular java File where you first set the file path and then do some operation on it
+   * (like exists() or createNew() or mkdir() etc.)
    *
-   * [newSegments] parameter is a list of path segments that will be appended to the file after cloning.
-   * May be empty.
+   * [newSegments] parameter is a list of path segments that will be appended to the file after
+   * cloning. May be empty.
    * */
   protected abstract fun cloneInternal(newSegments: List<Segment>): AbstractFile
 
@@ -114,12 +119,21 @@ abstract class AbstractFile(
       return true
     }
 
-    if (other.javaClass != this.javaClass) {
+    if (other !is AbstractFile) {
       return false
     }
 
-    other as AbstractFile
-    return other.getFullPath() == this.getFullPath()
+    // Two AbstractFiles can be the same only if they are of the same child class.
+    // This also doesn't check where the two AbstractFiles point to the same file or directory
+    return when {
+      this is RawFile && other is RawFile -> {
+        other.getFullPath() == this.getFullPath()
+      }
+      this is ExternalFile && other is ExternalFile -> {
+        other.getFullPath() == this.getFullPath()
+      }
+      else -> false
+    }
   }
 
   override fun hashCode(): Int {

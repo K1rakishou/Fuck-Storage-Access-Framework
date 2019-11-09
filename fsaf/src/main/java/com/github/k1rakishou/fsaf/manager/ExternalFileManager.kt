@@ -6,6 +6,7 @@ import android.provider.DocumentsContract
 import android.util.Log
 import android.webkit.MimeTypeMap
 import androidx.documentfile.provider.DocumentFile
+import com.github.k1rakishou.fsaf.BadPathSymbolResolutionStrategy
 import com.github.k1rakishou.fsaf.FastFileSearchTree
 import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
 import com.github.k1rakishou.fsaf.document_file.SnapshotDocumentFile
@@ -23,6 +24,7 @@ import java.io.OutputStream
  * */
 class ExternalFileManager(
   private val appContext: Context,
+  private val badPathSymbolResolutionStrategy: BadPathSymbolResolutionStrategy,
   private val directoryManager: DirectoryManager
 ) : BaseFileManager {
   private val mimeTypeMap = MimeTypeMap.getSingleton()
@@ -111,7 +113,11 @@ class ExternalFileManager(
         if (foundFile.isFile()) {
           // Ignore any left segments (which we shouldn't have) after encountering fileName
           // segment
-          return ExternalFile(appContext, Root.FileRoot(foundFile, segment.name))
+          return ExternalFile(
+            appContext,
+            badPathSymbolResolutionStrategy,
+            Root.FileRoot(foundFile, segment.name)
+          )
         } else {
           newFile = foundFile
         }
@@ -154,7 +160,11 @@ class ExternalFileManager(
           segment.name
         )
 
-        return ExternalFile(appContext, newRoot)
+        return ExternalFile(
+          appContext,
+          badPathSymbolResolutionStrategy,
+          newRoot
+        )
       } else {
         newFile = CachingDocumentFile(appContext, createdFile)
       }
@@ -174,7 +184,11 @@ class ExternalFileManager(
       Root.DirRoot(newFile)
     }
 
-    return ExternalFile(appContext, newRoot)
+    return ExternalFile(
+      appContext,
+      badPathSymbolResolutionStrategy,
+      newRoot
+    )
   }
 
   override fun exists(file: AbstractFile): Boolean =
@@ -360,6 +374,7 @@ class ExternalFileManager(
 
     return ExternalFile(
       appContext,
+      badPathSymbolResolutionStrategy,
       innerRoot
     )
   }
@@ -375,9 +390,13 @@ class ExternalFileManager(
 
     return SAFHelper.listFilesFast(appContext, docFile.uri(), directoryManager.isBaseDir(dir))
       .map { snapshotFile ->
-        val file = ExternalFile(appContext, Root.DirRoot(snapshotFile))
-        cacheFile(file, snapshotFile)
+        val file = ExternalFile(
+          appContext,
+          badPathSymbolResolutionStrategy,
+          Root.DirRoot(snapshotFile)
+        )
 
+        cacheFile(file, snapshotFile)
         return@map file
       }
   }
@@ -396,7 +415,11 @@ class ExternalFileManager(
     }
 
     return resultList.map { snapshotFile ->
-      ExternalFile(appContext, Root.DirRoot(snapshotFile))
+      ExternalFile(
+        appContext,
+        badPathSymbolResolutionStrategy,
+        Root.DirRoot(snapshotFile)
+      )
     }
   }
 

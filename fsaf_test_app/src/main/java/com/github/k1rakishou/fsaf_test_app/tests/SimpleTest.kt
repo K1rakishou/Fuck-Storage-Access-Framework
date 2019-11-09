@@ -43,6 +43,38 @@ class SimpleTest(
 
       log("basicFileTests took ${time}ms")
     }
+
+    runTest(fileManager, baseDir) {
+      val time = measureTimeMillis {
+        badFileNamesTest(fileManager, baseDir)
+      }
+
+      log("badFileNamesTest took ${time}ms")
+    }
+  }
+
+  private fun badFileNamesTest(fileManager: FileManager, baseDir: AbstractFile) {
+    val externalFile = fileManager.create(
+      baseDir,
+      DirectorySegment("12 3")
+    )
+
+    if (externalFile == null || !fileManager.exists(externalFile)) {
+      throw TestException("Couldn't create 12_3 directory")
+    }
+
+    check(fileManager.getName(externalFile) == "12_3") {
+      "bad directory name after replacing bad symbols: ${fileManager.getName(externalFile)}"
+    }
+
+    val externalFile2 = fileManager.create(externalFile, FileSegment("123 4 5 .txt"))
+    if (externalFile2 == null || !fileManager.exists(externalFile2)) {
+      throw TestException("Couldn't create 123_4_5_.txt file")
+    }
+
+    check(fileManager.getName(externalFile2) == "123_4_5_.txt") {
+      "bad directory name after replacing bad symbols: ${fileManager.getName(externalFile2)}"
+    }
   }
 
   private fun test1(fileManager: FileManager, baseDir: AbstractFile) {

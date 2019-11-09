@@ -117,3 +117,16 @@ internal fun safeCapacity(list: List<*>, divider: Int = 2): Int {
     }
   }
 }
+
+internal fun safeCapacity(string: String, divider: Int = 2): Int {
+  return if (string.length <= 1) {
+    1
+  } else {
+    val result = string.length / divider
+    if (result <= 1) {
+      1
+    } else {
+      result
+    }
+  }
+}
