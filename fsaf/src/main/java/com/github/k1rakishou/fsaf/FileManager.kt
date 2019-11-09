@@ -16,6 +16,7 @@ import com.github.k1rakishou.fsaf.manager.ExternalFileManager
 import com.github.k1rakishou.fsaf.manager.RawFileManager
 import com.github.k1rakishou.fsaf.manager.base_directory.BaseDirectory
 import com.github.k1rakishou.fsaf.manager.base_directory.DirectoryManager
+import com.github.k1rakishou.fsaf.util.FSAFUtils
 import com.github.k1rakishou.fsaf.util.SAFHelper
 import java.io.*
 import java.util.*
@@ -23,14 +24,19 @@ import java.util.*
 
 class FileManager(
   private val appContext: Context,
+  private val badPathSymbolResolutionStrategy: BadPathSymbolResolutionStrategy =
+    BadPathSymbolResolutionStrategy.ReplaceBadSymbols,
   private val directoryManager: DirectoryManager = DirectoryManager()
 ) : BaseFileManager {
   private val managers = mutableMapOf<FileManagerId, BaseFileManager>()
   private val externalFileManager: BaseFileManager = ExternalFileManager(
     appContext,
+    badPathSymbolResolutionStrategy,
     directoryManager
   )
-  private val rawFileManager: BaseFileManager = RawFileManager()
+  private val rawFileManager: BaseFileManager = RawFileManager(
+    badPathSymbolResolutionStrategy
+  )
 
   init {
     addCustomFileManager(ExternalFile.FILE_MANAGER_ID, externalFileManager)
@@ -90,9 +96,17 @@ class FileManager(
       val filename = documentFile.name()
         ?: return null
 
-      ExternalFile(appContext, Root.FileRoot(documentFile, filename))
+      ExternalFile(
+        appContext,
+        badPathSymbolResolutionStrategy,
+        Root.FileRoot(documentFile, filename)
+      )
     } else {
-      ExternalFile(appContext, Root.DirRoot(documentFile))
+      ExternalFile(
+        appContext,
+        badPathSymbolResolutionStrategy,
+        Root.DirRoot(documentFile)
+      )
     }
   }
 
@@ -103,10 +117,16 @@ class FileManager(
    * */
   fun fromRawFile(file: File): RawFile {
     if (file.isFile) {
-      return RawFile(Root.FileRoot(file, file.name))
+      return RawFile(
+        Root.FileRoot(file, file.name),
+        badPathSymbolResolutionStrategy
+      )
     }
 
-    return RawFile(Root.DirRoot(file))
+    return RawFile(
+      Root.DirRoot(file),
+      badPathSymbolResolutionStrategy
+    )
   }
 
   inline fun <reified T> registerBaseDir(baseDirectory: BaseDirectory) {
@@ -163,6 +183,7 @@ class FileManager(
 
       return ExternalFile(
         appContext,
+        badPathSymbolResolutionStrategy,
         Root.DirRoot(CachingDocumentFile(appContext, treeDirectory))
       )
     }
@@ -170,7 +191,8 @@ class FileManager(
     val dirFile = baseDir.getDirFile()
     if (dirFile != null) {
       return RawFile(
-        Root.DirRoot(dirFile)
+        Root.DirRoot(dirFile),
+        badPathSymbolResolutionStrategy
       )
     }
 
@@ -257,7 +279,13 @@ class FileManager(
           "fileManagerId = ${baseDir.getFileManagerId()}"
       )
 
-    return manager.create(baseDir.clone(), segmentsToAppend)
+    return manager.create(
+      baseDir.clone(),
+      FSAFUtils.checkBadSymbolsAndApplyResolutionStrategy(
+        badPathSymbolResolutionStrategy,
+        segmentsToAppend
+      )
+    )
   }
 
   /**
@@ -345,7 +373,7 @@ class FileManager(
       // of it's files into /456. So we collect every file in /123 then we iterate every
       // collected file, remove base directory prefix (/123 in this case) and recreate this
       // file with the same directory structure in another base directory (/456 in this case).
-      // Let's was we have the following files:
+      // Let's say we have the following files:
       //
       // /123/1.txt
       // /123/111/2.txt
@@ -633,7 +661,11 @@ class FileManager(
     }
 
     return Pair(
-      ExternalFile(appContext, root as Root<CachingDocumentFile>),
+      ExternalFile(
+        appContext,
+        badPathSymbolResolutionStrategy,
+        root as Root<CachingDocumentFile>
+      ),
       docFile
     )
   }
@@ -652,6 +684,8 @@ class FileManager(
    * Manually create a snapshot of a directory (with sub directories if [includeSubDirs] is true).
    * Snapshot is only created for ExternalFiles! RawFiles are not supported and snapshot won't be
    * created. This method exists to make bulk Storage Access Framework operations faster!
+   * @note: In case of RawFile the Java File API will be used (instead of creating a snapshot) which
+   * is pretty fast by itself. So no snapshot will be created in case of RawFile.
    *
    * !!!DON'T FORGET TO RELEASE THE SNAPSHOT ONCE YOU ARE DONE WITH IT!!!
    * Or just use [withSnapshot] instead which does it for you.
@@ -749,15 +783,6 @@ class FileManager(
     )
 
     return docUri.toString() == docTreeUri.toString()
-  }
-
-  enum class TraverseMode {
-    OnlyFiles,
-    OnlyDirs,
-    Both;
-
-    fun includeDirs(): Boolean = this == OnlyDirs || this == Both
-    fun includeFiles(): Boolean = this == OnlyFiles || this == Both
   }
 
   companion object {
