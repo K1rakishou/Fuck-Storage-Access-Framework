@@ -837,11 +837,12 @@ class FileManager(
     }
 
     val shorterPath = if (fullPath1.length < fullPath2.length) {
-      fullPath2
-    } else {
       fullPath1
+    } else {
+      fullPath2
     }
 
+    check(longerPath != shorterPath) { "Paths are the same!" }
     return longerPath.endsWith(shorterPath)
   }
 
