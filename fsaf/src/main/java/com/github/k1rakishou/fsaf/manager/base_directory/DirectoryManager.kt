@@ -14,7 +14,36 @@ open class DirectoryManager {
   private val baseDirList = mutableMapOf<Class<BaseDirectory>, BaseDirectory>()
 
   open fun registerBaseDir(clazz: Class<*>, baseDirectory: BaseDirectory) {
+    checkConflictingPaths(baseDirectory)
+
     baseDirList.put(clazz as Class<BaseDirectory>, baseDirectory)
+  }
+
+  private fun checkConflictingPaths(baseDirectory: BaseDirectory) {
+    val conflictingBaseDir = baseDirList.values.firstOrNull { baseDir ->
+      if (baseDirectory.getDirFile() != null) {
+        if (baseDir.getDirFile()?.absolutePath == baseDirectory.getDirFile()?.absolutePath) {
+          return@firstOrNull true
+        }
+      }
+
+      if (baseDirectory.getDirUri() != null) {
+        if (baseDir.getDirUri()?.toString() == baseDirectory.getDirUri()?.toString()) {
+          return@firstOrNull true
+        }
+      }
+
+      return@firstOrNull false
+    }
+
+    if (conflictingBaseDir != null) {
+      throw IllegalArgumentException(
+        "A base dir with the same " +
+          "dirFile (${conflictingBaseDir.getDirFile()}) or " +
+          "dirUri (${conflictingBaseDir.getDirUri()}) " +
+          "is already registered! Change the paths!"
+      )
+    }
   }
 
   open fun unregisterBaseDir(clazz: Class<*>) {

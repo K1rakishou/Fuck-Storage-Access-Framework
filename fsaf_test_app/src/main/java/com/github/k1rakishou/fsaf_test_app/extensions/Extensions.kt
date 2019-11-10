@@ -15,6 +15,10 @@ internal const val FILE_SEPARATOR2 = "\\"
 private val SPLIT_PATTERN = Pattern.compile("%2F|/|\\\\")
 
 internal fun String.splitIntoSegments(): List<String> {
+  if (this.isEmpty()) {
+    return emptyList()
+  }
+
   val uriType = uriTypes.firstOrNull { type -> this.startsWith(type) }
   val string = if (uriType != null) {
     this.substring(uriType.length, this.length)

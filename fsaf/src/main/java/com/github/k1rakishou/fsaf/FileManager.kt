@@ -20,6 +20,7 @@ import com.github.k1rakishou.fsaf.util.FSAFUtils
 import com.github.k1rakishou.fsaf.util.SAFHelper
 import java.io.*
 import java.util.*
+import kotlin.math.min
 
 
 class FileManager(
@@ -806,26 +807,37 @@ class FileManager(
       return false
     }
 
-    val trimmedPath1 = getTrimmedPath(dirFile, dirUri, file1)
-      ?: return false
-
-    val trimmerPath2 = getTrimmedPath(dirFile, dirUri, file2)
-      ?: return false
-
-    val segments1 = trimmedPath1.splitIntoSegments()
-    val segments2 = trimmerPath2.splitIntoSegments()
-
-    if (segments1.size != segments2.size) {
-      Log.d(TAG, "areTheSameInternal() segments count does not match")
-      return false
+    if (file1 is RawFile && file2 is RawFile) {
+      return file1.getFullPath() == file2.getFullPath()
     }
 
-    for (segmentIndex in segments1.indices) {
-      val segment1 = segments1[segmentIndex]
-      val segment2 = segments2[segmentIndex]
+    if (file1 is ExternalFile && file2 is ExternalFile) {
+      return file1.getFullPath() == file2.getFullPath()
+    }
 
-      if (segment1 != segment2) {
-        Log.d(TAG, "areTheSameInternal() segment1 ($segment1) != segment2 ($segment2)")
+    val fullPath1 = when (file1) {
+      is RawFile -> file1.getFullPath().splitIntoSegments().joinToString(separator = "/")
+      is ExternalFile -> getSegmentsForExternalFile(file1)
+      else -> throw NotImplementedError("Not implemented for ${file1::class.java}")
+    }
+
+    val fullPath2 = when (file2) {
+      is RawFile -> file2.getFullPath().splitIntoSegments().joinToString(separator = "/")
+      is ExternalFile -> getSegmentsForExternalFile(file2)
+      else -> throw NotImplementedError("Not implemented for ${file2::class.java}")
+    }
+
+    val count = min(fullPath1.length, fullPath2.length)
+
+    for (index in count - 1 downTo 0) {
+      val ch1 = fullPath1.getOrNull(index)
+      val ch2 = fullPath2.getOrNull(index)
+
+      if (ch1 == null || ch2 == null) {
+        return false
+      }
+
+      if (ch1 != ch2) {
         return false
       }
     }
@@ -833,28 +845,30 @@ class FileManager(
     return true
   }
 
-  private fun getTrimmedPath(
-    dirFile: File?,
-    dirUri: Uri?,
-    file1: AbstractFile
-  ): String? {
-    return if (
-      dirFile != null
-      && file1 is RawFile
-      && file1.getFullPath().startsWith(dirFile.absolutePath)
-    ) {
-      file1.getFullPath().removePrefix(dirFile.absolutePath)
-    } else if (
-      dirUri != null
-      && file1 is ExternalFile
-      && file1.getFullPath().startsWith(dirUri.toString())
-    ) {
-      file1.getFullPath().removePrefix(dirUri.toString())
-    } else {
-      Log.e(TAG, "getTrimmedPath() cannot get trimmed path " +
-          "(dirFile == null: ${dirFile == null}, dirUri == null: ${dirUri == null})")
-      null
+  /**
+   * !!! Experimental !!!
+   * */
+  private fun getSegmentsForExternalFile(file: ExternalFile): String {
+    val uri = Uri.parse(file.getFullPath())
+
+    // This will returns us a string like "primary:dir1/dir2 .. etc", we need to remove the
+    // "primary:" prefix
+    val documentId = DocumentsContract.getDocumentId(uri)
+
+    val colonsCount = documentId.count { ch -> ch == ':' }
+    if (colonsCount == 0) {
+      return documentId.splitIntoSegments().joinToString(separator = "/")
     }
+
+    if (colonsCount > 1) {
+      Log.e(TAG, "Dunno how to parse documentId = (${documentId}), colonsCount > 1 (${colonsCount})")
+      return ""
+    }
+
+    val indexOfColon = documentId.indexOf(':')
+    val segmentsUnsplit = documentId.substring(indexOfColon + 1)
+
+    return segmentsUnsplit.splitIntoSegments().joinToString(separator = "/")
   }
 
   private fun toDocumentFile(uri: Uri): CachingDocumentFile? {

@@ -84,6 +84,10 @@ internal fun File.appendMany(segments: List<String>): File {
 }
 
 internal fun String.splitIntoSegments(): List<String> {
+  if (this.isEmpty()) {
+    return emptyList()
+  }
+
   val uriType = uriTypes.firstOrNull { type -> this.startsWith(type) }
   val string = if (uriType != null) {
     this.substring(uriType.length, this.length)
