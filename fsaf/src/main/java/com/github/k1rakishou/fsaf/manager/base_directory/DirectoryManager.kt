@@ -4,6 +4,8 @@ import android.net.Uri
 import android.util.Log
 import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
 import com.github.k1rakishou.fsaf.file.AbstractFile
+import com.github.k1rakishou.fsaf.file.ExternalFile
+import com.github.k1rakishou.fsaf.file.RawFile
 
 /**
  * A class that is responsible for base directories registering/unregistering etc.
@@ -51,6 +53,26 @@ open class DirectoryManager {
   open fun getBaseDir(dir: Uri): BaseDirectory? {
     return baseDirList.values.firstOrNull { baseDir ->
       baseDir.isBaseDir(dir)
+    }
+  }
+
+  open fun getBaseDirThisFileBelongsTo(file: AbstractFile): BaseDirectory? {
+    return baseDirList.values.firstOrNull { baseDir ->
+      when (file) {
+        is RawFile -> {
+          val baseDirPath = baseDir.getDirFile()
+            ?: return@firstOrNull false
+
+          return@firstOrNull file.getFullPath().startsWith(baseDirPath.absolutePath)
+        }
+        is ExternalFile -> {
+          val baseDirPathUri = baseDir.getDirUri()
+            ?: return@firstOrNull false
+
+          return@firstOrNull file.getFullPath().startsWith(baseDirPathUri.toString())
+        }
+        else -> throw NotImplementedError("Not implemented for ${file::class.java}")
+      }
     }
   }
 

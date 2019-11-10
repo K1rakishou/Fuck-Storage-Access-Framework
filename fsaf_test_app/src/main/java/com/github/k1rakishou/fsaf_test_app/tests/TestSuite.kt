@@ -2,6 +2,7 @@ package com.github.k1rakishou.fsaf_test_app.tests
 
 import com.github.k1rakishou.fsaf.FileManager
 import com.github.k1rakishou.fsaf.file.AbstractFile
+import com.github.k1rakishou.fsaf_test_app.TestBaseDirectory
 import kotlin.system.measureTimeMillis
 
 class TestSuite(
@@ -16,6 +17,10 @@ class TestSuite(
       println("$TAG =============== START TESTS ===============")
       println("$TAG baseDirSAF = ${baseDirSAF.getFullPath()}")
       println("$TAG baseDirFile = ${baseDirFile.getFullPath()}")
+
+      check(fileManager.baseDirectoryExists<TestBaseDirectory>()) {
+        "Base directory does not exist!"
+      }
 
       check(fileManager.exists(baseDirSAF)) {
         "Base directory does not exist! path = ${baseDirSAF.getFullPath()}"

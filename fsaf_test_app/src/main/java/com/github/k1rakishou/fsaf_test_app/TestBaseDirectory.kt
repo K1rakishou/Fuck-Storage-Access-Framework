@@ -7,9 +7,9 @@ import java.io.File
 class TestBaseDirectory(
   private val getBaseDirUriFunc: () -> Uri?,
   private val getBaseDirFileFunc: () -> File?
-) : BaseDirectory(debugMode = false) {
+) : BaseDirectory() {
 
   override fun getDirUri(): Uri? = getBaseDirUriFunc.invoke()
   override fun getDirFile(): File? = getBaseDirFileFunc.invoke()
-
+  override fun currentActiveBaseDirType(): ActiveBaseDirType = ActiveBaseDirType.SafBaseDir
 }

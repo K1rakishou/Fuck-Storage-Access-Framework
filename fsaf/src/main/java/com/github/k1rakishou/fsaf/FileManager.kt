@@ -163,40 +163,50 @@ class FileManager(
       return null
     }
 
-    val dirUri = baseDir.getDirUri()
-    if (dirUri != null) {
-      if (!SAFHelper.isTreeUri(baseDir)) {
-        Log.e(TAG, "Not a tree uri ${baseDir.dirPath()}")
-        return null
-      }
+    when (baseDir.currentActiveBaseDirType()) {
+      BaseDirectory.ActiveBaseDirType.SafBaseDir -> {
+        val dirUri = checkNotNull(baseDir.getDirUri()) {
+          "Current active base dir is SafBaseDir but baseDir.getDirUri() returned null! " +
+            "If a base dir is active it must be not null!"
+        }
 
-      val treeDirectory = try {
-        DocumentFile.fromTreeUri(appContext, dirUri)
-      } catch (error: Throwable) {
-        Log.e(TAG, "Error while trying to create TreeDocumentFile, dirUri = ${baseDir.dirPath()}")
-        return null
-      }
+        if (!SAFHelper.isTreeUri(baseDir)) {
+          Log.e(TAG, "Not a tree uri ${baseDir.dirPath()}")
+          return null
+        }
 
-      if (treeDirectory == null) {
-        return null
-      }
+        val treeDirectory = try {
+          DocumentFile.fromTreeUri(appContext, dirUri)
+        } catch (error: Throwable) {
+          Log.e(TAG, "Error while trying to create TreeDocumentFile, dirUri = ${baseDir.dirPath()}")
+          return null
+        }
 
-      return ExternalFile(
-        appContext,
-        badPathSymbolResolutionStrategy,
-        Root.DirRoot(CachingDocumentFile(appContext, treeDirectory))
-      )
+        if (treeDirectory == null) {
+          return null
+        }
+
+        return ExternalFile(
+          appContext,
+          badPathSymbolResolutionStrategy,
+          Root.DirRoot(CachingDocumentFile(appContext, treeDirectory))
+        )
+      }
+      BaseDirectory.ActiveBaseDirType.JavaFileBaseDir -> {
+        val dirFile = checkNotNull(baseDir.getDirFile()) {
+          "Current active base dir is JavaFileBaseDir but baseDir.getDirFile() returned null! " +
+            "If a base dir is active it must be not null!"
+        }
+
+        return RawFile(
+          Root.DirRoot(dirFile),
+          badPathSymbolResolutionStrategy
+        )
+      }
+      else -> {
+        throw IllegalStateException("${baseDir.javaClass.name} is not supported!")
+      }
     }
-
-    val dirFile = baseDir.getDirFile()
-    if (dirFile != null) {
-      return RawFile(
-        Root.DirRoot(dirFile),
-        badPathSymbolResolutionStrategy
-      )
-    }
-
-    throw IllegalStateException("${baseDir.javaClass.name} is not supported!")
   }
 
   inline fun <reified T> baseDirectoryExists(): Boolean {
@@ -208,6 +218,7 @@ class FileManager(
    * [BaseDirectory] may have a SAF directory and a fallback java file backed directory. If neither
    * of them is registered or they both return null this method will return null as well.
    * */
+  @Suppress("UNCHECKED_CAST")
   fun baseDirectoryExists(clazz: Class<*>): Boolean {
     val baseDirFile = newBaseDirectoryFile(clazz as Class<BaseDirectory>)
     if (baseDirFile == null) {
@@ -367,7 +378,7 @@ class FileManager(
 
     for ((currentFileIndex, file) in files.withIndex()) {
       // Holy shit this hack is so fucking disgusting and may break literally any minute.
-      // If this shit breaks then blame google for providing such a retarded fucking API.
+      // If this shit breaks then blame google for providing such a bad API.
 
       // Basically we have a directory, let's say /123 and we want to copy all
       // of it's files into /456. So we collect every file in /123 then we iterate every
@@ -649,6 +660,7 @@ class FileManager(
     return manager.withFileDescriptor(file, fileDescriptorMode, func)
   }
 
+  @Suppress("UNCHECKED_CAST")
   private fun combine(docFile: SnapshotDocumentFile): Pair<ExternalFile, SnapshotDocumentFile>? {
     if (docFile.name() == null) {
       return null
@@ -735,28 +747,119 @@ class FileManager(
     }
   }
 
-  inline fun <reified T> areTheSame(file1: AbstractFile, file2: AbstractFile): Boolean {
-    return areTheSame(T::class.java, file1, file2)
-  }
-
   /**
    * A handy method that returns true if the two [AbstractFile]s point to the same file or directory
    * even when they are backed by the different file API (e.g. file1 is a RawFile and file2 is an
    * ExternalFile)
    * */
-  fun areTheSame(baseDirClass: Class<*>, file1: AbstractFile, file2: AbstractFile): Boolean {
-    val baseDir = directoryManager.getBaseDirByClass(baseDirClass)
-    if (baseDir == null) {
-      Log.e(TAG, "Base directory is not registered for class ${baseDirClass}")
-      return false
-    }
-
+  fun areTheSame(file1: AbstractFile, file2: AbstractFile): Boolean {
     if (getName(file1) != getName(file2)) {
       // Names differ
       return false
     }
 
-    return baseDir.areTheSame(file1, file2)
+    val file1BaseDir = directoryManager.getBaseDirThisFileBelongsTo(file1)
+    if (file1BaseDir == null) {
+      Log.d(TAG, "areTheSame() directoryManager.getBaseDirThisFileBelongsTo(file1) returned null")
+      return false
+    }
+
+    val file2BaseDir = directoryManager.getBaseDirThisFileBelongsTo(file2)
+    if (file2BaseDir == null) {
+      Log.d(TAG, "areTheSame() directoryManager.getBaseDirThisFileBelongsTo(file2) returned null")
+      return false
+    }
+
+    if (file1BaseDir.dirPath() != file2BaseDir.dirPath()) {
+      Log.d(TAG, "areTheSame() Base directories differ")
+      return false
+    }
+
+    return areTheSameInternal(
+      file1BaseDir.getDirUri(),
+      file1BaseDir.getDirFile(),
+      file1,
+      file2
+    )
+  }
+
+  private fun areTheSameInternal(
+    dirUri: Uri?,
+    dirFile: File?,
+    file1: AbstractFile,
+    file2: AbstractFile
+  ): Boolean {
+    if ((file1 is RawFile || file2 is RawFile) && dirFile == null) {
+      // We don't have the java file base directory set up and one of the input files is a RawFile.
+      // There is no way for us to know whether they are the same or not without the base directory
+      // path
+      Log.e(
+        TAG,
+        "areTheSameInternal() one of the input files is a RawFile and dirFile is not set"
+      )
+      return false
+    }
+
+    if ((file1 is ExternalFile || file2 is ExternalFile) && dirUri == null) {
+      // We don't have the java file base directory set up and one of the input files is a RawFile.
+      // There is no way for us to know whether they are the same or not without the base directory
+      // path
+      Log.e(
+        TAG,
+        "areTheSameInternal() one of the input files is an ExternalFile and dirUri is not set"
+      )
+      return false
+    }
+
+    val trimmedPath1 = getTrimmedPath(dirFile, dirUri, file1)
+      ?: return false
+
+    val trimmerPath2 = getTrimmedPath(dirFile, dirUri, file2)
+      ?: return false
+
+    val segments1 = trimmedPath1.splitIntoSegments()
+    val segments2 = trimmerPath2.splitIntoSegments()
+
+    if (segments1.size != segments2.size) {
+      Log.d(TAG, "areTheSameInternal() segments count does not match")
+      return false
+    }
+
+    for (segmentIndex in segments1.indices) {
+      val segment1 = segments1[segmentIndex]
+      val segment2 = segments2[segmentIndex]
+
+      if (segment1 != segment2) {
+        Log.d(TAG, "areTheSameInternal() segment1 ($segment1) != segment2 ($segment2)")
+        return false
+      }
+    }
+
+    return true
+  }
+
+  private fun getTrimmedPath(
+    dirFile: File?,
+    dirUri: Uri?,
+    file1: AbstractFile
+  ): String? {
+    return if (
+      dirFile != null
+      && file1 is RawFile
+      && file1.getFullPath().startsWith(dirFile.absolutePath)
+    ) {
+      file1.getFullPath().removePrefix(dirFile.absolutePath)
+    } else if (
+      dirUri != null
+      && file1 is ExternalFile
+      && file1.getFullPath().startsWith(dirUri.toString())
+    ) {
+      file1.getFullPath().removePrefix(dirUri.toString())
+    } else {
+      Log.e(TAG, "getTrimmedPath() cannot get trimmed path " +
+          "(dirFile == null: ${dirFile == null}, dirUri == null: ${dirUri == null})")
+      null
+    }
   }
 
   private fun toDocumentFile(uri: Uri): CachingDocumentFile? {
