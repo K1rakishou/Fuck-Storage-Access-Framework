@@ -770,11 +770,6 @@ class FileManager(
       return false
     }
 
-    if (file1BaseDir.dirPath() != file2BaseDir.dirPath()) {
-      Log.d(TAG, "areTheSame() Base directories differ")
-      return false
-    }
-
     return areTheSameInternal(
       file1BaseDir.getDirUri(),
       file1BaseDir.getDirFile(),

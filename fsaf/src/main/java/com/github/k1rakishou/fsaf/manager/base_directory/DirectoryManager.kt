@@ -63,11 +63,21 @@ open class DirectoryManager {
           val baseDirPath = baseDir.getDirFile()
             ?: return@firstOrNull false
 
+          if (baseDirPath.absolutePath.isEmpty()) {
+            Log.e(TAG, "getBaseDirThisFileBelongsTo() baseDirPath.absolutePath() is empty!")
+            return@firstOrNull false
+          }
+
           return@firstOrNull file.getFullPath().startsWith(baseDirPath.absolutePath)
         }
         is ExternalFile -> {
           val baseDirPathUri = baseDir.getDirUri()
             ?: return@firstOrNull false
+
+          if (baseDirPathUri.toString().isEmpty()) {
+            Log.e(TAG, "getBaseDirThisFileBelongsTo() baseDirPathUri is empty!")
+            return@firstOrNull false
+          }
 
           return@firstOrNull file.getFullPath().startsWith(baseDirPathUri.toString())
         }
