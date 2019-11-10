@@ -20,7 +20,6 @@ import com.github.k1rakishou.fsaf.util.FSAFUtils
 import com.github.k1rakishou.fsaf.util.SAFHelper
 import java.io.*
 import java.util.*
-import kotlin.math.min
 
 
 class FileManager(
@@ -827,22 +826,23 @@ class FileManager(
       else -> throw NotImplementedError("Not implemented for ${file2::class.java}")
     }
 
-    val count = min(fullPath1.length, fullPath2.length)
-
-    for (index in count - 1 downTo 0) {
-      val ch1 = fullPath1.getOrNull(index)
-      val ch2 = fullPath2.getOrNull(index)
-
-      if (ch1 == null || ch2 == null) {
-        return false
-      }
-
-      if (ch1 != ch2) {
-        return false
-      }
+    if (fullPath1.length == fullPath2.length) {
+      return fullPath1 == fullPath2
     }
 
-    return true
+    val longerPath = if (fullPath1.length > fullPath2.length) {
+      fullPath1
+    } else {
+      fullPath2
+    }
+
+    val shorterPath = if (fullPath1.length < fullPath2.length) {
+      fullPath2
+    } else {
+      fullPath1
+    }
+
+    return longerPath.endsWith(shorterPath)
   }
 
   /**
