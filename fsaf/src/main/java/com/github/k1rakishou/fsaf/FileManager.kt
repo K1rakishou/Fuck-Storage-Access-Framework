@@ -816,6 +816,7 @@ class FileManager(
     }
 
     // FIXME: this won't work on Android 10
+    // TODO: what if a file is located in the internal storage? (appContext.filesDir)
     val externalStoragePath = Environment.getExternalStorageDirectory().absolutePath
 
     val fullPath1 = when (file1) {
@@ -823,7 +824,10 @@ class FileManager(
         .removePrefix(externalStoragePath)
         .splitIntoSegments()
         .joinToString(separator = "/")
-      is ExternalFile -> getSegmentsForExternalFile(file1)
+      is ExternalFile -> splitDocumentId(file1) { documentId ->
+        val indexOfColon = documentId.indexOf(':')
+        return@splitDocumentId documentId.substring(indexOfColon + 1)
+      }
       else -> throw NotImplementedError("Not implemented for ${file1::class.java}")
     }
 
@@ -832,17 +836,34 @@ class FileManager(
         .removePrefix(externalStoragePath)
         .splitIntoSegments()
         .joinToString(separator = "/")
-      is ExternalFile -> getSegmentsForExternalFile(file2)
+      is ExternalFile -> splitDocumentId(file2) { documentId ->
+        val indexOfColon = documentId.indexOf(':')
+        return@splitDocumentId documentId.substring(indexOfColon + 1)
+      }
       else -> throw NotImplementedError("Not implemented for ${file2::class.java}")
     }
 
-    return fullPath1 == fullPath2
+    val storageId1 = splitDocumentId(file1) { documentId ->
+      val indexOfColon = documentId.indexOf(':')
+      return@splitDocumentId documentId.substring(0, indexOfColon)
+    }
+    val storageId2 = splitDocumentId(file2) { documentId ->
+      val indexOfColon = documentId.indexOf(':')
+      return@splitDocumentId documentId.substring(0, indexOfColon)
+    }
+
+    return storageId1 == storageId2 && fullPath1 == fullPath2
   }
 
   /**
    * !!! Experimental !!!
    * */
-  private fun getSegmentsForExternalFile(file: ExternalFile): String {
+  private fun splitDocumentId(file: AbstractFile, spliterator: (String) -> String): String {
+    if (file is RawFile) {
+      // RawFiles cannot have a storageId
+      return ""
+    }
+
     val uri = Uri.parse(file.getFullPath())
 
     // This will returns us a string like "primary:dir1/dir2 .. etc", we need to remove the
@@ -859,10 +880,7 @@ class FileManager(
       return ""
     }
 
-    val indexOfColon = documentId.indexOf(':')
-    val segmentsUnsplit = documentId.substring(indexOfColon + 1)
-
-    return segmentsUnsplit.splitIntoSegments().joinToString(separator = "/")
+    return spliterator(documentId)
   }
 
   private fun toDocumentFile(uri: Uri): CachingDocumentFile? {
