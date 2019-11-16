@@ -2,6 +2,7 @@ package com.github.k1rakishou.fsaf
 
 import android.content.Context
 import android.net.Uri
+import android.os.Environment
 import android.provider.DocumentsContract
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
@@ -814,14 +815,23 @@ class FileManager(
       return file1.getFullPath() == file2.getFullPath()
     }
 
+    // FIXME: this won't work on Android 10
+    val externalStoragePath = Environment.getExternalStorageDirectory().absolutePath
+
     val fullPath1 = when (file1) {
-      is RawFile -> file1.getFullPath().splitIntoSegments().joinToString(separator = "/")
+      is RawFile -> file1.getFullPath()
+        .removePrefix(externalStoragePath)
+        .splitIntoSegments()
+        .joinToString(separator = "/")
       is ExternalFile -> getSegmentsForExternalFile(file1)
       else -> throw NotImplementedError("Not implemented for ${file1::class.java}")
     }
 
     val fullPath2 = when (file2) {
-      is RawFile -> file2.getFullPath().splitIntoSegments().joinToString(separator = "/")
+      is RawFile -> file2.getFullPath()
+        .removePrefix(externalStoragePath)
+        .splitIntoSegments()
+        .joinToString(separator = "/")
       is ExternalFile -> getSegmentsForExternalFile(file2)
       else -> throw NotImplementedError("Not implemented for ${file2::class.java}")
     }
