@@ -860,8 +860,10 @@ class FileManager(
    * */
   private fun splitDocumentId(file: AbstractFile, spliterator: (String) -> String): String {
     if (file is RawFile) {
-      // RawFiles cannot have a storageId
-      return ""
+      // RawFiles have primary storage since they can't access sd-card (but they probably access
+      // remote locations such as dropbox/google drive and such. What the storageId should be
+      // in those cases?)
+      return PRIMARY_STORAGE
     }
 
     val uri = Uri.parse(file.getFullPath())
@@ -935,5 +937,6 @@ class FileManager(
 
   companion object {
     private const val TAG = "FileManager"
+    private const val PRIMARY_STORAGE = "primary"
   }
 }
