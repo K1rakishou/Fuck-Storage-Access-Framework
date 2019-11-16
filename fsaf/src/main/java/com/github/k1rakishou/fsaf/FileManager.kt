@@ -836,24 +836,7 @@ class FileManager(
       else -> throw NotImplementedError("Not implemented for ${file2::class.java}")
     }
 
-    if (fullPath1.length == fullPath2.length) {
-      return fullPath1 == fullPath2
-    }
-
-    val longerPath = if (fullPath1.length > fullPath2.length) {
-      fullPath1
-    } else {
-      fullPath2
-    }
-
-    val shorterPath = if (fullPath1.length < fullPath2.length) {
-      fullPath1
-    } else {
-      fullPath2
-    }
-
-    check(longerPath != shorterPath) { "Paths are the same!" }
-    return longerPath.endsWith(shorterPath)
+    return fullPath1 == fullPath2
   }
 
   /**
