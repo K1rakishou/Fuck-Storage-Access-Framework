@@ -154,6 +154,14 @@ class FileManager(
     return directoryManager.isAlreadyRegistered(file)
   }
 
+  fun isBaseDirAlreadyRegistered(filePath: String): Boolean {
+    return directoryManager.isAlreadyRegistered(filePath)
+  }
+
+  fun isBaseDirAlreadyRegistered(uri: Uri): Boolean {
+    return directoryManager.isAlreadyRegistered(uri)
+  }
+
   /**
    * Instantiates a new AbstractFile with the root being in the base directory with [clazz]
    * base directory id.

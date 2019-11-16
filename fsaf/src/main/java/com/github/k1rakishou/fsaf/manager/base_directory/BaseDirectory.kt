@@ -41,6 +41,16 @@ abstract class BaseDirectory {
     return getDirFile() == dirPath
   }
 
+  fun isBaseDir(dirPath: String): Boolean {
+    check(!(getDirUri() == null && getDirFile() == null)) { "Both dirUri and dirFile are nulls!" }
+
+    if (getDirFile() == null) {
+      return false
+    }
+
+    return getDirFile()!!.absolutePath == dirPath
+  }
+
   fun isBaseDir(dir: AbstractFile): Boolean {
     check(!(getDirUri() == null && getDirFile() == null)) { "Both dirUri and dirFile are nulls!" }
 

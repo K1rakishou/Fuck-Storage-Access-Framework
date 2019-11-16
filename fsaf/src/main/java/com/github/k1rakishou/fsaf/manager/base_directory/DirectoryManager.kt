@@ -66,6 +66,18 @@ open class DirectoryManager {
     }
   }
 
+  fun isAlreadyRegistered(filePath: String): Boolean {
+    return baseDirList.values.any { baseDirectory ->
+      baseDirectory.isBaseDir(filePath)
+    }
+  }
+
+  fun isAlreadyRegistered(uri: Uri): Boolean {
+    return baseDirList.values.any { baseDirectory ->
+      baseDirectory.isBaseDir(uri)
+    }
+  }
+
   open fun unregisterBaseDir(clazz: Class<*>) {
     baseDirList.remove(clazz)
   }
