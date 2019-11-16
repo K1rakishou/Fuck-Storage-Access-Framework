@@ -60,20 +60,32 @@ open class DirectoryManager {
     }
   }
 
-  fun isAlreadyRegistered(file: AbstractFile): Boolean {
-    return baseDirList.values.any { baseDirectory ->
+  fun isAlreadyRegistered(clazz: Class<*>, file: AbstractFile): Boolean {
+    return baseDirList.entries.any { (dirClass, baseDirectory) ->
+      if (dirClass == clazz) {
+        return@any false
+      }
+
       baseDirectory.isBaseDir(file)
     }
   }
 
-  fun isAlreadyRegistered(filePath: String): Boolean {
-    return baseDirList.values.any { baseDirectory ->
+  fun isAlreadyRegistered(clazz: Class<*>, filePath: String): Boolean {
+    return baseDirList.entries.any { (dirClass, baseDirectory) ->
+      if (dirClass == clazz) {
+        return@any false
+      }
+
       baseDirectory.isBaseDir(filePath)
     }
   }
 
-  fun isAlreadyRegistered(uri: Uri): Boolean {
-    return baseDirList.values.any { baseDirectory ->
+  fun isAlreadyRegistered(clazz: Class<*>, uri: Uri): Boolean {
+    return baseDirList.entries.any { (dirClass, baseDirectory) ->
+      if (dirClass == clazz) {
+        return@any false
+      }
+
       baseDirectory.isBaseDir(uri)
     }
   }

@@ -150,16 +150,37 @@ class FileManager(
     return newBaseDirectoryFile(T::class.java)
   }
 
-  fun isBaseDirAlreadyRegistered(file: AbstractFile): Boolean {
-    return directoryManager.isAlreadyRegistered(file)
+  inline fun <reified T> isBaseDirAlreadyRegistered(file: AbstractFile): Boolean {
+    return isBaseDirAlreadyRegistered(T::class.java, file)
   }
 
-  fun isBaseDirAlreadyRegistered(filePath: String): Boolean {
-    return directoryManager.isAlreadyRegistered(filePath)
+  /**
+   * [clazz] is a class of base directory we want to to update
+   * */
+  fun isBaseDirAlreadyRegistered(clazz: Class<*>, file: AbstractFile): Boolean {
+    return directoryManager.isAlreadyRegistered(clazz, file)
   }
 
-  fun isBaseDirAlreadyRegistered(uri: Uri): Boolean {
-    return directoryManager.isAlreadyRegistered(uri)
+  inline fun <reified T> isBaseDirAlreadyRegistered(filePath: String): Boolean {
+    return isBaseDirAlreadyRegistered(T::class.java, filePath)
+  }
+
+  /**
+   * [clazz] is a class of base directory we want to to update
+   * */
+  fun isBaseDirAlreadyRegistered(clazz: Class<*>, filePath: String): Boolean {
+    return directoryManager.isAlreadyRegistered(clazz, filePath)
+  }
+
+  inline fun <reified T> isBaseDirAlreadyRegistered(uri: Uri): Boolean {
+    return isBaseDirAlreadyRegistered(T::class.java, uri)
+  }
+
+  /**
+   * [clazz] is a class of base directory we want to to update
+   * */
+  fun isBaseDirAlreadyRegistered(clazz: Class<*>, uri: Uri): Boolean {
+    return directoryManager.isAlreadyRegistered(clazz, uri)
   }
 
   /**
