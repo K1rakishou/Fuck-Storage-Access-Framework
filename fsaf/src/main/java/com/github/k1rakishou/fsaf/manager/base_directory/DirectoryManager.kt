@@ -22,13 +22,27 @@ open class DirectoryManager {
   private fun checkConflictingPaths(baseDirectory: BaseDirectory) {
     val conflictingBaseDir = baseDirList.values.firstOrNull { baseDir ->
       if (baseDirectory.getDirFile() != null) {
-        if (baseDir.getDirFile()?.absolutePath == baseDirectory.getDirFile()?.absolutePath) {
+        val path1 = baseDir.getDirFile()?.absolutePath ?: ""
+        val path2 = baseDirectory.getDirFile()?.absolutePath ?: ""
+
+        if (path1.isEmpty() && path2.isEmpty()) {
+          return@firstOrNull false
+        }
+
+        if (path1 == path2) {
           return@firstOrNull true
         }
       }
 
       if (baseDirectory.getDirUri() != null) {
-        if (baseDir.getDirUri()?.toString() == baseDirectory.getDirUri()?.toString()) {
+        val path1 = baseDir.getDirUri()?.toString() ?: ""
+        val path2 = baseDirectory.getDirUri()?.toString() ?: ""
+
+        if (path1.isEmpty() && path2.isEmpty()) {
+          return@firstOrNull false
+        }
+
+        if (path1 == path2) {
           return@firstOrNull true
         }
       }
@@ -43,6 +57,12 @@ open class DirectoryManager {
           "dirUri (${conflictingBaseDir.getDirUri()}) " +
           "is already registered! Change the paths!"
       )
+    }
+  }
+
+  fun isAlreadyRegistered(file: AbstractFile): Boolean {
+    return baseDirList.values.any { baseDirectory ->
+      baseDirectory.isBaseDir(file)
     }
   }
 

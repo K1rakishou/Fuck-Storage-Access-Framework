@@ -150,6 +150,10 @@ class FileManager(
     return newBaseDirectoryFile(T::class.java)
   }
 
+  fun isBaseDirAlreadyRegistered(file: AbstractFile): Boolean {
+    return directoryManager.isAlreadyRegistered(file)
+  }
+
   /**
    * Instantiates a new AbstractFile with the root being in the base directory with [clazz]
    * base directory id.
