@@ -781,10 +781,125 @@ class FileManager(
     }
   }
 
+  //  TODO: Deleting "Kuroba-dev" dir will also delete the inner "Kuroba-dev/files" directory. Must be fixed!
+  //  oldBaseDirectory = "/storage/emulated/0/Kuroba-dev"
+  //  newBaseDirectory = "/storage/emulated/0/Kuroba-dev/files"
+
+  //  Deleting "Kuroba-dev/files" won't delete "Kuroba-dev" so this is okay.
+  //  newBaseDirectory = "/storage/emulated/0/Kuroba-dev/files"
+  //  oldBaseDirectory = "/storage/emulated/0/Kuroba-dev"
+
+  //  TODO: Deleting "Kuroba-dev" dir will also delete the inner "Kuroba-dev/files" directory. Must be fixed!
+  //  oldBaseDirectory = "/storage/emulated/0/Kuroba-dev"
+  //  newBaseDirectory = "content://com.android.externalstorage.documents/tree/primary%3AKuroba-dev%2Ffiles/document/primary%3AKuroba-dev%2Ffiles"
+
+  //  Deleting "Kuroba-dev/files" won't delete "Kuroba-dev" so this is okay.
+  //  newBaseDirectory = "content://com.android.externalstorage.documents/tree/primary%3AKuroba-dev%2Ffiles/document/primary%3AKuroba-dev%2Ffiles"
+  //  oldBaseDirectory = "/storage/emulated/0/Kuroba-dev"
+
+  //  TODO: Deleting "Kuroba-dev" dir will also delete the inner "Kuroba-dev/files" directory. Must be fixed!
+  //  oldBaseDirectory = "content://com.android.externalstorage.documents/tree/primary%3AKuroba-dev/document/primary%3AKuroba-dev"
+  //  newBaseDirectory = "/storage/emulated/0/Kuroba-dev/files"
+
+  //  TODO: wtf do I do in this case?
+  //  oldBaseDirectory = "/storage/emulated/0/Kuroba-dev"
+  //  newBaseDirectory = "/storage/emulated/0/Kuroba-dev"
+
+  //  TODO: wtf do I do in this case?
+  //  oldBaseDirectory = "content://com.android.externalstorage.documents/tree/primary%3AKuroba-dev/document/primary%3AKuroba-dev"
+  //  newBaseDirectory = "content://com.android.externalstorage.documents/tree/primary%3AKuroba-dev/document/primary%3AKuroba-dev"
+
+  /**
+   * Returns true if a [file] is somewhere inside the [dir] directory. It may not be exactly inside
+   * the [dir] but somewhere deeper (e.g. [dir] = /test, [file] = /test/1/2/3/4/file.txt will
+   * return true).
+   * Also returns false is both [dir] and [file] are directories with the same path
+   * (basically if areTheSame(dir, file) == true)
+   *
+   * [dir] must be a directory! Will throw an IllegalArgumentException is a file is passed.
+   * [file] may be a file or a directory.
+   *
+   * Does not check whether either of the input files exist!
+   * */
+  fun isChildOfDirectory(dir: AbstractFile, file: AbstractFile): Boolean {
+    require(isDirectory(dir)) { "dir must be a directory!" }
+
+    if (areTheSame(dir, file)) {
+      return false
+    }
+
+    val inputDirBaseDir = directoryManager.getBaseDirThisFileBelongsTo(dir)
+    if (inputDirBaseDir == null) {
+      Log.d(
+        TAG,
+        "isChildOfDirectory() directoryManager.getBaseDirThisFileBelongsTo(dir) returned null"
+      )
+
+      return false
+    }
+
+    val inputFileBaseDir = directoryManager.getBaseDirThisFileBelongsTo(file)
+    if (inputFileBaseDir == null) {
+      Log.d(
+        TAG,
+        "isChildOfDirectory() directoryManager.getBaseDirThisFileBelongsTo(file) returned null"
+      )
+
+      return false
+    }
+
+    // Here and in the check below this one we use "file1BaseDir" for both cases because we are
+    // certain that they both belong to the same base directory. So it doesn't matter which one of
+    // the two we use
+
+    if ((dir is RawFile || file is RawFile) && inputDirBaseDir.getDirFile() == null) {
+      // We don't have the java file base directory set up and one of the input files is a RawFile.
+      // There is no way for us to know whether they are the same or not without the base directory
+      // path
+      Log.e(
+        TAG,
+        "isChildOfDirectory() one of the input files is a RawFile and dirFile is not set"
+      )
+
+      return false
+    }
+
+    if ((dir is ExternalFile || file is ExternalFile) && inputDirBaseDir.getDirUri() == null) {
+      // We don't have the java file base directory set up and one of the input files is a RawFile.
+      // There is no way for us to know whether they are the same or not without the base directory
+      // path
+      Log.e(
+        TAG,
+        "isChildOfDirectory() one of the input files is an ExternalFile and dirUri is not set"
+      )
+
+      return false
+    }
+
+    if (dir is RawFile && file is RawFile) {
+      return file.getFullPath().startsWith(dir.getFullPath())
+    }
+
+    if (dir is ExternalFile && file is ExternalFile) {
+      return file.getFullPath().startsWith(dir.getFullPath())
+    }
+
+    val (dirSegmentsPath, dirStorageId) = extractSegmentsPathAndStorageId(dir)
+    val (fileSegmentsPath, fileStorageId) = extractSegmentsPathAndStorageId(file)
+
+    if (dirStorageId != fileStorageId) {
+      return false
+    }
+
+    return fileSegmentsPath.startsWith(dirSegmentsPath)
+  }
+
   /**
    * A handy method that returns true if the two [AbstractFile]s point to the same file or directory
    * even when they are backed by the different file API (e.g. file1 is a RawFile and file2 is an
-   * ExternalFile)
+   * ExternalFile).
+   *
+   * Does not check whether either of the input files exist!
    * */
   fun areTheSame(file1: AbstractFile, file2: AbstractFile): Boolean {
     if (getName(file1) != getName(file2)) {
@@ -804,38 +919,28 @@ class FileManager(
       return false
     }
 
-    return areTheSameInternal(
-      file1BaseDir.getDirUri(),
-      file1BaseDir.getDirFile(),
-      file1,
-      file2
-    )
-  }
+    // Here and in the check below this one we use "file1BaseDir" for both cases because we are
+    // certain that they both belong to the same base directory. So it doesn't matter which one of
+    // the two we use
 
-  private fun areTheSameInternal(
-    dirUri: Uri?,
-    dirFile: File?,
-    file1: AbstractFile,
-    file2: AbstractFile
-  ): Boolean {
-    if ((file1 is RawFile || file2 is RawFile) && dirFile == null) {
+    if ((file1 is RawFile || file2 is RawFile) && file1BaseDir.getDirFile() == null) {
       // We don't have the java file base directory set up and one of the input files is a RawFile.
       // There is no way for us to know whether they are the same or not without the base directory
       // path
       Log.e(
         TAG,
-        "areTheSameInternal() one of the input files is a RawFile and dirFile is not set"
+        "areTheSame() one of the input files is a RawFile and dirFile is not set"
       )
       return false
     }
 
-    if ((file1 is ExternalFile || file2 is ExternalFile) && dirUri == null) {
+    if ((file1 is ExternalFile || file2 is ExternalFile) && file1BaseDir.getDirUri() == null) {
       // We don't have the java file base directory set up and one of the input files is a RawFile.
       // There is no way for us to know whether they are the same or not without the base directory
       // path
       Log.e(
         TAG,
-        "areTheSameInternal() one of the input files is an ExternalFile and dirUri is not set"
+        "areTheSame() one of the input files is an ExternalFile and dirUri is not set"
       )
       return false
     }
@@ -848,44 +953,41 @@ class FileManager(
       return file1.getFullPath() == file2.getFullPath()
     }
 
+    val (segmentsPath1, storageId1) = extractSegmentsPathAndStorageId(file1)
+    val (segmentsPath2, storageId2) = extractSegmentsPathAndStorageId(file2)
+
+    return storageId1 == storageId2 && segmentsPath1 == segmentsPath2
+  }
+
+  private fun extractSegmentsPathAndStorageId(
+    file: AbstractFile
+  ): Pair<String, String> {
+
+    /**
+     * !!! Experimental !!!
+     * */
     // FIXME: this won't work on Android 10
     // TODO: what if a file is located in the internal storage? (appContext.filesDir)
     val externalStoragePath = Environment.getExternalStorageDirectory().absolutePath
 
-    val fullPath1 = when (file1) {
-      is RawFile -> file1.getFullPath()
+    val segmentsPath = when (file) {
+      is RawFile -> file.getFullPath()
         .removePrefix(externalStoragePath)
         .splitIntoSegments()
         .joinToString(separator = "/")
-      is ExternalFile -> splitDocumentId(file1) { documentId ->
+      is ExternalFile -> splitDocumentId(file) { documentId ->
         val indexOfColon = documentId.indexOf(':')
         return@splitDocumentId documentId.substring(indexOfColon + 1)
       }
-      else -> throw NotImplementedError("Not implemented for ${file1::class.java}")
+      else -> throw NotImplementedError("Not implemented for ${file::class.java}")
     }
 
-    val fullPath2 = when (file2) {
-      is RawFile -> file2.getFullPath()
-        .removePrefix(externalStoragePath)
-        .splitIntoSegments()
-        .joinToString(separator = "/")
-      is ExternalFile -> splitDocumentId(file2) { documentId ->
-        val indexOfColon = documentId.indexOf(':')
-        return@splitDocumentId documentId.substring(indexOfColon + 1)
-      }
-      else -> throw NotImplementedError("Not implemented for ${file2::class.java}")
-    }
-
-    val storageId1 = splitDocumentId(file1) { documentId ->
-      val indexOfColon = documentId.indexOf(':')
-      return@splitDocumentId documentId.substring(0, indexOfColon)
-    }
-    val storageId2 = splitDocumentId(file2) { documentId ->
+    val storageId1 = splitDocumentId(file) { documentId ->
       val indexOfColon = documentId.indexOf(':')
       return@splitDocumentId documentId.substring(0, indexOfColon)
     }
 
-    return storageId1 == storageId2 && fullPath1 == fullPath2
+    return Pair(segmentsPath, storageId1)
   }
 
   /**
