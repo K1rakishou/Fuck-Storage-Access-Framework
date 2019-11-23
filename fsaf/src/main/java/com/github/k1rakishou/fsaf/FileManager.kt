@@ -781,34 +781,6 @@ class FileManager(
     }
   }
 
-  //  TODO: Deleting "Kuroba-dev" dir will also delete the inner "Kuroba-dev/files" directory. Must be fixed!
-  //  oldBaseDirectory = "/storage/emulated/0/Kuroba-dev"
-  //  newBaseDirectory = "/storage/emulated/0/Kuroba-dev/files"
-
-  //  Deleting "Kuroba-dev/files" won't delete "Kuroba-dev" so this is okay.
-  //  newBaseDirectory = "/storage/emulated/0/Kuroba-dev/files"
-  //  oldBaseDirectory = "/storage/emulated/0/Kuroba-dev"
-
-  //  TODO: Deleting "Kuroba-dev" dir will also delete the inner "Kuroba-dev/files" directory. Must be fixed!
-  //  oldBaseDirectory = "/storage/emulated/0/Kuroba-dev"
-  //  newBaseDirectory = "content://com.android.externalstorage.documents/tree/primary%3AKuroba-dev%2Ffiles/document/primary%3AKuroba-dev%2Ffiles"
-
-  //  Deleting "Kuroba-dev/files" won't delete "Kuroba-dev" so this is okay.
-  //  newBaseDirectory = "content://com.android.externalstorage.documents/tree/primary%3AKuroba-dev%2Ffiles/document/primary%3AKuroba-dev%2Ffiles"
-  //  oldBaseDirectory = "/storage/emulated/0/Kuroba-dev"
-
-  //  TODO: Deleting "Kuroba-dev" dir will also delete the inner "Kuroba-dev/files" directory. Must be fixed!
-  //  oldBaseDirectory = "content://com.android.externalstorage.documents/tree/primary%3AKuroba-dev/document/primary%3AKuroba-dev"
-  //  newBaseDirectory = "/storage/emulated/0/Kuroba-dev/files"
-
-  //  TODO: wtf do I do in this case?
-  //  oldBaseDirectory = "/storage/emulated/0/Kuroba-dev"
-  //  newBaseDirectory = "/storage/emulated/0/Kuroba-dev"
-
-  //  TODO: wtf do I do in this case?
-  //  oldBaseDirectory = "content://com.android.externalstorage.documents/tree/primary%3AKuroba-dev/document/primary%3AKuroba-dev"
-  //  newBaseDirectory = "content://com.android.externalstorage.documents/tree/primary%3AKuroba-dev/document/primary%3AKuroba-dev"
-
   /**
    * Returns true if a [file] is somewhere inside the [dir] directory. It may not be exactly inside
    * the [dir] but somewhere deeper (e.g. [dir] = /test, [file] = /test/1/2/3/4/file.txt will
