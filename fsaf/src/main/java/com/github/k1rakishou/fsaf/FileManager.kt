@@ -828,54 +828,6 @@ class FileManager(
       return false
     }
 
-    val inputDirBaseDir = directoryManager.getBaseDirThisFileBelongsTo(dir)
-    if (inputDirBaseDir == null) {
-      Log.d(
-        TAG,
-        "isChildOfDirectory() directoryManager.getBaseDirThisFileBelongsTo(dir) returned null"
-      )
-
-      return false
-    }
-
-    val inputFileBaseDir = directoryManager.getBaseDirThisFileBelongsTo(file)
-    if (inputFileBaseDir == null) {
-      Log.d(
-        TAG,
-        "isChildOfDirectory() directoryManager.getBaseDirThisFileBelongsTo(file) returned null"
-      )
-
-      return false
-    }
-
-    // Here and in the check below this one we use "file1BaseDir" for both cases because we are
-    // certain that they both belong to the same base directory. So it doesn't matter which one of
-    // the two we use
-
-    if ((dir is RawFile || file is RawFile) && inputDirBaseDir.getDirFile() == null) {
-      // We don't have the java file base directory set up and one of the input files is a RawFile.
-      // There is no way for us to know whether they are the same or not without the base directory
-      // path
-      Log.e(
-        TAG,
-        "isChildOfDirectory() one of the input files is a RawFile and dirFile is not set"
-      )
-
-      return false
-    }
-
-    if ((dir is ExternalFile || file is ExternalFile) && inputDirBaseDir.getDirUri() == null) {
-      // We don't have the java file base directory set up and one of the input files is a RawFile.
-      // There is no way for us to know whether they are the same or not without the base directory
-      // path
-      Log.e(
-        TAG,
-        "isChildOfDirectory() one of the input files is an ExternalFile and dirUri is not set"
-      )
-
-      return false
-    }
-
     if (dir is RawFile && file is RawFile) {
       return file.getFullPath().startsWith(dir.getFullPath())
     }
@@ -904,44 +856,6 @@ class FileManager(
   fun areTheSame(file1: AbstractFile, file2: AbstractFile): Boolean {
     if (getName(file1) != getName(file2)) {
       // Names differ
-      return false
-    }
-
-    val file1BaseDir = directoryManager.getBaseDirThisFileBelongsTo(file1)
-    if (file1BaseDir == null) {
-      Log.d(TAG, "areTheSame() directoryManager.getBaseDirThisFileBelongsTo(file1) returned null")
-      return false
-    }
-
-    val file2BaseDir = directoryManager.getBaseDirThisFileBelongsTo(file2)
-    if (file2BaseDir == null) {
-      Log.d(TAG, "areTheSame() directoryManager.getBaseDirThisFileBelongsTo(file2) returned null")
-      return false
-    }
-
-    // Here and in the check below this one we use "file1BaseDir" for both cases because we are
-    // certain that they both belong to the same base directory. So it doesn't matter which one of
-    // the two we use
-
-    if ((file1 is RawFile || file2 is RawFile) && file1BaseDir.getDirFile() == null) {
-      // We don't have the java file base directory set up and one of the input files is a RawFile.
-      // There is no way for us to know whether they are the same or not without the base directory
-      // path
-      Log.e(
-        TAG,
-        "areTheSame() one of the input files is a RawFile and dirFile is not set"
-      )
-      return false
-    }
-
-    if ((file1 is ExternalFile || file2 is ExternalFile) && file1BaseDir.getDirUri() == null) {
-      // We don't have the java file base directory set up and one of the input files is a RawFile.
-      // There is no way for us to know whether they are the same or not without the base directory
-      // path
-      Log.e(
-        TAG,
-        "areTheSame() one of the input files is an ExternalFile and dirUri is not set"
-      )
       return false
     }
 
