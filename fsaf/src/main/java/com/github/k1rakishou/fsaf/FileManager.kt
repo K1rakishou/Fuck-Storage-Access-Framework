@@ -291,6 +291,9 @@ class FileManager(
     return create(baseDir, DirectorySegment(name))
   }
 
+  /**
+   * [name] may contain an extension
+   * */
   fun createFile(baseDir: AbstractFile, name: String): AbstractFile? {
     return create(baseDir, FileSegment(name))
   }

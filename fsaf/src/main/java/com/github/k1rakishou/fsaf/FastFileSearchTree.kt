@@ -3,7 +3,7 @@ package com.github.k1rakishou.fsaf
 import java.io.File
 
 /**
- * Represents a withSnapshot of a directory with all of the inner directories and files. Useful, when
+ * Represents a snapshot of a directory with all of the inner directories and files. Useful, when
  * you have a directory with lots of files and you want to search for many files inside the directory.
  * We don't balance the tree because it is built from already existing balanced file tree.
  *
