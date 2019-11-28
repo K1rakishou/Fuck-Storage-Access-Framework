@@ -432,6 +432,11 @@ class ExternalFileManager(
     fileDescriptorMode: FileDescriptorMode,
     func: (FileDescriptor) -> T?
   ): T? {
+    if (isDirectory(file)) {
+      Log.e(TAG, "withFileDescriptor() only works with files ")
+      return null
+    }
+
     return getParcelFileDescriptor(file, fileDescriptorMode)
       ?.use { pfd -> func(pfd.fileDescriptor) }
       ?: throw IllegalStateException(

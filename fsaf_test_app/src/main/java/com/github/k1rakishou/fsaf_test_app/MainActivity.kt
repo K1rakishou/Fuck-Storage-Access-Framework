@@ -23,7 +23,7 @@ import java.io.File
 class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
   private lateinit var testSuite: TestSuite
 
-  private lateinit var fastFileManager: FileManager
+  private lateinit var fileManager: FileManager
   private lateinit var fileChooser: FileChooser
 
   private lateinit var sharedPreferences: SharedPreferences
@@ -40,27 +40,19 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
 
     sharedPreferences = getSharedPreferences("test", MODE_PRIVATE)
 
-    fastFileManager = FileManager(applicationContext)
+    fileManager = FileManager(applicationContext)
     fileChooser = FileChooser(applicationContext)
-    testSuite = TestSuite(fastFileManager)
+    testSuite = TestSuite(fileManager)
     fileChooser.setCallbacks(this)
 
     if (getTreeUri() != null) {
-      fastFileManager.registerBaseDir(TestBaseDirectory::class.java, testBaseDirectory)
+      fileManager.registerBaseDir(TestBaseDirectory::class.java, testBaseDirectory)
     }
 
     updateControls()
 
     open_document_tree_button.setOnClickListener {
       fileChooser.openChooseDirectoryDialog(object : DirectoryChooserCallback() {
-        override fun onCancel(reason: String) {
-          Toast.makeText(
-            this@MainActivity,
-            "Canceled, reason: $reason",
-            Toast.LENGTH_SHORT
-          ).show()
-        }
-
         override fun onResult(uri: Uri) {
           println("treeUri = ${uri}")
           Toast.makeText(
@@ -71,6 +63,14 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
 
           storeTreeUri(uri)
           updateControls()
+        }
+
+        override fun onCancel(reason: String) {
+          Toast.makeText(
+            this@MainActivity,
+            "Canceled, reason: $reason",
+            Toast.LENGTH_SHORT
+          ).show()
         }
       })
     }
@@ -92,12 +92,12 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
     }
 
     try {
-      val baseSAFDir = fastFileManager.newBaseDirectoryFile<TestBaseDirectory>()!!
-      val baseFileApiDir = fastFileManager.fromRawFile(
+      val baseSAFDir = fileManager.newBaseDirectoryFile<TestBaseDirectory>()!!
+      val baseFileApiDir = fileManager.fromRawFile(
         File(getExternalFilesDir(DIRECTORY_DOWNLOADS), "test")
       )
 
-      fastFileManager.create(baseFileApiDir)
+      fileManager.create(baseFileApiDir)
 
       testSuite.runTests(
         baseSAFDir,
@@ -172,7 +172,7 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
   }
 
   private fun storeTreeUri(uri: Uri) {
-    fastFileManager.registerBaseDir<TestBaseDirectory>(testBaseDirectory)
+    fileManager.registerBaseDir<TestBaseDirectory>(testBaseDirectory)
     sharedPreferences.edit().putString(TREE_URI, uri.toString()).apply()
   }
 
@@ -184,7 +184,7 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
     }
 
     fileChooser.forgetSAFTree(treeUri)
-    fastFileManager.unregisterBaseDir<TestBaseDirectory>()
+    fileManager.unregisterBaseDir<TestBaseDirectory>()
     sharedPreferences.edit().remove(TREE_URI).apply()
   }
 

@@ -244,6 +244,11 @@ class RawFileManager(
     fileDescriptorMode: FileDescriptorMode,
     func: (FileDescriptor) -> T?
   ): T? {
+    if (isDirectory(file)) {
+      Log.e(TAG, "withFileDescriptor() only works with files ")
+      return null
+    }
+
     val fileCopy = toFile(file.clone())
 
     return when (fileDescriptorMode) {

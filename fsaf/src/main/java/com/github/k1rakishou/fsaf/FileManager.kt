@@ -749,6 +749,8 @@ class FileManager(
    * [withSnapshot] which will do it for you.
    * */
   fun createSnapshot(dir: AbstractFile, includeSubDirs: Boolean = false) {
+    require(isDirectory(dir)) { "dir is not a directory" }
+
     if (dir is ExternalFile) {
       val externalFileManager = getExternalFileManager()
       val directories = arrayListOf<ExternalFile>().apply { ensureCapacity(16) }
@@ -776,6 +778,8 @@ class FileManager(
    * Removes the whole sub tree from the FastFileSearchTree with all of the cached files
    * */
   fun releaseSnapshot(dir: AbstractFile) {
+    require(isDirectory(dir)) { "dir is not a directory" }
+
     if (dir is ExternalFile) {
       val externalFileManager = getExternalFileManager()
       externalFileManager.uncacheFilesInSubTree(dir)
