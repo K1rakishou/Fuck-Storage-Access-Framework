@@ -80,6 +80,8 @@ fileChooser.openCreateFileDialog("text.txt", object : FileCreateCallback() {
   })
 ```
 
+Be aware that when creating a file with a name of already existing file in the directory, SAF will append "(1)" at the end of the new file. You will probably want to delete the old file before creating a new one.
+
 ### Use a user-provided directory as a file-dump throughout the app's lifetime.
 
 This is where things start to get interesting. First of all, you need a directory which you will then
