@@ -33,7 +33,7 @@ The first two are usually pretty simple to implement even with the normal SAF ap
 a one-time operation. But the third one is not that trivial.
 Let's see how this library helps you dealing with these three scenarios when using SAF.
 
-### Read or write to user-provided file
+### Read or write to a user-provided file
 
 It's pretty simple, just use the `FileChooser.openChooseFileDialog()` method which will return to you an Uri of the selected file:
 
