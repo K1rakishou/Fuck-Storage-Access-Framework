@@ -197,7 +197,7 @@ class FileManager(
       return null
     }
 
-    when (baseDir.currentActiveBaseDirType()) {
+    val resultFile = when (baseDir.currentActiveBaseDirType()) {
       BaseDirectory.ActiveBaseDirType.SafBaseDir -> {
         val dirUri = checkNotNull(baseDir.getDirUri()) {
           "Current active base dir is SafBaseDir but baseDir.getDirUri() returned null! " +
@@ -220,7 +220,7 @@ class FileManager(
           return null
         }
 
-        return ExternalFile(
+        ExternalFile(
           appContext,
           badPathSymbolResolutionStrategy,
           Root.DirRoot(CachingDocumentFile(appContext, treeDirectory))
@@ -232,7 +232,7 @@ class FileManager(
             "If a base dir is active it must be not null!"
         }
 
-        return RawFile(
+        RawFile(
           Root.DirRoot(dirFile),
           badPathSymbolResolutionStrategy
         )
@@ -241,6 +241,13 @@ class FileManager(
         throw IllegalStateException("${baseDir.javaClass.name} is not supported!")
       }
     }
+
+    if (!exists(resultFile)) {
+      Log.e(TAG, "Base directory ${clazz} with path ${resultFile.getFullPath()} does not exist!")
+      return null
+    }
+
+    return resultFile
   }
 
   inline fun <reified T> baseDirectoryExists(): Boolean {

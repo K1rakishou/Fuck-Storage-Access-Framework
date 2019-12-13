@@ -240,7 +240,7 @@ And sometimes you may want to check whether a lot of files exist on the disk and
 don't then create them (or something similar that requires a lot of file operations). It's so slow
 that even in google example they use 
 [hacks](https://github.com/android/storage-samples/blob/master/ActionOpenDocumentTree/app/src/main/java/com/example/android/ktfiles/CachingDocumentFile.kt#L25) 
-in their examples to make it faster. Well this library use hack as well to make even more fast.
+to make it faster. Well, this library uses hacks as well to make it even more fast.
 Basically if you need to make lots of file operations the fastest way to do this is to read the 
 whole directory (with files/sub-directories an all the metadata like file names/file sizes etc) 
 at a go into a Tree structure and do all the necessary operations on it. This is what snapshots are 
