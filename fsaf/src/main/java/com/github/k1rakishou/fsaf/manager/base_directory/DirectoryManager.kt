@@ -1,6 +1,8 @@
 package com.github.k1rakishou.fsaf.manager.base_directory
 
+import android.content.Context
 import android.net.Uri
+import android.provider.DocumentsContract
 import android.util.Log
 import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
 import com.github.k1rakishou.fsaf.file.AbstractFile
@@ -10,13 +12,56 @@ import com.github.k1rakishou.fsaf.file.RawFile
 /**
  * A class that is responsible for base directories registering/unregistering etc.
  * */
-open class DirectoryManager {
+open class DirectoryManager(
+  private val appContext: Context
+) {
   private val baseDirList = mutableMapOf<Class<BaseDirectory>, BaseDirectory>()
 
   open fun registerBaseDir(clazz: Class<*>, baseDirectory: BaseDirectory) {
     checkConflictingPaths(baseDirectory)
 
-    baseDirList.put(clazz as Class<BaseDirectory>, baseDirectory)
+    // User may revoke permissions at any time so we need to check whether we still have them, and
+    // if not then, for now, log it.
+    baseDirectory.getDirUri()?.let { dirUri ->
+      checkBaseDirSafStillHasPermissions(dirUri)
+    }
+
+    baseDirList[clazz as Class<BaseDirectory>] = baseDirectory
+  }
+
+  fun checkBaseDirSafStillHasPermissions(dirUri: Uri): Boolean {
+    val treeUri = DocumentsContract.buildTreeDocumentUri(
+      dirUri.authority,
+      DocumentsContract.getTreeDocumentId(dirUri)
+    )
+
+    var hasReadPermission = false
+    var hasWritePermission = false
+
+    val foundTreeUriInPermitted = appContext.contentResolver.persistedUriPermissions.any { permission ->
+      if (permission.uri.toString() == treeUri.toString()) {
+        if (!permission.isReadPermission) {
+          Log.e(TAG, "SAF base directory ${treeUri} does not have read permission anymore!")
+        }
+
+        if (!permission.isWritePermission) {
+          Log.e(TAG, "SAF base directory ${treeUri} does not have write permission anymore!")
+        }
+
+        hasReadPermission = permission.isReadPermission
+        hasWritePermission = permission.isWritePermission
+
+        return@any true
+      }
+
+      return@any false
+    }
+
+    if (!foundTreeUriInPermitted) {
+      Log.e(TAG, "SAF base directory ${treeUri} has no permissions whatsoever anymore!")
+    }
+
+    return hasReadPermission && hasWritePermission
   }
 
   private fun checkConflictingPaths(baseDirectory: BaseDirectory) {

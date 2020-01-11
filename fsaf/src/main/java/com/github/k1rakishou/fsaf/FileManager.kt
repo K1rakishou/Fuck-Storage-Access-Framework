@@ -27,7 +27,7 @@ class FileManager(
   private val appContext: Context,
   private val badPathSymbolResolutionStrategy: BadPathSymbolResolutionStrategy =
     BadPathSymbolResolutionStrategy.ReplaceBadSymbols,
-  private val directoryManager: DirectoryManager = DirectoryManager()
+  private val directoryManager: DirectoryManager = DirectoryManager(appContext)
 ) : BaseFileManager {
   private val managers = mutableMapOf<FileManagerId, BaseFileManager>()
   private val externalFileManager: BaseFileManager = ExternalFileManager(
@@ -206,6 +206,11 @@ class FileManager(
 
         if (!SAFHelper.isTreeUri(baseDir)) {
           Log.e(TAG, "Not a tree uri ${baseDir.dirPath()}")
+          return null
+        }
+
+        if (!directoryManager.checkBaseDirSafStillHasPermissions(dirUri)) {
+          Log.e(TAG, "No permissions for base directory ${dirUri}")
           return null
         }
 

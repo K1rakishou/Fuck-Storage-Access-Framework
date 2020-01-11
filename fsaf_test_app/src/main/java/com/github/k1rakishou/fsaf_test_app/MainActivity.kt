@@ -92,7 +92,11 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
     }
 
     try {
-      val baseSAFDir = fileManager.newBaseDirectoryFile<TestBaseDirectory>()!!
+      val baseSAFDir = fileManager.newBaseDirectoryFile<TestBaseDirectory>()
+      if (baseSAFDir == null) {
+        throw NullPointerException("baseSAFDir is null!")
+      }
+
       val baseFileApiDir = fileManager.fromRawFile(
         File(getExternalFilesDir(DIRECTORY_DOWNLOADS), "test")
       )
