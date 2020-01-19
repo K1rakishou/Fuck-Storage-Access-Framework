@@ -23,7 +23,9 @@ open class DirectoryManager(
     // User may revoke permissions at any time so we need to check whether we still have them, and
     // if not then, for now, log it.
     baseDirectory.getDirUri()?.let { dirUri ->
-      checkBaseDirSafStillHasPermissions(dirUri)
+      if (dirUri.toString().isNotEmpty()) {
+        checkBaseDirSafStillHasPermissions(dirUri)
+      }
     }
 
     baseDirList[clazz as Class<BaseDirectory>] = baseDirectory
