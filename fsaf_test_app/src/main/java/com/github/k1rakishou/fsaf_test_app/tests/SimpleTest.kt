@@ -75,6 +75,20 @@ class SimpleTest(
     check(fileManager.getName(externalFile2) == "123_4_5_.txt") {
       "bad directory name after replacing bad symbols: ${fileManager.getName(externalFile2)}"
     }
+
+    val externalFile3 = fileManager.create(
+      externalFile,
+      DirectorySegment("test.dir"),
+      FileSegment("Kuroba-dev v4.10.2-a9551c9.apk")
+    )
+
+    if (externalFile3 == null || !fileManager.exists(externalFile3)) {
+      throw TestException("Couldn't create Kuroba-dev v4.10.2-a9551c9.apk file")
+    }
+
+    check(fileManager.getName(externalFile3) == "Kuroba-dev_v4.10.2-a9551c9.apk") {
+      "bad directory name after replacing bad symbols: ${fileManager.getName(externalFile3)}"
+    }
   }
 
   private fun test1(fileManager: FileManager, baseDir: AbstractFile) {
