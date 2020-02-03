@@ -1,4 +1,4 @@
-# Not WIP anymore but still pretty unstable. use at your own risk or if you just want to play around with it.
+# Not WIP anymore but still pretty unstable. Use at your own risk or if you just want to play around with it.
 # Fuck Storage Access Framework (FSAF)
 
 This library in under heavy development so it's not a good idea to use it yet. 
