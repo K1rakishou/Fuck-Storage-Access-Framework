@@ -3,26 +3,17 @@ package com.github.k1rakishou.fsaf.extensions
 import android.content.ContentResolver
 import android.net.Uri
 import android.webkit.MimeTypeMap
+import com.github.k1rakishou.fsaf.util.FSAFUtils
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
-import java.util.regex.Pattern
 
 internal const val BINARY_FILE_MIME_TYPE = "application/octet-stream"
 
 internal const val CONTENT_TYPE = "${ContentResolver.SCHEME_CONTENT}://"
 internal const val FILE_TYPE = "${ContentResolver.SCHEME_FILE}://"
 internal val uriTypes = arrayOf(CONTENT_TYPE, FILE_TYPE)
-
-/**
- * I've encountered at least 3 different types of separators
- * */
-internal const val ENCODED_SEPARATOR = "%2F"
-internal const val FILE_SEPARATOR1 = "/"
-internal const val FILE_SEPARATOR2 = "\\"
-
-private val SPLIT_PATTERN = Pattern.compile("%2F|/|\\\\")
 
 @Throws(IOException::class)
 internal fun InputStream.copyInto(outputStream: OutputStream) {
@@ -83,31 +74,7 @@ internal fun File.appendMany(segments: List<String>): File {
   return newFile
 }
 
-internal fun String.splitIntoSegments(): List<String> {
-  if (this.isEmpty()) {
-    return emptyList()
-  }
-
-  val uriType = uriTypes.firstOrNull { type -> this.startsWith(type) }
-  val string = if (uriType != null) {
-    this.substring(uriType.length, this.length)
-  } else {
-    this
-  }
-
-  return if (string.contains(FILE_SEPARATOR1)
-    || string.contains(FILE_SEPARATOR2)
-    || string.contains(ENCODED_SEPARATOR)
-  ) {
-    val split = string
-      .split(SPLIT_PATTERN)
-      .filter { name -> name.isNotBlank() }
-
-    split
-  } else {
-    listOf(string)
-  }
-}
+internal fun String.splitIntoSegments(): List<String> = FSAFUtils.splitIntoSegments(this)
 
 internal fun safeCapacity(list: List<*>, divider: Int = 2): Int {
   return if (list.size <= 1) {

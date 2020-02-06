@@ -2,10 +2,12 @@ package com.github.k1rakishou.fsaf.util
 
 import com.github.k1rakishou.fsaf.BadPathSymbolResolutionStrategy
 import com.github.k1rakishou.fsaf.extensions.safeCapacity
+import com.github.k1rakishou.fsaf.extensions.uriTypes
 import com.github.k1rakishou.fsaf.file.DirectorySegment
 import com.github.k1rakishou.fsaf.file.FileSegment
 import com.github.k1rakishou.fsaf.file.Segment
 import java.io.File
+import java.util.regex.Pattern
 
 
 internal object FSAFUtils {
@@ -21,6 +23,39 @@ internal object FSAFUtils {
    * */
   private const val BAD_SYMBOLS_REPLACEMENTS = "_"
 
+  /**
+   * I've encountered at least 3 different types of separators
+   * */
+  private const val ENCODED_SEPARATOR = "%2F"
+  private const val FILE_SEPARATOR1 = "/"
+  private const val FILE_SEPARATOR2 = "\\"
+  private val SPLIT_PATTERN = Pattern.compile("%2F|/|\\\\")
+
+  fun splitIntoSegments(path: String): List<String> {
+    if (path.isEmpty()) {
+      return emptyList()
+    }
+
+    val uriType = uriTypes.firstOrNull { type -> path.startsWith(type) }
+    val string = if (uriType != null) {
+      path.substring(uriType.length, path.length)
+    } else {
+      path
+    }
+
+    return if (string.contains(FILE_SEPARATOR1)
+      || string.contains(FILE_SEPARATOR2)
+      || string.contains(ENCODED_SEPARATOR)
+    ) {
+      val split = string
+        .split(SPLIT_PATTERN)
+        .filter { name -> name.isNotBlank() }
+
+      split
+    } else {
+      listOf(string)
+    }
+  }
 
   /**
    * Merges paths that are fully contained in other paths, e.g.:
