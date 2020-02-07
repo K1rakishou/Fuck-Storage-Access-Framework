@@ -312,11 +312,9 @@ class FileChooser(
 
     val contentResolver = appContext.contentResolver
     contentResolver.takePersistableUriPermission(uri, flags)
+    Log.d(TAG, "treeUri = ${uri}")
 
-    val treeUri = DocumentFile.fromTreeUri(appContext, uri)!!.uri
-    Log.d(TAG, "treeUri = ${treeUri}")
-
-    callback.onResult(treeUri)
+    callback.onResult(uri)
   }
 
   /**
