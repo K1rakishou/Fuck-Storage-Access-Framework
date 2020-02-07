@@ -27,6 +27,13 @@ class RawFileManager(
       }
 
       val rootFile = baseDir.getFileRoot<File>().holder
+      check(baseDir.getFullPath() == rootFile.absolutePath) {
+        "baseDir (${baseDir.getFullPath()}) != rootFile (${rootFile.absolutePath})"
+      }
+
+      check(!rootFile.exists()) {
+        "exists(baseDir) returned false, but rootFile (${rootFile.absolutePath}) actually exists!"
+      }
 
       // Hacky but there is no other way since there are no segments
       if (rootFile.name.extension() != null) {

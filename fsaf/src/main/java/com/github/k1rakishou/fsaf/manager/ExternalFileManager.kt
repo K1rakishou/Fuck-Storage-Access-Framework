@@ -87,7 +87,8 @@ class ExternalFileManager(
         return baseDir as ExternalFile
       }
 
-      throw IllegalStateException("create() Segments are empty")
+      throw IllegalStateException("create() Segments are empty and " +
+        "baseDir (${baseDir.getFullPath()}) does not exist")
     }
 
     var newFile: CachingDocumentFile? = null
@@ -147,7 +148,7 @@ class ExternalFileManager(
       }
 
       if (createdFile == null) {
-        Log.e(TAG, "create() DocumentFile.fromSingleUri returned null, directoryUri = ${newUri}")
+        Log.e(TAG, "create() Couldn't create DocumentFile out of uri, directoryUri = ${newUri}")
         return null
       }
 
