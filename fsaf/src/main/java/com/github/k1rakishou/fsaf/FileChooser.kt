@@ -96,7 +96,6 @@ class FileChooser(
     fsafActivityCallbacks?.let { callbacks ->
       val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
       intent.addFlags(
-        Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or
           Intent.FLAG_GRANT_READ_URI_PERMISSION or
           Intent.FLAG_GRANT_WRITE_URI_PERMISSION
       )
@@ -176,8 +175,6 @@ class FileChooser(
     }
 
     val read = (intent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION) != 0
-    val write = (intent.flags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != 0
-
     if (!read) {
       val msg = "handleFileCreateCallback() No grant read uri permission given"
 
@@ -186,6 +183,7 @@ class FileChooser(
       return
     }
 
+    val write = (intent.flags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != 0
     if (!write) {
       val msg = "handleFileCreateCallback() No grant write uri permission given"
 
@@ -228,8 +226,6 @@ class FileChooser(
     }
 
     val read = (intent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION) != 0
-    val write = (intent.flags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != 0
-
     if (!read) {
       val msg = "handleFileChooserCallback() No grant read uri permission given"
 
@@ -238,6 +234,7 @@ class FileChooser(
       return
     }
 
+    val write = (intent.flags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != 0
     if (!write) {
       val msg = "handleFileChooserCallback() No grant write uri permission given"
 
@@ -280,8 +277,6 @@ class FileChooser(
     }
 
     val read = (intent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION) != 0
-    val write = (intent.flags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != 0
-
     if (!read) {
       val msg = "handleDirectoryChooserCallback() No grant read uri permission given"
 
@@ -290,8 +285,18 @@ class FileChooser(
       return
     }
 
+    val write = (intent.flags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != 0
     if (!write) {
       val msg = "handleDirectoryChooserCallback() No grant write uri permission given"
+
+      Log.e(TAG, msg)
+      callback.onCancel(msg)
+      return
+    }
+
+    val persist = (intent.flags and Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION) != 0
+    if (!persist) {
+      val msg = "handleDirectoryChooserCallback() No grant persist uri permission given"
 
       Log.e(TAG, msg)
       callback.onCancel(msg)
