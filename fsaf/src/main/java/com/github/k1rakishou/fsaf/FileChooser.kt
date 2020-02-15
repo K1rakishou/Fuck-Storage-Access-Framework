@@ -44,6 +44,10 @@ class FileChooser(
           Intent.FLAG_GRANT_WRITE_URI_PERMISSION
       )
 
+      // Do not use any remote providers (dropbox/google drive/etc since they may not work correctly
+      // with ACTION_OPEN_DOCUMENT_TREE and persistable permissions)
+      intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
+
       val nextRequestCode = ++requestCode
       callbacksMap[nextRequestCode] = directoryChooserCallback as ChooserCallback
 
