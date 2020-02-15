@@ -18,7 +18,7 @@ class RawFileManager(
   override fun create(baseDir: AbstractFile, segments: List<Segment>): RawFile? {
     val root = baseDir.getFileRoot<File>()
     check(root !is Root.FileRoot) {
-      "create() root is already FileRoot, cannot append anything anymore"
+      "create() root is already FileRoot, cannot append anything anymore, root = ${root.holder.absolutePath}"
     }
 
     if (segments.isEmpty()) {
