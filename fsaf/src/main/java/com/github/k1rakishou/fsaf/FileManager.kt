@@ -823,10 +823,6 @@ class FileManager(
       return file.getFullPath().startsWith(dir.getFullPath())
     }
 
-    if (dir is ExternalFile && file is ExternalFile) {
-      return file.getFullPath().startsWith(dir.getFullPath())
-    }
-
     val (dirSegmentsPath, dirStorageId) = extractSegmentsPathAndStorageId(dir)
     val (fileSegmentsPath, fileStorageId) = extractSegmentsPathAndStorageId(file)
 
