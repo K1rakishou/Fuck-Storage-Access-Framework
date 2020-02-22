@@ -80,13 +80,6 @@ abstract class AbstractFile(
       }
 
       check(!isFilenameAppended()) { "Cannot append anything after file name has been appended" }
-
-      newSegments.forEachIndexed { index, segment ->
-        require(!(segment.name.extension() != null && index != newSegments.lastIndex)) {
-          "Only the last segment may have an extension, bad segment " +
-            "index = ${index}/${newSegments.lastIndex}, bad name = ${segment.name}"
-        }
-      }
     }
 
     return cloneInternal(
