@@ -268,8 +268,11 @@ at one go (in a huge batch) into a InMemory-Tree structure and do all the necess
 This is what snapshots are for.
 
 To create a directory snapshot use `FileManager.createSnapshot()` method. If you want to include 
-sub-directories into the snapshot as well use `includeSubDirs` parameter. After creating a snapshot
+sub-directories into the snapshot as well use `includeSubDirs` parameter. ~~After creating a snapshot
 you can do anything you want with it but after you are done with it DO NOT FORGET TO RELEASE IT by using
 `FileManager.releaseSnapshot()`. You need provide the same `AbstractFile` as the parameter which MUST BE a directory.
 Alternatively you may use `FileManager.withSnapshot()` which will release the snapshot automatically 
-for you.
+for you.~~ 
+
+^
++-- Not true anymore. You don't have to release the snapshot anymore since every snapshow is a separate self-contained object now so it can just be safely GCed.
