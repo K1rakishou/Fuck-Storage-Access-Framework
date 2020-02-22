@@ -35,9 +35,17 @@ class CreateFilesTest(
       throw TestException("Couldn't create directory")
     }
 
+    if (fileManager.create(dir1) == null) {
+      throw TestException("Couldn't create already existing directory")
+    }
+
     val dir2 = fileManager.createDir(baseDir, "test")
     if (dir2 == null || !fileManager.exists(dir2) || !fileManager.isDirectory(dir2)) {
       throw TestException("Couldn't create directory")
+    }
+
+    if (fileManager.create(dir2) == null) {
+      throw TestException("Couldn't create already existing directory")
     }
 
     val totalFiles = fileManager.listFiles(baseDir).size
