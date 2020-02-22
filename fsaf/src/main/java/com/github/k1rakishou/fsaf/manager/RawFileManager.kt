@@ -16,7 +16,7 @@ class RawFileManager(
 ) : BaseFileManager {
 
   override fun create(baseDir: AbstractFile): AbstractFile? {
-    return create(baseDir, emptyList())
+    return create(baseDir, baseDir.getFileSegments())
   }
 
   override fun create(baseDir: AbstractFile, segments: List<Segment>): RawFile? {

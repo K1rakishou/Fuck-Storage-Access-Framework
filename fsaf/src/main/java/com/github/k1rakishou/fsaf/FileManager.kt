@@ -328,7 +328,7 @@ class FileManager(
   }
 
   override fun create(baseDir: AbstractFile): AbstractFile? {
-    return create(baseDir, emptyList())
+    return create(baseDir, baseDir.getFileSegments())
   }
 
   fun create(baseDir: AbstractFile, vararg segments: Segment): AbstractFile? {

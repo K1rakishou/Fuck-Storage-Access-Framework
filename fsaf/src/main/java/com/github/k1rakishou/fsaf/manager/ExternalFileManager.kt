@@ -28,7 +28,7 @@ open class ExternalFileManager(
   private val mimeTypeMap = MimeTypeMap.getSingleton()
 
   override fun create(baseDir: AbstractFile): AbstractFile? {
-    return create(baseDir, emptyList())
+    return create(baseDir, baseDir.getFileSegments())
   }
 
   @Suppress("UNCHECKED_CAST")
