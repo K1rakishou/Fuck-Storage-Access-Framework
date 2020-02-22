@@ -260,7 +260,7 @@ object SAFHelper {
   }
 
   /**
-   * Same as above but preloads the whole directory. Used by [FileManager.snapshot]
+   * Same as above but preloads the whole directory.
    * */
   fun listFilesFast(
     appContext: Context,

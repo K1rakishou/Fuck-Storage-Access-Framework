@@ -7,9 +7,7 @@ import android.util.Log
 import android.webkit.MimeTypeMap
 import androidx.documentfile.provider.DocumentFile
 import com.github.k1rakishou.fsaf.BadPathSymbolResolutionStrategy
-import com.github.k1rakishou.fsaf.FastFileSearchTree
 import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
-import com.github.k1rakishou.fsaf.document_file.SnapshotDocumentFile
 import com.github.k1rakishou.fsaf.extensions.getMimeFromFilename
 import com.github.k1rakishou.fsaf.extensions.splitIntoSegments
 import com.github.k1rakishou.fsaf.file.*
@@ -22,58 +20,12 @@ import java.io.OutputStream
 /**
  * Provide an API to work with SAF files
  * */
-class ExternalFileManager(
-  private val appContext: Context,
-  private val badPathSymbolResolutionStrategy: BadPathSymbolResolutionStrategy,
+open class ExternalFileManager(
+  protected val appContext: Context,
+  protected val badPathSymbolResolutionStrategy: BadPathSymbolResolutionStrategy,
   private val directoryManager: DirectoryManager
 ) : BaseFileManager {
   private val mimeTypeMap = MimeTypeMap.getSingleton()
-  private val fastFileSearchTree: FastFileSearchTree<CachingDocumentFile> = FastFileSearchTree()
-
-  // For tests
-  fun getFastFileSearchTree() = fastFileSearchTree
-
-  /**
-   * Caches multiple files associated with their SnapshotDocumentFile into FastFileSearchTree
-   * */
-  fun cacheFiles(files: List<Pair<ExternalFile, SnapshotDocumentFile>>) {
-    for ((externalFile, snapshotDocFile) in files) {
-      cacheFile(externalFile, snapshotDocFile)
-    }
-  }
-
-  private fun cacheFile(
-    externalFile: ExternalFile,
-    snapshotDocFile: SnapshotDocumentFile
-  ) {
-    val segments = externalFile.getFullPath().splitIntoSegments()
-    if (segments.isEmpty()) {
-      Log.e(TAG, "cacheFile() splitIntoSegments() returned an empty list")
-      return
-    }
-
-    check(fastFileSearchTree.insertSegments(segments, snapshotDocFile)) {
-      "cacheFile() Couldn't insert new segments into the tree"
-    }
-  }
-
-  /**
-   * Removes a whole sub-tree from the FastFileSearchTree.
-   * Lets say there is a sub-tree "/1/2/3/<XXX>" which may contain a lot of cached files. After
-   * calling this method all of the <XXX> files will be removed from the FastFileSearchTree and
-   * only the "/1/2/3/" will be left
-   * */
-  fun uncacheFilesInSubTree(file: AbstractFile) {
-    val segments = file.getFullPath().splitIntoSegments()
-    if (segments.isEmpty()) {
-      Log.e(TAG, "uncacheFile.splitIntoSegments() returned empty list")
-      return
-    }
-
-    check(fastFileSearchTree.removeSegments(segments)) {
-      "uncacheFilesInSubTree() Couldn't remove sub-tree"
-    }
-  }
 
   @Suppress("UNCHECKED_CAST")
   override fun create(baseDir: AbstractFile, segments: List<Segment>): ExternalFile? {
@@ -219,16 +171,6 @@ class ExternalFileManager(
     val documentFile = toDocumentFile(file.clone())
       ?: return true
 
-    val segments = file
-      .toString()
-      .splitIntoSegments()
-    check(segments.isNotEmpty())
-
-    if (!fastFileSearchTree.removeSegments(segments)) {
-      Log.e(TAG, "delete(), Couldn't remove segments $segments from fastFileSearchTree")
-      return false
-    }
-
     return documentFile.delete()
   }
 
@@ -247,24 +189,13 @@ class ExternalFileManager(
       directoryManager.isBaseDir(documentFile)
     )
 
-    for (fileInDirectory in filesInDirectory) {
-      val segments = fileInDirectory.uri().toString().splitIntoSegments()
-
-      if (!fastFileSearchTree.removeSegments(segments)) {
-        Log.e(TAG, "deleteContent() Couldn't remove segments $segments from fastFileSearchTree")
-        return false
-      }
-    }
-
     // This may delete only some files and leave other but at least you will know that something
     // went wrong (just don't forget to check the result)
     return filesInDirectory.all { file -> file.delete() }
   }
 
   override fun getInputStream(file: AbstractFile): InputStream? {
-    val contentResolver = appContext.contentResolver
     val documentFile = toDocumentFile(file.clone())
-
     if (documentFile == null) {
       Log.e(TAG, "getInputStream() toDocumentFile() returned null")
       return null
@@ -285,13 +216,12 @@ class ExternalFileManager(
       return null
     }
 
+    val contentResolver = appContext.contentResolver
     return contentResolver.openInputStream(documentFile.uri())
   }
 
   override fun getOutputStream(file: AbstractFile): OutputStream? {
-    val contentResolver = appContext.contentResolver
     val documentFile = toDocumentFile(file.clone())
-
     if (documentFile == null) {
       Log.e(TAG, "getOutputStream() toDocumentFile() returned null")
       return null
@@ -312,6 +242,7 @@ class ExternalFileManager(
       return null
     }
 
+    val contentResolver = appContext.contentResolver
     return contentResolver.openOutputStream(documentFile.uri())
   }
 
@@ -380,7 +311,7 @@ class ExternalFileManager(
     )
   }
 
-  override fun getLength(file: AbstractFile): Long = toDocumentFile(file.clone())?.length() ?: -1L
+  override fun getLength(file: AbstractFile): Long = toDocumentFile(file.clone())?.length() ?: 0L
 
   override fun listFiles(dir: AbstractFile): List<ExternalFile> {
     val root = dir.getFileRoot<CachingDocumentFile>()
@@ -391,37 +322,12 @@ class ExternalFileManager(
 
     return SAFHelper.listFilesFast(appContext, docFile.uri(), directoryManager.isBaseDir(dir))
       .map { snapshotFile ->
-        val file = ExternalFile(
+        return@map ExternalFile(
           appContext,
           badPathSymbolResolutionStrategy,
           Root.DirRoot(snapshotFile)
         )
-
-        cacheFile(file, snapshotFile)
-        return@map file
       }
-  }
-
-  override fun listSnapshotFiles(dir: AbstractFile, recursively: Boolean): List<AbstractFile> {
-    val root = dir.getFileRoot<CachingDocumentFile>()
-    check(root !is Root.FileRoot) { "listSnapshotFiles() Cannot use listFiles with FileRoot" }
-
-    val resultList = ArrayList<SnapshotDocumentFile>(32)
-
-    fastFileSearchTree.visitEverySegmentAfterPath(
-      dir.getFullPath().splitIntoSegments(),
-      recursively
-    ) { node ->
-      node.getNodeValue()?.let { resultList += it as SnapshotDocumentFile}
-    }
-
-    return resultList.map { snapshotFile ->
-      ExternalFile(
-        appContext,
-        badPathSymbolResolutionStrategy,
-        Root.DirRoot(snapshotFile)
-      )
-    }
   }
 
   override fun lastModified(file: AbstractFile): Long {
@@ -447,15 +353,6 @@ class ExternalFileManager(
   }
 
   private fun toDocumentFile(file: AbstractFile): CachingDocumentFile? {
-    // First of all check whether we already have SnapshotDocumentFile in the Tree
-    val cachedFile = fastFileSearchTree.findSegment(
-      file.getFullPath().splitIntoSegments()
-    )
-
-    if (cachedFile != null) {
-      return cachedFile
-    }
-
     val segments = file.getFileSegments()
     if (segments.isEmpty()) {
       return file.getFileRoot<CachingDocumentFile>().holder
@@ -465,26 +362,12 @@ class ExternalFileManager(
       .holder
       .uri()
 
-    val notCachedFile = SAFHelper.findDeepFile(
+    return SAFHelper.findDeepFile(
       appContext,
       parentUri,
       segments,
       directoryManager
     )
-
-    if (notCachedFile != null) {
-      val result = fastFileSearchTree.insertSegments(
-        notCachedFile.uri().toString().splitIntoSegments(),
-        notCachedFile
-      )
-
-      check(result) {
-        "toDocumentFile() Something went wrong when trying to " +
-          "insert a new file into fastFileSearchTree"
-      }
-    }
-
-    return notCachedFile
   }
 
   private fun getParcelFileDescriptor(

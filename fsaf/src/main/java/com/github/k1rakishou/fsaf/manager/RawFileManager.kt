@@ -219,33 +219,6 @@ class RawFileManager(
       ?: emptyList()
   }
 
-  /**
-   * We do not support FastFileSearchTree for RawFile so this method just calls listFiles instead
-   * */
-  override fun listSnapshotFiles(dir: AbstractFile, recursively: Boolean): List<AbstractFile> {
-    if (!recursively) {
-      return listFiles(dir)
-    }
-
-    val resultFiles = ArrayList<AbstractFile>(32)
-    val files = listFiles(dir)
-    if (files.isEmpty()) {
-      return emptyList()
-    }
-
-    files.forEach { file ->
-      val jFile = toFile(file)
-
-      if (jFile.isDirectory) {
-        resultFiles += listSnapshotFiles(file, recursively)
-      } else {
-        resultFiles += file
-      }
-    }
-
-    return resultFiles
-  }
-
   override fun <T> withFileDescriptor(
     file: AbstractFile,
     fileDescriptorMode: FileDescriptorMode,

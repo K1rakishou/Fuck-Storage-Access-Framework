@@ -1,5 +1,6 @@
 package com.github.k1rakishou.fsaf
 
+import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
 import java.io.File
 
 /**
@@ -11,7 +12,7 @@ import java.io.File
  * Java File so it doesn't need this at all. That's because ExternalFile is really slow when you
  * want to search for many files.
  * */
-class FastFileSearchTree<T>(
+class FastFileSearchTree<T : CachingDocumentFile>(
   val root: FastFileSearchTreeNode<T> =
     FastFileSearchTreeNode(segmentName = FastFileSearchTreeNode.ROOT)
 ) {

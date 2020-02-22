@@ -15,6 +15,7 @@ import com.github.k1rakishou.fsaf.file.*
 import com.github.k1rakishou.fsaf.manager.BaseFileManager
 import com.github.k1rakishou.fsaf.manager.ExternalFileManager
 import com.github.k1rakishou.fsaf.manager.RawFileManager
+import com.github.k1rakishou.fsaf.manager.SnapshotFileManager
 import com.github.k1rakishou.fsaf.manager.base_directory.BaseDirectory
 import com.github.k1rakishou.fsaf.manager.base_directory.DirectoryManager
 import com.github.k1rakishou.fsaf.util.FSAFUtils
@@ -681,13 +682,6 @@ class FileManager(
       )
   }
 
-  override fun listSnapshotFiles(dir: AbstractFile, recursively: Boolean): List<AbstractFile> {
-    return managers[ExternalFile.FILE_MANAGER_ID]?.listSnapshotFiles(dir, recursively)
-      ?: throw NotImplementedError(
-        "Not implemented for ${dir.javaClass.name}, fileManagerId = ${dir.getFileManagerId()}"
-      )
-  }
-
   override fun lastModified(file: AbstractFile): Long {
     return managers[file.getFileManagerId()]?.lastModified(file)
       ?: throw NotImplementedError(
@@ -709,95 +703,50 @@ class FileManager(
     return manager.withFileDescriptor(file, fileDescriptorMode, func)
   }
 
-  @Suppress("UNCHECKED_CAST")
-  private fun combine(docFile: SnapshotDocumentFile): Pair<ExternalFile, SnapshotDocumentFile>? {
-    if (docFile.name() == null) {
-      return null
-    }
-
-    val root = if (docFile.isDirectory()) {
-      Root.DirRoot(docFile)
-    } else {
-      Root.FileRoot(docFile, docFile.name()!!)
-    }
-
-    return Pair(
-      ExternalFile(
-        appContext,
-        badPathSymbolResolutionStrategy,
-        root as Root<CachingDocumentFile>
-      ),
-      docFile
-    )
-  }
-
-  fun <T> withSnapshot(dir: AbstractFile, includeSubDirs: Boolean = false, func: () -> T?): T? {
-    createSnapshot(dir, includeSubDirs)
-
-    try {
-      return func()
-    } finally {
-      releaseSnapshot(dir)
-    }
-  }
 
   /**
-   * Manually create a snapshot of a directory (with sub directories if [includeSubDirs] is true).
+   * Manually creates a snapshot of a directory (with sub directories if [includeSubDirs] is true).
+   * A SnapshotFileManager will be returned which uses the same interface as the other FileManagers.
+   *
    * Snapshot is only created for ExternalFiles! RawFiles are not supported and snapshot won't be
-   * created. This method exists to make bulk Storage Access Framework operations faster!
+   * created (RawFileManager will be returned instead). This method exists to make bulk
+   * Storage Access Framework operations faster!
+   *
    * @note: In case of RawFile the Java File API will be used (instead of creating a snapshot) which
    * is pretty fast by itself. So no snapshot will be created in case of RawFile.
-   *
-   * !!!DON'T FORGET TO RELEASE THE SNAPSHOT ONCE YOU ARE DONE WITH IT!!!
-   * Or just use [withSnapshot] instead which does it for you.
-   *
-   * Usually you should just follow this scheme:
-   * You have a directory with lots of files and maybe even sub directories with their own files.
-   * You want to search for multiple files get their names, sizes check whether they exist or not.
-   * This is an ideal case for making a snapshot. It will load the whole directory with sub
-   * directories and files into memory pre-load all of the files properties (like size/name etc)
-   * so when you do some file operation (like exists()) it will be way faster than a normal
-   * operation non-snapshot operation. After you are done - release the snapshot or use
-   * [withSnapshot] which will do it for you.
    * */
-  fun createSnapshot(dir: AbstractFile, includeSubDirs: Boolean = false) {
+  fun createSnapshot(dir: AbstractFile, includeSubDirs: Boolean = false): BaseFileManager {
     require(isDirectory(dir)) { "dir is not a directory" }
 
-    if (dir is ExternalFile) {
-      val externalFileManager = getExternalFileManager()
-      val directories = arrayListOf<ExternalFile>().apply { ensureCapacity(16) }
+    if (dir !is ExternalFile) {
+      return rawFileManager
+    }
 
-      traverseDirectory(dir, includeSubDirs, TraverseMode.OnlyDirs) { file ->
-        directories += file as ExternalFile
-      }
+    val fastFileSearchTree = FastFileSearchTree<SnapshotDocumentFile>()
 
-      for (directory in directories) {
-        val parentUri = directory.getFileRoot<CachingDocumentFile>().holder.uri()
-        val isBaseDir = directoryManager.isBaseDir(directory)
+    // We only travers directories here because to get the  files we use SAFHelper.listFilesFast
+    // which is specifically designed to be used with Snapshots
+    traverseDirectory(dir, includeSubDirs, TraverseMode.OnlyDirs) { directory ->
+      val parentUri = directory.getFileRoot<CachingDocumentFile>().holder.uri()
+      val isBaseDir = directoryManager.isBaseDir(directory)
 
-        val documentFiles = SAFHelper.listFilesFast(appContext, parentUri, isBaseDir)
-        if (documentFiles.isNotEmpty()) {
-          val pairs = documentFiles.mapNotNull { docFile -> combine(docFile) }
-          externalFileManager.cacheFiles(pairs)
+      val documentFiles = SAFHelper.listFilesFast(appContext, parentUri, isBaseDir)
+      documentFiles.forEach { documentFile ->
+        val segments = documentFile.uri().toString().splitIntoSegments()
+
+        check(fastFileSearchTree.insertSegments(segments, documentFile)) {
+          "createSnapshot() Couldn't insert new segments (${segments}) " +
+            "into the tree for file (${documentFile.uri()})"
         }
       }
-    } else {
-      Log.d(TAG, "createSnapshot called for RawFile backed directory. Snapshot was not created.")
     }
-  }
 
-  /**
-   * Removes the whole sub tree from the FastFileSearchTree with all of the cached files
-   * */
-  fun releaseSnapshot(dir: AbstractFile) {
-    require(isDirectory(dir)) { "dir is not a directory" }
-
-    if (dir is ExternalFile) {
-      val externalFileManager = getExternalFileManager()
-      externalFileManager.uncacheFilesInSubTree(dir)
-    } else {
-      Log.d(TAG, "createSnapshot called for RawFile backed directory. Snapshot was not created.")
-    }
+    return SnapshotFileManager(
+      appContext,
+      badPathSymbolResolutionStrategy,
+      directoryManager,
+      fastFileSearchTree
+    )
   }
 
   /**

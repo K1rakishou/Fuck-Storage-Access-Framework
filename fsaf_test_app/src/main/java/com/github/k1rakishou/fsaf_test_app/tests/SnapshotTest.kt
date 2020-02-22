@@ -2,7 +2,6 @@ package com.github.k1rakishou.fsaf_test_app.tests
 
 import com.github.k1rakishou.fsaf.FileManager
 import com.github.k1rakishou.fsaf.file.AbstractFile
-import com.github.k1rakishou.fsaf_test_app.extensions.splitIntoSegments
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import kotlin.system.measureTimeMillis
@@ -33,49 +32,42 @@ class SnapshotTest(
 
     createFiles(fileManager, dir)
 
-    fileManager.withSnapshot(dir, true) {
-      val files = fileManager.listSnapshotFiles(dir, false)
+    val snapshotFileManager = fileManager.createSnapshot(dir, true)
+    val files = snapshotFileManager.listFiles(dir)
 
-      val tests = 10
-      for (i in 0 until tests) {
-        val time = measureTimeMillis {
-          for ((index, file) in files.withIndex()) {
-            val expectedName = "${index}.txt"
-            val actualName = fileManager.getName(file)
+    val tests = 10
+    for (i in 0 until tests) {
+      val time = measureTimeMillis {
+        for ((index, file) in files.withIndex()) {
+          val expectedName = "${index}.txt"
+          val actualName = fileManager.getName(file)
 
-            if (expectedName != actualName) {
-              throw TestException("Expected ${expectedName} but got ${actualName}")
-            }
+          if (expectedName != actualName) {
+            throw TestException("Expected ${expectedName} but got ${actualName}")
+          }
 
-            if (!fileManager.exists(file)) {
-              throw TestException("File ${file.getFullPath()} does not exist")
-            }
+          if (!fileManager.exists(file)) {
+            throw TestException("File ${file.getFullPath()} does not exist")
+          }
 
-            if (!fileManager.isFile(file)) {
-              throw TestException("File ${file.getFullPath()} is not a file")
-            }
+          if (!fileManager.isFile(file)) {
+            throw TestException("File ${file.getFullPath()} is not a file")
+          }
 
-            fileManager.getLength(file)
-            fileManager.lastModified(file)
+          fileManager.getLength(file)
+          fileManager.lastModified(file)
 
-            if (!fileManager.canRead(file)) {
-              throw TestException("Cannot read ${file.getFullPath()}")
-            }
+          if (!fileManager.canRead(file)) {
+            throw TestException("Cannot read ${file.getFullPath()}")
+          }
 
-            if (!fileManager.canWrite(file)) {
-              throw TestException("Cannot write to ${file.getFullPath()}")
-            }
+          if (!fileManager.canWrite(file)) {
+            throw TestException("Cannot write to ${file.getFullPath()}")
           }
         }
-
-        log("withSnapshot test ${i} out of $tests, time = ${time}ms")
       }
-    }
 
-    val segments = dir.getFullPath().splitIntoSegments()
-
-    if (fileManager.getExternalFileManager().getFastFileSearchTree().containsSegment(segments)) {
-      throw TestException("Node ${segments} still exists")
+      log("withSnapshot test ${i} out of $tests, time = ${time}ms")
     }
   }
 
