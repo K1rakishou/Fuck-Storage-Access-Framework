@@ -9,6 +9,8 @@ import java.io.OutputStream
 
 interface BaseFileManager {
 
+  fun create(baseDir: AbstractFile): AbstractFile?
+
   /**
    * Creates a new file that consists of the root directory and segments (sub dirs or the file name)
    * Behaves similarly to Java's mkdirs() method but work not only with directories but files as well.

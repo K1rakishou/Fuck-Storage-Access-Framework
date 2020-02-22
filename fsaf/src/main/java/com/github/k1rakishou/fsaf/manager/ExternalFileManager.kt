@@ -27,6 +27,10 @@ open class ExternalFileManager(
 ) : BaseFileManager {
   private val mimeTypeMap = MimeTypeMap.getSingleton()
 
+  override fun create(baseDir: AbstractFile): AbstractFile? {
+    return create(baseDir, emptyList())
+  }
+
   @Suppress("UNCHECKED_CAST")
   override fun create(baseDir: AbstractFile, segments: List<Segment>): ExternalFile? {
     val root = baseDir.getFileRoot<CachingDocumentFile>()
