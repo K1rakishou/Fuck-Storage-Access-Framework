@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment.DIRECTORY_DOWNLOADS
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.github.k1rakishou.fsaf.FileChooser
@@ -110,11 +111,20 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
 
       val message = "=== ALL TESTS HAVE PASSED ==="
       println(message)
-      Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+      showDialog(message)
     } catch (error: Throwable) {
       error.printStackTrace()
-      Toast.makeText(this, error.message ?: "Unknown error", Toast.LENGTH_SHORT).show()
+      showDialog(error.message ?: "Unknown error")
     }
+  }
+
+  private fun showDialog(message: String) {
+    val dialog = AlertDialog.Builder(this)
+      .setMessage(message)
+      .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
+      .create()
+
+    dialog.show()
   }
 
   private fun updateControls() {
