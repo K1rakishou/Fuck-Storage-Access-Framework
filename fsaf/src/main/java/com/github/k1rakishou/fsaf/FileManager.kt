@@ -253,6 +253,18 @@ class FileManager(
       return null
     }
 
+    if (!isDirectory(resultFile)) {
+      Log.e(TAG, "Base directory ${clazz} with path ${resultFile.getFullPath()} is not a directory!")
+      return null
+    }
+
+    if (resultFile is ExternalFile) {
+      if (resultFile.getFileRoot<CachingDocumentFile>().holder.isVirtual()) {
+        Log.e(TAG, "Base directory ${clazz} with path ${resultFile.getFullPath()} is a virtual file!")
+        return null
+      }
+    }
+
     return resultFile
   }
 

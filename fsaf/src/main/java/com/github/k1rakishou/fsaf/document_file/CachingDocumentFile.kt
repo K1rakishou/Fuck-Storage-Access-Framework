@@ -11,6 +11,7 @@ open class CachingDocumentFile(
   private var cachedExists: Boolean? = null
   private var cachedIsFile: Boolean? = null
   private var cachedIsDirectory: Boolean? = null
+  private var cachedIsVirtual: Boolean? = null
   private var cachedCanRead: Boolean? = null
   private var cachedCanWrite: Boolean? = null
   private var cachedName: String? = null
@@ -45,6 +46,16 @@ open class CachingDocumentFile(
 
     cachedIsDirectory = delegate.isDirectory
     return cachedIsDirectory!!
+  }
+
+  @Synchronized
+  open fun isVirtual(): Boolean {
+    if (cachedIsVirtual != null) {
+      return cachedIsVirtual!!
+    }
+
+    cachedIsVirtual = delegate.isVirtual
+    return cachedIsVirtual!!
   }
 
   @Synchronized

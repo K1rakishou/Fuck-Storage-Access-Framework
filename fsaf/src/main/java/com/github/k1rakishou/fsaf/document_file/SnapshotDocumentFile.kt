@@ -3,6 +3,7 @@ package com.github.k1rakishou.fsaf.document_file
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.provider.DocumentsContract
 import android.text.TextUtils
 import androidx.documentfile.provider.DocumentFile
@@ -26,6 +27,14 @@ class SnapshotDocumentFile(
 
   override fun isDirectory(): Boolean {
     return DocumentsContract.Document.MIME_TYPE_DIR == fileMimeType
+  }
+
+  override fun isVirtual(): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+      return false
+    }
+
+    return fileFlags and DocumentsContract.Document.FLAG_VIRTUAL_DOCUMENT != 0
   }
 
   override fun canRead(): Boolean {
