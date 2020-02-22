@@ -1,12 +1,14 @@
 package com.github.k1rakishou.fsaf_test_app.tests
 
+import android.content.Context
 import com.github.k1rakishou.fsaf.FileManager
 import com.github.k1rakishou.fsaf.file.AbstractFile
 import com.github.k1rakishou.fsaf_test_app.TestBaseDirectory
 import kotlin.system.measureTimeMillis
 
 class TestSuite(
-  private val fileManager: FileManager
+  private val fileManager: FileManager,
+  private val context: Context
 ) {
   private val TAG = "TestSuite"
 
@@ -50,7 +52,7 @@ class TestSuite(
     val time = measureTimeMillis {
       SimpleTest("$TAG SimpleTest").runTests(fileManager, baseDirSAF)
       CreateFilesTest("$TAG CreateFilesTest").runTests(fileManager, baseDirSAF)
-      SnapshotTest("$TAG SnapshotTest").runTests(fileManager, baseDirSAF)
+      SnapshotTest(context, "$TAG SnapshotTest").runTests(fileManager, baseDirSAF)
       DeleteTest("$TAG DeleteTest").runTests(fileManager, baseDirSAF)
       CopyTest("$TAG CopyTest").runTests(
         fileManager,
@@ -71,7 +73,7 @@ class TestSuite(
     val time = measureTimeMillis {
       SimpleTest("$TAG SimpleTest").runTests(fileManager, baseDirFile)
       CreateFilesTest("$TAG CreateFilesTest").runTests(fileManager, baseDirFile)
-      SnapshotTest("$TAG SnapshotTest").runTests(fileManager, baseDirFile)
+      SnapshotTest(context, "$TAG SnapshotTest").runTests(fileManager, baseDirFile)
       DeleteTest("$TAG DeleteTest").runTests(fileManager, baseDirFile)
       CopyTest("$TAG CopyTest").runTests(
         fileManager,

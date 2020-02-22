@@ -7,7 +7,6 @@ import android.provider.DocumentsContract
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
-import com.github.k1rakishou.fsaf.document_file.SnapshotDocumentFile
 import com.github.k1rakishou.fsaf.extensions.copyInto
 import com.github.k1rakishou.fsaf.extensions.extension
 import com.github.k1rakishou.fsaf.extensions.splitIntoSegments
@@ -738,7 +737,7 @@ class FileManager(
       return rawFileManager
     }
 
-    val fastFileSearchTree = FastFileSearchTree<SnapshotDocumentFile>()
+    val fastFileSearchTree = FastFileSearchTree<CachingDocumentFile>()
 
     // We only travers directories here because to get the  files we use SAFHelper.listFilesFast
     // which is specifically designed to be used with Snapshots

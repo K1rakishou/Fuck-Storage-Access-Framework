@@ -43,7 +43,7 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
 
     fileManager = FileManager(applicationContext)
     fileChooser = FileChooser(applicationContext)
-    testSuite = TestSuite(fileManager)
+    testSuite = TestSuite(fileManager, this)
     fileChooser.setCallbacks(this)
 
     if (getTreeUri() != null) {

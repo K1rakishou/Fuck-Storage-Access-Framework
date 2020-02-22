@@ -5,11 +5,11 @@ import android.util.Log
 import com.github.k1rakishou.fsaf.BadPathSymbolResolutionStrategy
 import com.github.k1rakishou.fsaf.FastFileSearchTree
 import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
-import com.github.k1rakishou.fsaf.document_file.SnapshotDocumentFile
 import com.github.k1rakishou.fsaf.extensions.splitIntoSegments
 import com.github.k1rakishou.fsaf.file.AbstractFile
 import com.github.k1rakishou.fsaf.file.ExternalFile
 import com.github.k1rakishou.fsaf.file.Root
+import com.github.k1rakishou.fsaf.file.Segment
 import com.github.k1rakishou.fsaf.manager.base_directory.DirectoryManager
 import java.io.InputStream
 import java.io.OutputStream
@@ -18,8 +18,36 @@ class SnapshotFileManager(
   appContext: Context,
   badPathSymbolResolutionStrategy: BadPathSymbolResolutionStrategy,
   directoryManager: DirectoryManager,
-  private val fastFileSearchTree: FastFileSearchTree<SnapshotDocumentFile>
+  private val fastFileSearchTree: FastFileSearchTree<CachingDocumentFile>
 ) : ExternalFileManager(appContext, badPathSymbolResolutionStrategy, directoryManager) {
+
+  override fun create(baseDir: AbstractFile): AbstractFile? {
+    val createdFile = super.create(baseDir)
+    if (createdFile != null) {
+      val result = fastFileSearchTree.insertSegments(
+        createdFile.extractSegments(),
+        createdFile.getFileRoot<CachingDocumentFile>().holder
+      )
+
+      check(result) { "Couldn't insert ${createdFile.getFullPath()} into fastFileSearchTree" }
+    }
+
+    return createdFile
+  }
+
+  override fun create(baseDir: AbstractFile, segments: List<Segment>): ExternalFile? {
+    val createdFile = super.create(baseDir, segments)
+    if (createdFile != null) {
+      val result = fastFileSearchTree.insertSegments(
+        createdFile.extractSegments(),
+        createdFile.getFileRoot<CachingDocumentFile>().holder
+      )
+
+      check(result) { "Couldn't insert ${createdFile.getFullPath()} into fastFileSearchTree" }
+    }
+
+    return createdFile
+  }
 
   override fun exists(file: AbstractFile): Boolean {
     return fastFileSearchTree.findSegment(file.extractSegments())?.exists() ?: false
@@ -46,7 +74,12 @@ class SnapshotFileManager(
   }
 
   override fun delete(file: AbstractFile): Boolean {
-    return fastFileSearchTree.findSegment(file.extractSegments())?.delete() ?: false
+    val result = fastFileSearchTree.findSegment(file.extractSegments())?.delete() ?: false
+    check(fastFileSearchTree.removeSegments(file.extractSegments())) {
+      "Couldn't remove ${file.getFullPath()} from fastFileSearchTree"
+    }
+
+    return result
   }
 
   override fun deleteContent(dir: AbstractFile): Boolean {
@@ -67,9 +100,17 @@ class SnapshotFileManager(
     var allSuccess = false
 
     fastFileSearchTree.visitEverySegmentAfterPath(getSegmentNames(dir), true) { node ->
-      val success = node.getNodeValue()?.delete() ?: true
+      val file = node.getNodeValue()
+      val success = file?.delete() ?: true
+
       if (!success) {
         allSuccess = false
+      } else if (file != null) {
+        val segments = file.uri().toString().splitIntoSegments()
+
+        check(fastFileSearchTree.removeSegments(segments)) {
+          "Couldn't remove ${file.uri()} from fastFileSearchTree"
+        }
       }
     }
 
@@ -140,9 +181,9 @@ class SnapshotFileManager(
       ?: return null
 
     val innerRoot = if (cachedFile.isFile()) {
-      Root.FileRoot(cachedFile as CachingDocumentFile, cachedFile.name()!!)
+      Root.FileRoot(cachedFile, cachedFile.name()!!)
     } else {
-      Root.DirRoot(cachedFile as CachingDocumentFile)
+      Root.DirRoot(cachedFile)
     }
 
     return ExternalFile(
@@ -162,9 +203,9 @@ class SnapshotFileManager(
     fastFileSearchTree.visitEverySegmentAfterPath(getSegmentNames(dir), false) { node ->
       node.getNodeValue()?.let { cachedFile ->
         val innerRoot = if (cachedFile.isFile()) {
-          Root.FileRoot(cachedFile as CachingDocumentFile, cachedFile.name()!!)
+          Root.FileRoot(cachedFile, cachedFile.name()!!)
         } else {
-          Root.DirRoot(cachedFile as CachingDocumentFile)
+          Root.DirRoot(cachedFile)
         }
 
         files += ExternalFile(

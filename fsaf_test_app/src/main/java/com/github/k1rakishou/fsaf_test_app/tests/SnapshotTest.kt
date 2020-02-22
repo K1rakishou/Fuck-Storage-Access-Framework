@@ -1,12 +1,20 @@
 package com.github.k1rakishou.fsaf_test_app.tests
 
+import android.content.Context
+import androidx.documentfile.provider.DocumentFile
 import com.github.k1rakishou.fsaf.FileManager
+import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
 import com.github.k1rakishou.fsaf.file.AbstractFile
+import com.github.k1rakishou.fsaf.file.DirectorySegment
+import com.github.k1rakishou.fsaf.file.ExternalFile
+import com.github.k1rakishou.fsaf.file.FileSegment
 import java.io.DataInputStream
 import java.io.DataOutputStream
+import java.io.File
 import kotlin.system.measureTimeMillis
 
 class SnapshotTest(
+  private val context: Context,
   tag: String
 ) : BaseTest(tag) {
 
@@ -18,6 +26,64 @@ class SnapshotTest(
 
       log("test1 took ${time}ms")
     }
+
+    runTest(fileManager, baseDir) {
+      val time = measureTimeMillis {
+        test2(fileManager, baseDir)
+      }
+
+      log("test2 took ${time}ms")
+    }
+  }
+
+  private fun test2(fileManager: FileManager, baseDir: AbstractFile) {
+    val snapshotFileManager = fileManager.createSnapshot(baseDir, true)
+    val testString = "test string"
+
+    snapshotFileManager.create(baseDir, listOf(DirectorySegment("123")))!!.also { innerDir1 ->
+      snapshotFileManager.create(innerDir1, listOf(FileSegment("test.txt")))!!.also { file ->
+        check(snapshotFileManager.canRead(file)) { "cannot read ${file.getFullPath()}" }
+        check(snapshotFileManager.canWrite(file)) { "cannot write to ${file.getFullPath()}" }
+        check(snapshotFileManager.isFile(file)) { "file ${file.getFullPath()} is not a file" }
+        check(!snapshotFileManager.isDirectory(file)) { "file ${file.getFullPath()} is a directory" }
+
+        snapshotFileManager.getOutputStream(file)!!.use { stream ->
+          DataOutputStream(stream).use { dos ->
+            dos.writeUTF(testString)
+          }
+        }
+
+        snapshotFileManager.getInputStream(file)!!.use { stream ->
+          DataInputStream(stream).use { dis ->
+            val actual = dis.readUTF()
+
+            check(actual == testString) { "Expected to read ${testString} but actual is $actual" }
+          }
+        }
+
+        check(snapshotFileManager.delete(file)) { "Couldn't delete ${file.getFullPath()}" }
+
+        if (baseDir is ExternalFile) {
+          DocumentFile.fromSingleUri(
+            context,
+            file.getFileRoot<CachingDocumentFile>().holder.uri()
+          )!!.also { documentFile ->
+            check(!documentFile.exists()) { "file ${file.getFullPath()} still exists" }
+          }
+        } else {
+          file.getFileRoot<File>().holder.also { jFile ->
+            check(!jFile.exists()) { "file ${jFile.absolutePath} still exists" }
+          }
+        }
+
+        check(!snapshotFileManager.exists(file)) { "file ${file.getFullPath()} still exists" }
+      }
+
+      check(snapshotFileManager.delete(innerDir1)) { "Couldn't delete ${innerDir1.getFullPath()}" }
+      check(!snapshotFileManager.exists(innerDir1)) { "directory ${innerDir1} still exists" }
+    }
+
+    check(fileManager.exists(baseDir)) { "BaseDir was deleted during test!" }
   }
 
   private fun test1(fileManager: FileManager, baseDir: AbstractFile) {
