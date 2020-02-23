@@ -10,7 +10,7 @@ import java.io.File
 import java.util.regex.Pattern
 
 
-internal object FSAFUtils {
+object FSAFUtils {
 
   /**
    * Only spaces for now since SAF will crash if you try to pass a file or directory name with
@@ -67,7 +67,7 @@ internal object FSAFUtils {
    * or
    * "/123/456" and "/123" -> "/123/456"
    * */
-  fun mergePaths(pathList: List<String>): List<String> {
+  internal fun mergePaths(pathList: List<String>): List<String> {
     if (pathList.isEmpty()) {
       return emptyList()
     }
@@ -111,7 +111,7 @@ internal object FSAFUtils {
   /**
    * Deletes all of the directory's contents and the directory itself if [deleteRootDir] is true
    * */
-  fun deleteDirectory(directory: File, deleteRootDir: Boolean, depth: Int = 0): Boolean {
+  internal fun deleteDirectory(directory: File, deleteRootDir: Boolean, depth: Int = 0): Boolean {
     if (!directory.isDirectory) {
       return false
     }
@@ -138,7 +138,7 @@ internal object FSAFUtils {
     return true
   }
 
-  fun checkBadSymbolsAndApplyResolutionStrategy(
+  internal fun checkBadSymbolsAndApplyResolutionStrategy(
     badSymbolResolutionStrategy: BadPathSymbolResolutionStrategy,
     segments: List<Segment>
   ): List<Segment> {
@@ -161,7 +161,7 @@ internal object FSAFUtils {
    * them or throws an exception). The default behavior is to replace all bad symbols with their
    * replacements (see [BAD_SYMBOLS_REPLACEMENTS])
    * */
-  fun checkBadSymbolsAndApplyResolutionStrategy(
+  internal fun checkBadSymbolsAndApplyResolutionStrategy(
     badSymbolResolutionStrategy: BadPathSymbolResolutionStrategy,
     inputString: String
   ): String {
