@@ -793,7 +793,37 @@ class FileManager(
     }
 
     if (dir is RawFile && file is RawFile) {
-      return file.getFullPath().startsWith(dir.getFullPath())
+      val dirFullPath = dir.getFullPath()
+      val fileFullPath = file.getFullPath()
+
+      val dirSegments = dirFullPath.splitIntoSegments()
+      val fileSegments = fileFullPath.splitIntoSegments()
+
+      when {
+        // false
+        // dir = "/storage/emulated/0/Kuroba-dev/files/files2"
+        // file = "/storage/emulated/0/Kuroba-dev/test123.txt"
+        fileSegments.size < dirSegments.size -> return false
+
+        // false
+        // dir = "/storage/emulated/0/Kuroba-dev/files"
+        // file = "/storage/emulated/0/Kuroba-dev/files_new"
+
+        // false
+        // dir = "/storage/emulated/0/Kuroba-dev/files/files2"
+        // file = "/storage/emulated/0/Kuroba-dev/files/test123.txt"
+
+        // dir = "/storage/emulated/0/Kuroba-dev/files"
+        // file = "/storage/emulated/0/Kuroba-dev/files"
+        fileSegments.size == dirSegments.size -> return false
+
+        // true
+        // dir = "/storage/emulated/0/Kuroba-dev/files/files2"
+        // file = "/storage/emulated/0/Kuroba-dev/files/files2/test123.txt"
+        fileSegments.size > dirSegments.size -> {
+          return fileFullPath.startsWith(dirFullPath)
+        }
+      }
     }
 
     val (dirSegmentsPath, dirStorageId) = extractSegmentsPathAndStorageId(dir)
