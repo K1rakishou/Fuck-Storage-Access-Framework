@@ -262,6 +262,39 @@ open class ExternalFileManager(
     return documentFile.name()
   }
 
+  override fun flattenSegments(file: AbstractFile): AbstractFile? {
+    val segments = file.getFileSegments()
+    if (segments.isEmpty()) {
+      // File already has no segments, nothing to do
+      return file
+    }
+
+    val parentUri = file.getFileRoot<CachingDocumentFile>().holder.uri()
+
+    val snapshotDocumentFile = SAFHelper.findDeepFile(
+      appContext,
+      parentUri,
+      segments,
+      directoryManager
+    ) as? CachingDocumentFile
+
+    if (snapshotDocumentFile == null) {
+      return null
+    }
+
+    val innerRoot = if (snapshotDocumentFile.isFile()) {
+      Root.FileRoot(snapshotDocumentFile, snapshotDocumentFile.name()!!)
+    } else {
+      Root.DirRoot(snapshotDocumentFile)
+    }
+
+    return ExternalFile(
+      appContext,
+      badPathSymbolResolutionStrategy,
+      innerRoot
+    )
+  }
+
   override fun findFile(dir: AbstractFile, fileName: String): ExternalFile? {
     val root = dir.getFileRoot<CachingDocumentFile>()
     val segments = dir.getFileSegments()

@@ -176,6 +176,24 @@ class RawFileManager(
     return toFile(file.clone()).name
   }
 
+  override fun flattenSegments(file: AbstractFile): AbstractFile? {
+    val resultFile = File(file.getFullPath())
+    if (!resultFile.exists()) {
+      return null
+    }
+
+    val newRoot = if (resultFile.isFile) {
+      Root.FileRoot(resultFile, resultFile.name)
+    } else {
+      Root.DirRoot(resultFile)
+    }
+
+    return RawFile(
+      newRoot,
+      badPathSymbolResolutionStrategy
+    )
+  }
+
   override fun findFile(dir: AbstractFile, fileName: String): RawFile? {
     val root = dir.getFileRoot<File>()
     val segments = dir.getFileSegments()

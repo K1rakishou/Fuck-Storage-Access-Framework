@@ -12,8 +12,6 @@ class TestSuite(
 ) {
   private val TAG = "TestSuite"
 
-  // TODO: findFile tests with dir and file
-
   fun runTests(baseDirSAF: AbstractFile, baseDirFile: AbstractFile) {
     try {
       println("$TAG =============== START TESTS ===============")
@@ -50,16 +48,17 @@ class TestSuite(
     baseDirFile: AbstractFile
   ) {
     val time = measureTimeMillis {
-      SimpleTest("$TAG SimpleTest").runTests(fileManager, baseDirSAF)
-      CreateFilesTest("$TAG CreateFilesTest").runTests(fileManager, baseDirSAF)
-      SnapshotTest(context, "$TAG SnapshotTest").runTests(fileManager, baseDirSAF)
-      DeleteTest("$TAG DeleteTest").runTests(fileManager, baseDirSAF)
-      CopyTest("$TAG CopyTest").runTests(
+      SimpleTest("$TAG(SAF) SimpleTest").runTests(fileManager, baseDirSAF)
+      CreateFilesTest("$TAG(SAF) CreateFilesTest").runTests(fileManager, baseDirSAF)
+      SnapshotTest(context, "$TAG(SAF) SnapshotTest").runTests(fileManager, baseDirSAF)
+      DeleteTest("$TAG(SAF) DeleteTest").runTests(fileManager, baseDirSAF)
+      CopyTest("$TAG(SAF) CopyTest").runTests(
         fileManager,
         baseDirSAF,
         baseDirFile,
         CopyTestType.FromSafDirToRegularDir
       )
+      FindTests("$TAG(SAF) FindTests").runTests(fileManager, baseDirSAF)
     }
 
     println("$TAG runTestsWithSAFFiles took ${time}ms")
@@ -71,16 +70,17 @@ class TestSuite(
     baseDirFile: AbstractFile
   ) {
     val time = measureTimeMillis {
-      SimpleTest("$TAG SimpleTest").runTests(fileManager, baseDirFile)
-      CreateFilesTest("$TAG CreateFilesTest").runTests(fileManager, baseDirFile)
-      SnapshotTest(context, "$TAG SnapshotTest").runTests(fileManager, baseDirFile)
-      DeleteTest("$TAG DeleteTest").runTests(fileManager, baseDirFile)
-      CopyTest("$TAG CopyTest").runTests(
+      SimpleTest("$TAG(Java) SimpleTest").runTests(fileManager, baseDirFile)
+      CreateFilesTest("$TAG(Java) CreateFilesTest").runTests(fileManager, baseDirFile)
+      SnapshotTest(context, "$TAG(Java) SnapshotTest").runTests(fileManager, baseDirFile)
+      DeleteTest("$TAG(Java) DeleteTest").runTests(fileManager, baseDirFile)
+      CopyTest("$TAG(Java) CopyTest").runTests(
         fileManager,
         baseDirFile,
         baseDirSAF,
         CopyTestType.FromRegularDitToSafDir
       )
+      FindTests("$TAG(Java) FindTests").runTests(fileManager, baseDirFile)
     }
 
     println("$TAG runTestsWithJavaFiles took ${time}ms")

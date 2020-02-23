@@ -75,6 +75,19 @@ interface BaseFileManager {
   fun getName(file: AbstractFile): String?
 
   /**
+   * AbstractFile may contain multiple segments internally (e.g. a file that is deep inside the
+   * directory structure). When using a file with multiple segments with such operators like
+   * [getLength], [canRead], [canWrite], [getName] etc, a [findFile] is applied to every intermediate
+   * segment sequentially. This slows the speed down by a lot. To avoid the speed slow downs you should
+   * get rid of those segments by using [flattenSegments]. It will attempt to find a file
+   * inside the directory structure and return that file back. The returned file will not have any
+   * segments so all of the aforementioned operators will be executed way faster because [findFile]
+   * won't have to be used for every intermediate segment anymore. If the file does not exist on the
+   * disk null will be returned.
+   * */
+  fun flattenSegments(file: AbstractFile): AbstractFile?
+
+  /**
    * Searches for a file with name [fileName] inside this directory
    * */
   fun findFile(dir: AbstractFile, fileName: String): AbstractFile?

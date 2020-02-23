@@ -175,6 +175,28 @@ class SnapshotFileManager(
     return fastFileSearchTree.findSegment(file.extractSegments())?.name()
   }
 
+  override fun flattenSegments(file: AbstractFile): AbstractFile? {
+    val segments = file.extractSegments()
+    if (segments.isEmpty()) {
+      return file
+    }
+
+    val cachedFile = fastFileSearchTree.findSegment(segments)
+      ?: return null
+
+    val innerRoot = if (cachedFile.isFile()) {
+      Root.FileRoot(cachedFile, cachedFile.name()!!)
+    } else {
+      Root.DirRoot(cachedFile)
+    }
+
+    return ExternalFile(
+      appContext,
+      badPathSymbolResolutionStrategy,
+      innerRoot
+    )
+  }
+
   override fun findFile(dir: AbstractFile, fileName: String): ExternalFile? {
     val segments = dir.extractSegments() + fileName
     val cachedFile = fastFileSearchTree.findSegment(segments)

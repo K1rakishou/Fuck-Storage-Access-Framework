@@ -674,6 +674,15 @@ class FileManager(
       )
   }
 
+  override fun flattenSegments(file: AbstractFile): AbstractFile? {
+    val manager = managers[file.getFileManagerId()]
+      ?: throw NotImplementedError(
+        "Not implemented for ${file.javaClass.name}, fileManagerId = ${file.getFileManagerId()}"
+      )
+
+    return manager.flattenSegments(file)
+  }
+
   override fun findFile(dir: AbstractFile, fileName: String): AbstractFile? {
     val manager = managers[dir.getFileManagerId()]
       ?: throw NotImplementedError(
