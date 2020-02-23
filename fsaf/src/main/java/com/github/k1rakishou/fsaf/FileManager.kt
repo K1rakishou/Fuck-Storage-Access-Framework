@@ -799,41 +799,52 @@ class FileManager(
       val dirSegments = dirFullPath.splitIntoSegments()
       val fileSegments = fileFullPath.splitIntoSegments()
 
-      when {
-        // false
-        // dir = "/storage/emulated/0/Kuroba-dev/files/files2"
-        // file = "/storage/emulated/0/Kuroba-dev/test123.txt"
-        fileSegments.size < dirSegments.size -> return false
+      return compareSegments(dirFullPath, dirSegments, fileFullPath, fileSegments)
+    } else {
 
-        // false
-        // dir = "/storage/emulated/0/Kuroba-dev/files"
-        // file = "/storage/emulated/0/Kuroba-dev/files_new"
+      val (dirSegmentsPath, dirStorageId) = extractSegmentsPathAndStorageId(dir)
+      val (fileSegmentsPath, fileStorageId) = extractSegmentsPathAndStorageId(file)
 
-        // false
-        // dir = "/storage/emulated/0/Kuroba-dev/files/files2"
-        // file = "/storage/emulated/0/Kuroba-dev/files/test123.txt"
-
-        // dir = "/storage/emulated/0/Kuroba-dev/files"
-        // file = "/storage/emulated/0/Kuroba-dev/files"
-        fileSegments.size == dirSegments.size -> return false
-
-        // true
-        // dir = "/storage/emulated/0/Kuroba-dev/files/files2"
-        // file = "/storage/emulated/0/Kuroba-dev/files/files2/test123.txt"
-        fileSegments.size > dirSegments.size -> {
-          return fileFullPath.startsWith(dirFullPath)
-        }
+      if (dirStorageId != fileStorageId) {
+        return false
       }
+
+      val dirSegments = dirSegmentsPath.splitIntoSegments()
+      val fileSegments = fileSegmentsPath.splitIntoSegments()
+
+      return compareSegments(dirSegmentsPath, dirSegments, fileSegmentsPath, fileSegments)
     }
+  }
 
-    val (dirSegmentsPath, dirStorageId) = extractSegmentsPathAndStorageId(dir)
-    val (fileSegmentsPath, fileStorageId) = extractSegmentsPathAndStorageId(file)
+  private fun compareSegments(
+    dirFullPath: String,
+    dirSegments: List<String>,
+    fileFullPath: String,
+    fileSegments: List<String>
+  ): Boolean {
+    when {
+      // false
+      // dir = "Kuroba-dev/files/files2"
+      // file = "Kuroba-dev/test123.txt"
+      fileSegments.size < dirSegments.size -> return false
 
-    if (dirStorageId != fileStorageId) {
-      return false
+      // false
+      // dir = "Kuroba-dev/files"
+      // file = "Kuroba-dev/files_new"
+
+      // false
+      // dir = "Kuroba-dev/files/files2"
+      // file = "Kuroba-dev/files/test123.txt"
+
+      // dir = "Kuroba-dev/files"
+      // file = "Kuroba-dev/files"
+      fileSegments.size == dirSegments.size -> return false
+
+      // true
+      // dir = "/storage/emulated/0/Kuroba-dev/files/files2"
+      // file = "/storage/emulated/0/Kuroba-dev/files/files2/test123.txt"
+      else -> return fileFullPath.startsWith(dirFullPath)
     }
-
-    return fileSegmentsPath.startsWith(dirSegmentsPath)
   }
 
   /**
