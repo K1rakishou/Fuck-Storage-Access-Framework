@@ -31,6 +31,7 @@ internal object FSAFUtils {
   private const val FILE_SEPARATOR2 = "\\"
   private val SPLIT_PATTERN = Pattern.compile("%2F|/|\\\\")
 
+  @JvmStatic
   fun splitIntoSegments(path: String): List<String> {
     if (path.isEmpty()) {
       return emptyList()
