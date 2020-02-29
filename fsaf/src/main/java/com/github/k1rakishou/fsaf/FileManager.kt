@@ -585,10 +585,8 @@ class FileManager(
             }
           }
         }
-        else -> throw IllegalArgumentException(
-          "traverseMode does not include neither dirs nor files, " +
-            "traverseMode = ${traverseMode.name}"
-        )
+        else -> Log.e(TAG, "file (${file.getFullPath()}) is neither a file nor a directory " +
+          "(exists = ${exists(file)}")
       }
     }
   }
