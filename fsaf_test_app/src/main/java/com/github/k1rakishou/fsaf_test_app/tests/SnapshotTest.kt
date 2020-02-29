@@ -1,16 +1,12 @@
 package com.github.k1rakishou.fsaf_test_app.tests
 
 import android.content.Context
-import androidx.documentfile.provider.DocumentFile
 import com.github.k1rakishou.fsaf.FileManager
-import com.github.k1rakishou.fsaf.document_file.CachingDocumentFile
 import com.github.k1rakishou.fsaf.file.AbstractFile
 import com.github.k1rakishou.fsaf.file.DirectorySegment
-import com.github.k1rakishou.fsaf.file.ExternalFile
 import com.github.k1rakishou.fsaf.file.FileSegment
 import java.io.DataInputStream
 import java.io.DataOutputStream
-import java.io.File
 import kotlin.system.measureTimeMillis
 
 class SnapshotTest(
@@ -62,20 +58,6 @@ class SnapshotTest(
         }
 
         check(snapshotFileManager.delete(file)) { "Couldn't delete ${file.getFullPath()}" }
-
-        if (baseDir is ExternalFile) {
-          DocumentFile.fromSingleUri(
-            context,
-            file.getFileRoot<CachingDocumentFile>().holder.uri()
-          )!!.also { documentFile ->
-            check(!documentFile.exists()) { "file ${file.getFullPath()} still exists" }
-          }
-        } else {
-          file.getFileRoot<File>().holder.also { jFile ->
-            check(!jFile.exists()) { "file ${jFile.absolutePath} still exists" }
-          }
-        }
-
         check(!snapshotFileManager.exists(file)) { "file ${file.getFullPath()} still exists" }
       }
 
