@@ -238,6 +238,7 @@ class RawFileManager(
     return toFile(dir.clone())
       .listFiles()
       ?.map { file -> RawFile(Root.DirRoot(file), badPathSymbolResolutionStrategy) }
+      ?.sortedWith(RAW_FILES_COMPARATOR)
       ?: emptyList()
   }
 
@@ -280,5 +281,18 @@ class RawFileManager(
 
   companion object {
     private const val TAG = "RawFileManager"
+
+    private val RAW_FILES_COMPARATOR = Comparator<RawFile> { file1, file2 ->
+      val rawFile1 = file1.getFileRoot<File>().holder
+      val rawFile2 = file2.getFileRoot<File>().holder
+
+      if (rawFile1.isDirectory) {
+        return@Comparator -1
+      } else if (rawFile2.isDirectory) {
+        return@Comparator 1
+      }
+
+      return@Comparator 0
+    }
   }
 }

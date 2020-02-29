@@ -545,11 +545,6 @@ class FileManager(
       return
     }
 
-    if (listFiles(directory).isEmpty()) {
-      Log.d(TAG, "Source directory is empty, nothing to copy")
-      return
-    }
-
     if (!recursively) {
       listFiles(directory).forEach { file -> func(file) }
       return

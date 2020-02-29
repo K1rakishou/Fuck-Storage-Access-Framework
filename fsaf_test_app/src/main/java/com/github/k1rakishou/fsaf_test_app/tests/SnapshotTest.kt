@@ -104,31 +104,32 @@ class SnapshotTest(
     val tests = 10
     for (i in 0 until tests) {
       val time = measureTimeMillis {
+        val fileNames = files.map { file -> fileManager.getName(file) }.toSet()
+
         for ((index, file) in files.withIndex()) {
           val expectedName = "${index}.txt"
-          val actualName = fileManager.getName(file)
 
-          if (expectedName != actualName) {
-            throw TestException("Expected ${expectedName} but got ${actualName}")
+          if (expectedName !in fileNames) {
+            throw TestException("[Iteration $i] File name ${expectedName} does not exist in fileNames")
           }
 
           if (!fileManager.exists(file)) {
-            throw TestException("File ${file.getFullPath()} does not exist")
+            throw TestException("[Iteration $i] File ${file.getFullPath()} does not exist")
           }
 
           if (!fileManager.isFile(file)) {
-            throw TestException("File ${file.getFullPath()} is not a file")
+            throw TestException("[Iteration $i] File ${file.getFullPath()} is not a file")
           }
 
           fileManager.getLength(file)
           fileManager.lastModified(file)
 
           if (!fileManager.canRead(file)) {
-            throw TestException("Cannot read ${file.getFullPath()}")
+            throw TestException("[Iteration $i] Cannot read ${file.getFullPath()}")
           }
 
           if (!fileManager.canWrite(file)) {
-            throw TestException("Cannot write to ${file.getFullPath()}")
+            throw TestException("[Iteration $i] Cannot write to ${file.getFullPath()}")
           }
         }
       }

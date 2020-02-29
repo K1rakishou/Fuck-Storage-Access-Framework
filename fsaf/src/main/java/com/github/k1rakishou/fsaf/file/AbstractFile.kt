@@ -134,6 +134,6 @@ abstract class AbstractFile(
   }
 
   override fun toString(): String {
-    return getFullPath()
+    return getFullPath().splitIntoSegments().joinToString(separator = "/")
   }
 }

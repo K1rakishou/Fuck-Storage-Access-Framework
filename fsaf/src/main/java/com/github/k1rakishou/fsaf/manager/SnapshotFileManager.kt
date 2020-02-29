@@ -70,7 +70,7 @@ class SnapshotFileManager(
   }
 
   override fun getSegmentNames(file: AbstractFile): List<String> {
-    return file.toString().splitIntoSegments()
+    return file.getFullPath().splitIntoSegments()
   }
 
   override fun delete(file: AbstractFile): Boolean {

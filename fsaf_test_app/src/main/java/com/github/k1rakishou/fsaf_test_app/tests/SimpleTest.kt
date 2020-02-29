@@ -1,10 +1,12 @@
 package com.github.k1rakishou.fsaf_test_app.tests
 
 import com.github.k1rakishou.fsaf.FileManager
+import com.github.k1rakishou.fsaf.TraverseMode
 import com.github.k1rakishou.fsaf.file.AbstractFile
 import com.github.k1rakishou.fsaf.file.DirectorySegment
 import com.github.k1rakishou.fsaf.file.FileSegment
 import com.github.k1rakishou.fsaf_test_app.TestBaseDirectory
+import com.github.k1rakishou.fsaf_test_app.extensions.splitIntoSegments
 import kotlin.system.measureTimeMillis
 
 class SimpleTest(
@@ -51,6 +53,64 @@ class SimpleTest(
 
       log("badFileNamesTest took ${time}ms")
     }
+
+    runTest(fileManager, baseDir) {
+      val time = measureTimeMillis {
+        listFilesOrderingTest(fileManager, baseDir)
+      }
+
+      log("listFilesOrderingTest took ${time}ms")
+    }
+  }
+
+  private fun listFilesOrderingTest(fileManager: FileManager, baseDir: AbstractFile) {
+    fileManager.create(baseDir, DirectorySegment("1"))?.also { dir1 ->
+      checkNotNull(fileManager.create(dir1, FileSegment("1.txt"))) { "Couldn't create 1.txt" }
+      checkNotNull(fileManager.create(dir1, FileSegment("156.txt"))) { "Couldn't create 156.txt" }
+      checkNotNull(fileManager.create(dir1, FileSegment("10.txt"))) { "Couldn't create 10.txt" }
+
+      fileManager.create(dir1, DirectorySegment("234"))?.also { dir2 ->
+        checkNotNull(fileManager.create(dir2, FileSegment("2.txt"))) { "Couldn't create 2.txt" }
+        checkNotNull(fileManager.create(dir2, FileSegment("256.txt"))) { "Couldn't create 256.txt" }
+        checkNotNull(fileManager.create(dir2, FileSegment("20.txt"))) { "Couldn't create 20.txt" }
+
+        fileManager.create(dir2, DirectorySegment("333444"))?.also { dir3 ->
+          checkNotNull(fileManager.create(dir3, FileSegment("2_1_3.txt"))) { "Couldn't create 2_1_3.txt" }
+
+          fileManager.create(dir3, DirectorySegment("555666"))?.also { dir4 ->
+            checkNotNull(fileManager.create(dir4, FileSegment("innermost.txt"))) { "Couldn't create innermost.txt" }
+          } ?: throw IllegalStateException("Couldn't create dir 555666")
+        } ?: throw IllegalStateException("Couldn't create dir 333444")
+      } ?: throw IllegalStateException("Couldn't create dir 234")
+
+      fileManager.create(dir1, DirectorySegment("4562"))?.also { dir2 ->
+        checkNotNull(fileManager.create(dir2, FileSegment("2.txt"))) { "Couldn't create 2.txt" }
+        checkNotNull(fileManager.create(dir2, FileSegment("256.txt"))) { "Couldn't create 256.txt" }
+        checkNotNull(fileManager.create(dir2, FileSegment("20.txt"))) { "Couldn't create 20.txt" }
+      } ?: throw IllegalStateException("Couldn't create dir 456")
+
+      fileManager.create(dir1, DirectorySegment("78"))?.also { dir2 ->
+        checkNotNull(fileManager.create(dir2, FileSegment("2.txt"))) { "Couldn't create 2.txt" }
+        checkNotNull(fileManager.create(dir2, FileSegment("256.txt"))) { "Couldn't create 256.txt" }
+        checkNotNull(fileManager.create(dir2, FileSegment("20.txt"))) { "Couldn't create 20.txt" }
+      } ?: throw IllegalStateException("Couldn't create dir 789")
+    } ?: throw IllegalStateException("Couldn't create dir 1")
+
+    val files = mutableListOf<AbstractFile>()
+    fileManager.traverseDirectory(baseDir, true, TraverseMode.Both) { file -> files += file }
+
+    val checkedDirectories = mutableSetOf<String>()
+
+    files.forEach { file ->
+      if (fileManager.isDirectory(file)) {
+        checkedDirectories += file.getFullPath().splitIntoSegments().joinToString(separator = "/")
+      } else {
+        val path = file.getFullPath().splitIntoSegments().dropLast(1).joinToString(separator = "/")
+        if (path !in checkedDirectories) {
+          throw IllegalStateException("File was added before it's parent directory")
+        }
+      }
+    }
   }
 
   private fun badFileNamesTest(fileManager: FileManager, baseDir: AbstractFile) {
@@ -88,6 +148,20 @@ class SimpleTest(
 
     check(fileManager.getName(externalFile3) == "Kuroba-dev_v4.10.2-a9551c9.apk") {
       "bad directory name after replacing bad symbols: ${fileManager.getName(externalFile3)}"
+    }
+
+    val fileWithMultiplePeriods = fileManager.create(
+      externalFile,
+      DirectorySegment("test....dir"),
+      FileSegment("t.e.s.t......txt")
+    )
+
+    if (fileWithMultiplePeriods == null || !fileManager.exists(fileWithMultiplePeriods)) {
+      throw TestException("Couldn't create t.e.s.t......txt file")
+    }
+
+    check(fileManager.getName(fileWithMultiplePeriods) == "t.e.s.t......txt") {
+      "bad directory name after replacing bad symbols: ${fileManager.getName(fileWithMultiplePeriods)}"
     }
   }
 

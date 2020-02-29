@@ -21,6 +21,38 @@ object SAFHelper {
   private const val PATH_TREE = "tree"
   private const val SQLITE_IN_OPERATOR_BATCH_SIZE = 950
 
+  /**
+   * We want to sort files with the most segments count being at the beginning of the list, i.e:
+   * /123
+   * /123/456
+   * /123/456/567
+   * /123/1.txt
+   * /123/2.txt
+   * /123/3.txt
+   * /123/456/1.txt
+   * /123/456/2.txt
+   * /123/456/3.txt
+   * /123/456/567/1.txt
+   * /123/456/567/2.txt
+   * /123/456/567/3.txt
+   * /123/456/567/4.txt
+   *
+   * Why? Because if the order is reversed, and lets say only the /123 directory exists, then if we
+   * attempt to access the innermost file we will likely get an exception because intermediate
+   * directories do not exist.
+   * */
+  private val ITERATED_FILE_COMPARATOR = Comparator<IteratedFile<*>> { iterFile1, iterFile2 ->
+    if (iterFile1.isDirectory) {
+      return@Comparator -1
+    }
+
+    if (iterFile2.isDirectory) {
+      return@Comparator 1
+    }
+
+    return@Comparator 0
+  }
+
   private val columns = arrayOf(
     DocumentsContract.Document.COLUMN_DOCUMENT_ID,
     DocumentsContract.Document.COLUMN_MIME_TYPE,
@@ -177,7 +209,7 @@ object SAFHelper {
     }
 
     val nameListBatched = nameList.chunked(SQLITE_IN_OPERATOR_BATCH_SIZE)
-    val resultList = ArrayList<T>(safeCapacity(nameList))
+    val resultList = ArrayList<IteratedFile<T>>(safeCapacity(nameList))
 
     for (batch in nameListBatched) {
       val selection = DocumentsContract.Document.COLUMN_DISPLAY_NAME +
@@ -206,7 +238,8 @@ object SAFHelper {
         ?: emptyList()
     }
 
-    return resultList
+    return resultList.sortedWith(ITERATED_FILE_COMPARATOR)
+      .map { iteratedFile -> iteratedFile.file }
   }
 
   private fun <T> iterateCursor(
@@ -215,8 +248,8 @@ object SAFHelper {
     cursor: Cursor,
     lowerCaseNameSet: Set<String>,
     mapper: (DocumentFile, PreloadedInfo) -> T
-  ): MutableList<T> {
-    val resultList = mutableListOf<T>()
+  ): MutableList<IteratedFile<T>> {
+    val resultList = mutableListOf<IteratedFile<T>>()
 
     while (cursor.moveToNext()) {
       val displayName = cursor.getString(2)
@@ -244,7 +277,7 @@ object SAFHelper {
         continue
       }
 
-      resultList += mapper(
+      val mapped = mapper(
         documentFile,
         PreloadedInfo(
           documentId,
@@ -255,6 +288,12 @@ object SAFHelper {
           size
         )
       )
+
+      if (mimeType == DocumentsContract.Document.MIME_TYPE_DIR) {
+        resultList.add(0, IteratedFile(mapped, true))
+      } else {
+        resultList += IteratedFile(mapped, false)
+      }
     }
     return resultList
   }
@@ -311,7 +350,13 @@ object SAFHelper {
           size
         )
 
-        result += snapshotDocumentFile
+        if (mimeType == DocumentsContract.Document.MIME_TYPE_DIR) {
+          // Insert directories at the beginning
+          result.add(0, snapshotDocumentFile)
+        } else {
+          // And files at the end
+          result += snapshotDocumentFile
+        }
       }
 
       return@use result
@@ -355,6 +400,8 @@ object SAFHelper {
     val paths = uri.pathSegments
     return paths.size >= 2 && PATH_TREE == paths[0]
   }
+
+  private class IteratedFile<T>(val file: T, val isDirectory: Boolean)
 
   class PreloadedInfo(
     val documentId: String,
