@@ -35,7 +35,10 @@ open class ExternalFileManager(
   override fun create(baseDir: AbstractFile, segments: List<Segment>): ExternalFile? {
     val root = baseDir.getFileRoot<CachingDocumentFile>()
     check(root !is Root.FileRoot) {
-      "create() root is already FileRoot, cannot append anything anymore, root = ${root.holder.uri()}"
+      "create() root is already FileRoot, cannot append anything anymore, " +
+        "root = ${root.holder.uri()}, " +
+        "baseDir segments = ${baseDir.getFileSegments().joinToString()}, " +
+        "segments = ${segments.joinToString()}"
     }
 
     if (segments.isEmpty()) {

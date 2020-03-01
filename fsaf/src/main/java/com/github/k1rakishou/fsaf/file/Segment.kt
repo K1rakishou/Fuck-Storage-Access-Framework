@@ -10,7 +10,11 @@ package com.github.k1rakishou.fsaf.file
 abstract class Segment(
   val name: String,
   val isFileName: Boolean = false
-)
+) {
+  override fun toString(): String {
+    return "Segment(name='$name', isFileName=$isFileName)"
+  }
+}
 
 class DirectorySegment(name: String) : Segment(name, false)
 class FileSegment(name: String) : Segment(name, true)
