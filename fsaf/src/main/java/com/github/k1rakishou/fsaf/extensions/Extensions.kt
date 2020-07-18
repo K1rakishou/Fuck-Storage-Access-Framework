@@ -14,6 +14,7 @@ internal const val BINARY_FILE_MIME_TYPE = "application/octet-stream"
 internal const val CONTENT_TYPE = "${ContentResolver.SCHEME_CONTENT}://"
 internal const val FILE_TYPE = "${ContentResolver.SCHEME_FILE}://"
 internal val uriTypes = arrayOf(CONTENT_TYPE, FILE_TYPE)
+internal const val DEFAULT_CAPACITY = 16
 
 @Throws(IOException::class)
 internal fun InputStream.copyInto(outputStream: OutputStream) {
@@ -78,11 +79,11 @@ internal fun String.splitIntoSegments(): List<String> = FSAFUtils.splitIntoSegme
 
 internal fun safeCapacity(list: List<*>, divider: Int = 2): Int {
   return if (list.size <= 1) {
-    1
+    DEFAULT_CAPACITY
   } else {
     val result = list.size / divider
     if (result <= 1) {
-      1
+      DEFAULT_CAPACITY
     } else {
       result
     }
@@ -91,11 +92,11 @@ internal fun safeCapacity(list: List<*>, divider: Int = 2): Int {
 
 internal fun safeCapacity(string: String, divider: Int = 2): Int {
   return if (string.length <= 1) {
-    1
+    DEFAULT_CAPACITY
   } else {
     val result = string.length / divider
     if (result <= 1) {
-      1
+      DEFAULT_CAPACITY
     } else {
       result
     }

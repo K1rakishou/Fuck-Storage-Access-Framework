@@ -8,7 +8,13 @@ import android.provider.DocumentsContract
 import android.util.Log
 import android.webkit.MimeTypeMap
 import androidx.documentfile.provider.DocumentFile
-import com.github.k1rakishou.fsaf.callback.*
+import com.github.k1rakishou.fsaf.callback.ChooserCallback
+import com.github.k1rakishou.fsaf.callback.FSAFActivityCallbacks
+import com.github.k1rakishou.fsaf.callback.FileChooserCallback
+import com.github.k1rakishou.fsaf.callback.FileCreateCallback
+import com.github.k1rakishou.fsaf.callback.directory.DirectoryChooserCallback
+import com.github.k1rakishou.fsaf.callback.directory.PermanentDirectoryChooserCallback
+import com.github.k1rakishou.fsaf.callback.directory.TemporaryDirectoryCallback
 import com.github.k1rakishou.fsaf.extensions.getMimeFromFilename
 
 class FileChooser(
@@ -38,15 +44,20 @@ class FileChooser(
       val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
       intent.putExtra("android.content.extra.SHOW_ADVANCED", true)
 
-      intent.addFlags(
+      val flags = if (directoryChooserCallback is PermanentDirectoryChooserCallback) {
         Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or
           Intent.FLAG_GRANT_READ_URI_PERMISSION or
           Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-      )
+      } else {
+        Intent.FLAG_GRANT_READ_URI_PERMISSION or
+          Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+      }
+
+      intent.addFlags(flags)
 
       // Do not use any remote providers (dropbox/google drive/etc since they may not work correctly
       // with ACTION_OPEN_DOCUMENT_TREE and persistable permissions)
-      intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
+      intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true)
 
       val nextRequestCode = ++requestCode
       callbacksMap[nextRequestCode] = directoryChooserCallback as ChooserCallback
@@ -100,7 +111,7 @@ class FileChooser(
     fsafActivityCallbacks?.let { callbacks ->
       val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
       intent.addFlags(
-          Intent.FLAG_GRANT_READ_URI_PERMISSION or
+        Intent.FLAG_GRANT_READ_URI_PERMISSION or
           Intent.FLAG_GRANT_WRITE_URI_PERMISSION
       )
 
@@ -298,13 +309,15 @@ class FileChooser(
       return
     }
 
-    val persist = (intent.flags and Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION) != 0
-    if (!persist) {
-      val msg = "handleDirectoryChooserCallback() No grant persist uri permission given"
+    if (callback is PermanentDirectoryChooserCallback) {
+      val persist = (intent.flags and Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION) != 0
+      if (!persist) {
+        val msg = "handleDirectoryChooserCallback() No grant persist uri permission given"
 
-      Log.e(TAG, msg)
-      callback.onCancel(msg)
-      return
+        Log.e(TAG, msg)
+        callback.onCancel(msg)
+        return
+      }
     }
 
     val uri = intent.data
@@ -316,13 +329,18 @@ class FileChooser(
       return
     }
 
+    Log.d(TAG, "treeUri = ${uri}")
+
+    if (callback is TemporaryDirectoryCallback) {
+      callback.onResult(uri)
+      return
+    }
+
     val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
       Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 
     val contentResolver = appContext.contentResolver
     contentResolver.takePersistableUriPermission(uri, flags)
-    Log.d(TAG, "treeUri = ${uri}")
-
     callback.onResult(uri)
   }
 
@@ -337,14 +355,18 @@ class FileChooser(
     }
 
     if (!directory.exists()) {
-      Log.e(TAG, "Couldn't revoke permissions from directory because it does not exist, " +
-        "path = $directoryUri")
+      Log.e(
+        TAG, "Couldn't revoke permissions from directory because it does not exist, " +
+          "path = $directoryUri"
+      )
       return false
     }
 
     if (!directory.isDirectory) {
-      Log.e(TAG, "Couldn't revoke permissions from directory it is not a directory, " +
-        "path = $directoryUri")
+      Log.e(
+        TAG, "Couldn't revoke permissions from directory it is not a directory, " +
+          "path = $directoryUri"
+      )
       return false
     }
 
