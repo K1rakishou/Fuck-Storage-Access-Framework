@@ -1,5 +1,6 @@
 package com.github.k1rakishou.fsaf.manager
 
+import android.os.ParcelFileDescriptor
 import android.util.Log
 import com.github.k1rakishou.fsaf.BadPathSymbolResolutionStrategy
 import com.github.k1rakishou.fsaf.extensions.appendMany
@@ -243,6 +244,21 @@ class RawFileManager(
       ?.map { file -> RawFile(Root.DirRoot(file), badPathSymbolResolutionStrategy) }
       ?.sortedWith(RAW_FILES_COMPARATOR)
       ?: emptyList()
+  }
+
+  override fun getParcelFileDescriptor(
+    file: AbstractFile,
+    fileDescriptorMode: FileDescriptorMode
+  ): ParcelFileDescriptor? {
+    if (isDirectory(file)) {
+      Log.e(TAG, "getParcelFileDescriptor() only works with files ")
+      return null
+    }
+
+    val fileCopy = toFile(file.clone())
+
+    val mode = ParcelFileDescriptor.parseMode(fileDescriptorMode.mode)
+    return ParcelFileDescriptor.open(fileCopy, mode)
   }
 
   override fun <T> withFileDescriptor(

@@ -1,5 +1,7 @@
 package com.github.k1rakishou.fsaf.manager
 
+import android.os.ParcelFileDescriptor
+import androidx.annotation.CheckResult
 import com.github.k1rakishou.fsaf.file.AbstractFile
 import com.github.k1rakishou.fsaf.file.FileDescriptorMode
 import com.github.k1rakishou.fsaf.file.Segment
@@ -106,6 +108,12 @@ interface BaseFileManager {
    * Returns lastModified parameters of this file or directory
    * */
   fun lastModified(file: AbstractFile): Long
+
+  @CheckResult
+  fun getParcelFileDescriptor(
+    file: AbstractFile,
+    fileDescriptorMode: FileDescriptorMode
+  ): ParcelFileDescriptor?
 
   /**
    * Useful method to safely work this this file's fileDescriptor (it is automatically closed upon

@@ -3,6 +3,7 @@ package com.github.k1rakishou.fsaf
 import android.content.Context
 import android.net.Uri
 import android.os.Environment
+import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
@@ -47,6 +48,7 @@ class FileManager(
   /**
    * Add your own custom file managers (like, maybe, TestFileManager or something like that?)
    * */
+  @Synchronized
   fun addCustomFileManager(fileManagerId: FileManagerId, customManager: BaseFileManager) {
     if (managers.containsKey(fileManagerId)) {
       Log.e(TAG, "FileManager with id ${fileManagerId} has already been added!")
@@ -60,15 +62,18 @@ class FileManager(
    * It's not a good idea to use this method to remove standard file managers (externalFileManager
    * and rawFileManager) but you should use it to remove your own file managers.
    * */
+  @Synchronized
   fun removeCustomFileManager(fileManagerId: FileManagerId) {
     managers.remove(fileManagerId)
   }
 
+  @Synchronized
   fun getExternalFileManager(): ExternalFileManager {
     return managers[ExternalFile.FILE_MANAGER_ID] as? ExternalFileManager
       ?: throw IllegalStateException("ExternalFileManager is not added")
   }
 
+  @Synchronized
   fun getRawFileManager(): RawFileManager {
     return managers[RawFile.FILE_MANAGER_ID] as? RawFileManager
       ?: throw IllegalStateException("RawFileManager is not added")
@@ -79,6 +84,7 @@ class FileManager(
    * Use this method to convert a java File by this path into an AbstractFile.
    * Does not create file on the disk automatically!
    * */
+  @Synchronized
   fun fromPath(path: String): RawFile {
     return fromRawFile(File(path))
   }
@@ -89,6 +95,7 @@ class FileManager(
    * AbstractFile. If a file does not exist null is returned.
    * Does not create file on the disk automatically!
    * */
+  @Synchronized
   fun fromUri(uri: Uri): ExternalFile? {
     val documentFile = toDocumentFile(uri)
       ?: return null
@@ -116,6 +123,7 @@ class FileManager(
    * Use this method to convert a java File into an AbstractFile.
    * Does not create file on the disk automatically!
    * */
+  @Synchronized
   fun fromRawFile(file: File): RawFile {
     if (file.isFile) {
       return RawFile(
@@ -134,6 +142,7 @@ class FileManager(
     registerBaseDir(T::class.java, baseDirectory)
   }
 
+  @Synchronized
   fun registerBaseDir(clazz: Class<*>, baseDirectory: BaseDirectory) {
     directoryManager.registerBaseDir(clazz, baseDirectory)
   }
@@ -142,6 +151,7 @@ class FileManager(
     unregisterBaseDir(T::class.java)
   }
 
+  @Synchronized
   fun unregisterBaseDir(clazz: Class<*>) {
     directoryManager.unregisterBaseDir(clazz)
   }
@@ -157,6 +167,7 @@ class FileManager(
   /**
    * [clazz] is a class of base directory we want to to update
    * */
+  @Synchronized
   fun isBaseDirAlreadyRegistered(clazz: Class<*>, file: AbstractFile): Boolean {
     return directoryManager.isAlreadyRegistered(clazz, file)
   }
@@ -168,6 +179,7 @@ class FileManager(
   /**
    * [clazz] is a class of base directory we want to to update
    * */
+  @Synchronized
   fun isBaseDirAlreadyRegistered(clazz: Class<*>, filePath: String): Boolean {
     return directoryManager.isAlreadyRegistered(clazz, filePath)
   }
@@ -179,6 +191,7 @@ class FileManager(
   /**
    * [clazz] is a class of base directory we want to to update
    * */
+  @Synchronized
   fun isBaseDirAlreadyRegistered(clazz: Class<*>, uri: Uri): Boolean {
     return directoryManager.isAlreadyRegistered(clazz, uri)
   }
@@ -190,6 +203,7 @@ class FileManager(
    * Does not create file on the disk automatically! (just like the Java File)
    * Use one of the [create] methods to create a file on the disk.
    * */
+  @Synchronized
   fun newBaseDirectoryFile(clazz: Class<*>): AbstractFile? {
     val baseDir = directoryManager.getBaseDirByClass(clazz)
     if (baseDir == null) {
@@ -276,6 +290,7 @@ class FileManager(
    * [BaseDirectory] may have a SAF directory and a fallback java file backed directory. If neither
    * of them is registered or they both return null this method will return null as well.
    * */
+  @Synchronized
   @Suppress("UNCHECKED_CAST")
   fun baseDirectoryExists(clazz: Class<*>): Boolean {
     val baseDirFile = newBaseDirectoryFile(clazz as Class<BaseDirectory>)
@@ -294,6 +309,7 @@ class FileManager(
   /**
    * Similar to [AbstractFile.cloneUnsafe]. Use only if you are sure in your input.
    * */
+  @Synchronized
   fun createUnsafe(baseDir: AbstractFile, path: String): AbstractFile? {
     val segmentStrings = path.splitIntoSegments()
 
@@ -334,6 +350,7 @@ class FileManager(
     return create(baseDir, segments.toList())
   }
 
+  @Synchronized
   override fun create(baseDir: AbstractFile, segments: List<Segment>): AbstractFile? {
     if (segments.isEmpty() && exists(baseDir)) {
       return baseDir
@@ -367,6 +384,7 @@ class FileManager(
   /**
    * Copies one file's contents into another. Does not, in any way, modify the source file
    * */
+  @Synchronized
   fun copyFileContents(sourceFile: AbstractFile, destinationFile: AbstractFile): Boolean {
     return try {
       getInputStream(sourceFile)?.use { inputStream ->
@@ -392,6 +410,7 @@ class FileManager(
    * if [updateFunc] returns true that means that we need to cancel the copying. If [updateFunc] is
    * not provided then there is no way to cancel this method
    * */
+  @Synchronized
   fun copyDirectoryWithContent(
     sourceDir: AbstractFile,
     destDir: AbstractFile,
@@ -529,6 +548,7 @@ class FileManager(
    * is [TraverseMode.OnlyFiles] and [recursively] is true then all the sub-directories will be
    * traversed but only the files will be passed into the callback
    * */
+  @Synchronized
   fun traverseDirectory(
     directory: AbstractFile,
     recursively: Boolean,
@@ -586,6 +606,7 @@ class FileManager(
     }
   }
 
+  @Synchronized
   override fun exists(file: AbstractFile): Boolean {
     return managers[file.getFileManagerId()]?.exists(file)
       ?: throw NotImplementedError(
@@ -593,6 +614,7 @@ class FileManager(
       )
   }
 
+  @Synchronized
   override fun isFile(file: AbstractFile): Boolean {
     return managers[file.getFileManagerId()]?.isFile(file)
       ?: throw NotImplementedError(
@@ -600,6 +622,7 @@ class FileManager(
       )
   }
 
+  @Synchronized
   override fun isDirectory(file: AbstractFile): Boolean {
     return managers[file.getFileManagerId()]?.isDirectory(file)
       ?: throw NotImplementedError(
@@ -607,6 +630,7 @@ class FileManager(
       )
   }
 
+  @Synchronized
   override fun canRead(file: AbstractFile): Boolean {
     return managers[file.getFileManagerId()]?.canRead(file)
       ?: throw NotImplementedError(
@@ -614,6 +638,7 @@ class FileManager(
       )
   }
 
+  @Synchronized
   override fun canWrite(file: AbstractFile): Boolean {
     return managers[file.getFileManagerId()]?.canWrite(file)
       ?: throw NotImplementedError(
@@ -621,6 +646,7 @@ class FileManager(
       )
   }
 
+  @Synchronized
   override fun getSegmentNames(file: AbstractFile): List<String> {
     return managers[file.getFileManagerId()]?.getSegmentNames(file)
       ?: throw NotImplementedError(
@@ -628,6 +654,7 @@ class FileManager(
       )
   }
 
+  @Synchronized
   override fun delete(file: AbstractFile): Boolean {
     return managers[file.getFileManagerId()]?.delete(file)
       ?: throw NotImplementedError(
@@ -635,6 +662,7 @@ class FileManager(
       )
   }
 
+  @Synchronized
   override fun deleteContent(dir: AbstractFile): Boolean {
     return managers[dir.getFileManagerId()]?.deleteContent(dir)
       ?: throw NotImplementedError(
@@ -642,6 +670,7 @@ class FileManager(
       )
   }
 
+  @Synchronized
   override fun getInputStream(file: AbstractFile): InputStream? {
     val manager = managers[file.getFileManagerId()]
       ?: throw NotImplementedError(
@@ -651,6 +680,7 @@ class FileManager(
     return manager.getInputStream(file)
   }
 
+  @Synchronized
   override fun getOutputStream(file: AbstractFile): OutputStream? {
     val manager = managers[file.getFileManagerId()]
       ?: throw NotImplementedError(
@@ -660,6 +690,7 @@ class FileManager(
     return manager.getOutputStream(file)
   }
 
+  @Synchronized
   override fun getName(file: AbstractFile): String {
     return managers[file.getFileManagerId()]?.getName(file)
       ?: throw NotImplementedError(
@@ -667,6 +698,7 @@ class FileManager(
       )
   }
 
+  @Synchronized
   override fun flattenSegments(file: AbstractFile): AbstractFile? {
     val manager = managers[file.getFileManagerId()]
       ?: throw NotImplementedError(
@@ -676,6 +708,7 @@ class FileManager(
     return manager.flattenSegments(file)
   }
 
+  @Synchronized
   override fun findFile(dir: AbstractFile, fileName: String): AbstractFile? {
     val manager = managers[dir.getFileManagerId()]
       ?: throw NotImplementedError(
@@ -685,6 +718,7 @@ class FileManager(
     return manager.findFile(dir, fileName)
   }
 
+  @Synchronized
   override fun getLength(file: AbstractFile): Long {
     return managers[file.getFileManagerId()]?.getLength(file)
       ?: throw NotImplementedError(
@@ -692,6 +726,7 @@ class FileManager(
       )
   }
 
+  @Synchronized
   override fun listFiles(dir: AbstractFile): List<AbstractFile> {
     return managers[dir.getFileManagerId()]?.listFiles(dir)
       ?: throw NotImplementedError(
@@ -699,6 +734,7 @@ class FileManager(
       )
   }
 
+  @Synchronized
   override fun lastModified(file: AbstractFile): Long {
     return managers[file.getFileManagerId()]?.lastModified(file)
       ?: throw NotImplementedError(
@@ -707,6 +743,20 @@ class FileManager(
       )
   }
 
+  @Synchronized
+  override fun getParcelFileDescriptor(
+    file: AbstractFile,
+    fileDescriptorMode: FileDescriptorMode
+  ): ParcelFileDescriptor? {
+    val manager = managers[file.getFileManagerId()]
+      ?: throw NotImplementedError(
+        "Not implemented for ${file.javaClass.name}, fileManagerId = ${file.getFileManagerId()}"
+      )
+
+    return manager.getParcelFileDescriptor(file, fileDescriptorMode)
+  }
+
+  @Synchronized
   override fun <T> withFileDescriptor(
     file: AbstractFile,
     fileDescriptorMode: FileDescriptorMode,
@@ -732,6 +782,7 @@ class FileManager(
    * @note: In case of RawFile the Java File API will be used (instead of creating a snapshot) which
    * is pretty fast by itself. So no snapshot will be created in case of RawFile.
    * */
+  @Synchronized
   fun createSnapshot(dir: AbstractFile, includeSubDirs: Boolean = false): BaseFileManager {
     require(isDirectory(dir)) { "dir is not a directory" }
 
@@ -778,6 +829,7 @@ class FileManager(
    *
    * Does not check whether either of the input files exist!
    * */
+  @Synchronized
   fun isChildOfDirectory(dir: AbstractFile, file: AbstractFile): Boolean {
     require(isDirectory(dir)) { "dir must be a directory!" }
 
@@ -847,6 +899,7 @@ class FileManager(
    *
    * Does not check whether either of the input files exist!
    * */
+  @Synchronized
   fun areTheSame(file1: AbstractFile, file2: AbstractFile): Boolean {
     if (getName(file1) != getName(file2)) {
       // Names differ

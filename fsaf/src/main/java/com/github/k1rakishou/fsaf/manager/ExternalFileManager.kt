@@ -374,6 +374,16 @@ open class ExternalFileManager(
     return toDocumentFile(file.clone())?.lastModified() ?: 0L
   }
 
+  override fun getParcelFileDescriptor(
+    file: AbstractFile,
+    fileDescriptorMode: FileDescriptorMode
+  ): ParcelFileDescriptor? {
+    return appContext.contentResolver.openFileDescriptor(
+      file.getFileRoot<CachingDocumentFile>().holder.uri(),
+      fileDescriptorMode.mode
+    )
+  }
+
   override fun <T> withFileDescriptor(
     file: AbstractFile,
     fileDescriptorMode: FileDescriptorMode,
@@ -407,16 +417,6 @@ open class ExternalFileManager(
       parentUri,
       segments,
       directoryManager
-    )
-  }
-
-  private fun getParcelFileDescriptor(
-    file: AbstractFile,
-    fileDescriptorMode: FileDescriptorMode
-  ): ParcelFileDescriptor? {
-    return appContext.contentResolver.openFileDescriptor(
-      file.getFileRoot<CachingDocumentFile>().holder.uri(),
-      fileDescriptorMode.mode
     )
   }
 
