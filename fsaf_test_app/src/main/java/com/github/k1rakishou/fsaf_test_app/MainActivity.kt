@@ -15,7 +15,7 @@ import androidx.core.app.ActivityCompat
 import com.github.k1rakishou.fsaf.FileChooser
 import com.github.k1rakishou.fsaf.FileManager
 import com.github.k1rakishou.fsaf.callback.FSAFActivityCallbacks
-import com.github.k1rakishou.fsaf.callback.directory.TemporaryDirectoryCallback
+import com.github.k1rakishou.fsaf.callback.directory.PermanentDirectoryChooserCallback
 import com.github.k1rakishou.fsaf.util.SAFHelper
 import com.github.k1rakishou.fsaf_test_app.tests.TestSuite
 import kotlinx.android.synthetic.main.activity_main.*
@@ -53,7 +53,7 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
     updateControls()
 
     open_document_tree_button.setOnClickListener {
-      fileChooser.openChooseDirectoryDialog(object : TemporaryDirectoryCallback() {
+      fileChooser.openChooseDirectoryDialog(object : PermanentDirectoryChooserCallback() {
         override fun onResult(uri: Uri) {
           println("treeUri = ${uri}")
           Toast.makeText(
