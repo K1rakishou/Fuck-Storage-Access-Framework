@@ -2,9 +2,6 @@
 
 <p align="left"><a href="https://jitpack.io/#K1rakishou/Fuck-Storage-Access-Framework/v1.0"><img src="https://jitpack.io/v/K1rakishou/Fuck-Storage-Access-Framework.svg" width="120"></a></p> 
 
-This library in under heavy development so it's not a good idea to use it yet. 
-Some API changes may happen in the future.
-
 If you ever had to deal with Storage Access Framework you must understand the pain 
 imposed on you by it's API and lack of any good examples.
 
