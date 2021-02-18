@@ -186,6 +186,11 @@ class MainActivity : AppCompatActivity(), FSAFActivityCallbacks {
   }
 
   private fun storeTreeUri(uri: Uri) {
+    val dir = checkNotNull(fileManager.fromUri(uri)) { "fileManager.fromUri(${uri}) failure" }
+
+    check(fileManager.exists(dir)) { "Does not exist" }
+    check(fileManager.isDirectory(dir)) { "Not a dir" }
+
     fileManager.registerBaseDir<TestBaseDirectory>(testBaseDirectory)
     sharedPreferences.edit().putString(TREE_URI, uri.toString()).apply()
   }

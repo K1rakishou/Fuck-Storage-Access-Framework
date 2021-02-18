@@ -1021,10 +1021,14 @@ class FileManager(
       return false
     }
 
-    val docUri = DocumentsContract.buildDocumentUriUsingTree(
-      uri,
-      DocumentsContract.getDocumentId(uri)
-    )
+    val docUri = try {
+      DocumentsContract.buildDocumentUriUsingTree(
+        uri,
+        DocumentsContract.getDocumentId(uri)
+      )
+    } catch (ignored: Throwable) {
+      return false
+    }
 
     return docUri.toString() == docTreeUri.toString()
   }
