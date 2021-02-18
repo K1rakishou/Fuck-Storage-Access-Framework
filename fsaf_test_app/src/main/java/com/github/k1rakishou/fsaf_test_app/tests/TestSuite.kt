@@ -1,8 +1,10 @@
 package com.github.k1rakishou.fsaf_test_app.tests
 
 import android.content.Context
+import android.net.Uri
 import com.github.k1rakishou.fsaf.FileManager
 import com.github.k1rakishou.fsaf.file.AbstractFile
+import com.github.k1rakishou.fsaf.file.ExternalFile
 import com.github.k1rakishou.fsaf_test_app.TestBaseDirectory
 import kotlin.system.measureTimeMillis
 
@@ -34,6 +36,14 @@ class TestSuite(
 
       check(fileManager.deleteContent(baseDirFile)) { "deleteContent baseDirFile returned false" }
       check(fileManager.deleteContent(baseDirSAF)) { "deleteContent baseDirSAF returned false" }
+
+      if (baseDirSAF is ExternalFile) {
+        val baseDirUri = Uri.parse(baseDirSAF.getFullPath())
+        val dir = checkNotNull(fileManager.fromUri(baseDirUri)) { "fileManager.fromUri(${baseDirUri}) failure" }
+
+        check(fileManager.exists(dir)) { "Does not exist" }
+        check(fileManager.isDirectory(dir)) { "Not a dir" }
+      }
 
       println("$TAG =============== END TESTS ===============")
     } catch (error: Throwable) {
