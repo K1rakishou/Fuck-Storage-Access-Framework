@@ -39,7 +39,7 @@ class ExternalFile(
       // '%2F' separator so that it can be used further by other functions such as FileManager.fromUri()
       segments.forEach { segment ->
         append(FSAFUtils.ENCODED_SEPARATOR)
-        append(segment)
+        append(segment.name)
       }
     }
 
