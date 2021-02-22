@@ -1,7 +1,6 @@
 # Fuck Storage Access Framework (FSAF)
 
-This library in under heavy development so it's not a good idea to use it yet. 
-Some API changes may happen in the future.
+<p align="left"><a href="https://jitpack.io/#K1rakishou/Fuck-Storage-Access-Framework/v1.0"><img src="https://jitpack.io/v/K1rakishou/Fuck-Storage-Access-Framework.svg" width="120"></a></p> 
 
 If you ever had to deal with Storage Access Framework you must understand the pain 
 imposed on you by it's API and lack of any good examples.
@@ -22,6 +21,12 @@ Yet another goal of this library is to make this migration seamless. Or even lea
 
 Samples
 ---
+
+Latest version:
+
+```
+implementation 'com.github.K1rakishou:Fuck-Storage-Access-Framework:v1.0'
+```
 
 There are three main scenarios when dealing with files:
 * Read or write to a user-provided file.
