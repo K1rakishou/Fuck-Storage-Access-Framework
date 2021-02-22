@@ -26,7 +26,7 @@ object FSAFUtils {
   /**
    * I've encountered at least 3 different types of separators
    * */
-  private const val ENCODED_SEPARATOR = "%2F"
+  internal const val ENCODED_SEPARATOR = "%2F"
   private const val FILE_SEPARATOR1 = "/"
   private const val FILE_SEPARATOR2 = "\\"
   private val SPLIT_PATTERN = Pattern.compile("%2F|/|\\\\")
