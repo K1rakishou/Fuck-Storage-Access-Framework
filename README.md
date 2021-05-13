@@ -279,4 +279,4 @@ Alternatively you may use `FileManager.withSnapshot()` which will release the sn
 for you.~~ 
 
 ^
-+-- Not true anymore. You don't have to release the snapshot anymore since every snapshow is a separate self-contained object now so it can just be safely GCed.
++-- Not true anymore. You don't have to release the snapshot anymore since every snapshot is a separate self-contained object now so it can just be safely GCed.
