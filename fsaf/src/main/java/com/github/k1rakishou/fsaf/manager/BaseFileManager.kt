@@ -57,7 +57,7 @@ interface BaseFileManager {
   fun delete(file: AbstractFile): Boolean
 
   /**
-   * Deletes contents of this directory. Does nothing is [dir] is not actually a directory.
+   * Deletes contents of this directory. Does nothing if [dir] is not actually a directory.
    * */
   fun deleteContent(dir: AbstractFile): Boolean
 
