@@ -81,9 +81,14 @@ class SnapshotTest(
     createFiles(fileManager, dir)
 
     val snapshotFileManager = fileManager.createSnapshot(dir, true)
-    val files = snapshotFileManager.listFiles(dir)
+    val innerDir1 = snapshotFileManager.listFiles(dir).firstOrNull()
+      ?: throw TestException("Failed to find inner_dir1")
+    val innerDir2 = snapshotFileManager.listFiles(innerDir1).firstOrNull()
+      ?: throw TestException("Failed to find inner_dir2")
 
-    val tests = 10
+    val files = snapshotFileManager.listFiles(innerDir2)
+    val tests = 5
+
     for (i in 0 until tests) {
       val time = measureTimeMillis {
         val fileNames = files.map { file -> fileManager.getName(file) }.toSet()
@@ -126,11 +131,16 @@ class SnapshotTest(
   ) {
     val count = 25
 
+    val innerDir1 = fileManager.createDir(dir, "inner_dir1")
+      ?: throw TestException("Failed to create innerDir1")
+    val innerDir2 = fileManager.createDir(innerDir1, "innerDir2")
+      ?: throw TestException("Failed to create innerDir2")
+
     for (i in 0 until count) {
       val fileName = "${i}.txt"
 
       val createdFile = fileManager.createFile(
-        dir,
+        innerDir2,
         fileName
       )
 

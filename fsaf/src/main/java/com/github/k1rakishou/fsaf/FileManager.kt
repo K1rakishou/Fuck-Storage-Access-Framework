@@ -792,21 +792,13 @@ class FileManager(
 
     val fastFileSearchTree = FastFileSearchTree<CachingDocumentFile>()
 
+    // Insert the dir too otherwise we won't be able to do anything with it's children
+    insertAbstractFileIntoTree(dir, fastFileSearchTree)
+
     // We only travers directories here because to get the  files we use SAFHelper.listFilesFast
     // which is specifically designed to be used with Snapshots
     traverseDirectory(dir, includeSubDirs, TraverseMode.OnlyDirs) { directory ->
-      val parentUri = directory.getFileRoot<CachingDocumentFile>().holder.uri()
-      val isBaseDir = directoryManager.isBaseDir(directory)
-
-      val documentFiles = SAFHelper.listFilesFast(appContext, parentUri, isBaseDir)
-      documentFiles.forEach { documentFile ->
-        val segments = documentFile.uri().toString().splitIntoSegments()
-
-        check(fastFileSearchTree.insertSegments(segments, documentFile)) {
-          "createSnapshot() Couldn't insert new segments (${segments}) " +
-            "into the tree for file (${documentFile.uri()})"
-        }
-      }
+      insertAbstractFileIntoTree(directory, fastFileSearchTree)
     }
 
     return SnapshotFileManager(
@@ -815,6 +807,24 @@ class FileManager(
       directoryManager,
       fastFileSearchTree
     )
+  }
+
+  private fun insertAbstractFileIntoTree(
+    abstractFile: AbstractFile,
+    fastFileSearchTree: FastFileSearchTree<CachingDocumentFile>
+  ) {
+    val parentUri = abstractFile.getFileRoot<CachingDocumentFile>().holder.uri()
+    val isBaseDir = directoryManager.isBaseDir(abstractFile)
+
+    val documentFiles = SAFHelper.listFilesFast(appContext, parentUri, isBaseDir)
+    documentFiles.forEach { documentFile ->
+      val segments = documentFile.uri().toString().splitIntoSegments()
+
+      check(fastFileSearchTree.insertSegments(segments, documentFile)) {
+        "createSnapshot() Couldn't insert new segments (${segments}) " +
+          "into the tree for file (${documentFile.uri()})"
+      }
+    }
   }
 
   /**
