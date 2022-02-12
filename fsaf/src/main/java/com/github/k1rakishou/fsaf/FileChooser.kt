@@ -12,6 +12,7 @@ import com.github.k1rakishou.fsaf.callback.ChooserCallback
 import com.github.k1rakishou.fsaf.callback.FSAFActivityCallbacks
 import com.github.k1rakishou.fsaf.callback.FileChooserCallback
 import com.github.k1rakishou.fsaf.callback.FileCreateCallback
+import com.github.k1rakishou.fsaf.callback.FileMultiSelectChooserCallback
 import com.github.k1rakishou.fsaf.callback.directory.DirectoryChooserCallback
 import com.github.k1rakishou.fsaf.callback.directory.PermanentDirectoryChooserCallback
 import com.github.k1rakishou.fsaf.callback.directory.TemporaryDirectoryCallback
@@ -20,7 +21,7 @@ import com.github.k1rakishou.fsaf.extensions.getMimeFromFilename
 class FileChooser(
   private val appContext: Context
 ) {
-  private val callbacksMap = hashMapOf<Int, ChooserCallback>()
+  private val callbacksMap = hashMapOf<Int, Any>()
   private val mimeTypeMap = MimeTypeMap.getSingleton()
 
   private var requestCode = 10000
@@ -101,6 +102,32 @@ class FileChooser(
   }
 
   /**
+   * Use this method to get multiple user-selected files with all of the necessary permissions.
+   * */
+  fun openChooseMultiSelectFileDialog(
+    fileMultiSelectChooserCallback: FileMultiSelectChooserCallback
+  ) {
+    fsafActivityCallbacks?.let { callbacks ->
+      val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+      intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+
+      intent.addCategory(Intent.CATEGORY_OPENABLE)
+      intent.type = "*/*"
+      intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true) // !
+
+      val nextRequestCode = ++requestCode
+      callbacksMap[nextRequestCode] = fileMultiSelectChooserCallback
+
+      try {
+        callbacks.fsafStartActivityForResult(intent, nextRequestCode)
+      } catch (e: Exception) {
+        callbacksMap.remove(nextRequestCode)
+        fileMultiSelectChooserCallback.onCancel(e.message ?: "openChooseMultiSelectFileDialog() Unknown error")
+      }
+    }
+  }
+
+  /**
    * Use this method to get a user-selected path where a new file will be located with all of the
    * necessary permissions.
    * */
@@ -158,6 +185,9 @@ class FileChooser(
         }
         is FileCreateCallback -> {
           handleFileCreateCallback(callback, resultCode, data)
+        }
+        is FileMultiSelectChooserCallback -> {
+          handleFileChooserMultiSelectCallback(callback, resultCode, data)
         }
         else -> throw IllegalArgumentException("Not implemented for ${callback.javaClass.name}")
       }
@@ -268,6 +298,80 @@ class FileChooser(
     }
 
     callback.onResult(uri)
+  }
+
+  private fun handleFileChooserMultiSelectCallback(
+    callback: FileMultiSelectChooserCallback,
+    resultCode: Int,
+    intent: Intent?
+  ) {
+    if (resultCode != Activity.RESULT_OK) {
+      val msg = "handleFileChooserMultiSelectCallback() Non OK result ($resultCode)"
+
+      Log.e(TAG, msg)
+      callback.onCancel(msg)
+      return
+    }
+
+    if (intent == null) {
+      val msg = "handleFileChooserMultiSelectCallback() Intent is null"
+
+      Log.e(TAG, msg)
+      callback.onCancel(msg)
+      return
+    }
+
+    val read = (intent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION) != 0
+    if (!read) {
+      val msg = "handleFileChooserMultiSelectCallback() No grant read uri permission given"
+
+      Log.e(TAG, msg)
+      callback.onCancel(msg)
+      return
+    }
+
+    val write = (intent.flags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != 0
+    if (!write) {
+      val msg = "handleFileChooserMultiSelectCallback() No grant write uri permission given"
+
+      Log.e(TAG, msg)
+      callback.onCancel(msg)
+      return
+    }
+
+    if (intent.data == null && intent.clipData == null) {
+      callback.onResult(emptyList())
+      return
+    }
+
+    val uris: ArrayList<Uri>?
+
+    val clipData = intent.clipData
+    if (null != clipData) { // checking multiple selection or not
+      uris = arrayListOf<Uri>()
+      for (i in 0 until clipData.itemCount) {
+        uris.add(clipData.getItemAt(i).uri)
+      }
+    } else {
+      val data = intent.data
+      if (data != null) {
+        uris = arrayListOf<Uri>()
+        uris.add(data)
+      } else {
+        uris = null
+      }
+    }
+
+    if (uris == null) {
+      val msg =
+        "handleFileChooserMultiSelectCallback() intent.getData() == null ${intent.data == null} or intent.getClipData() == null ${intent.clipData == null}"
+
+      Log.e(TAG, msg)
+      callback.onCancel(msg)
+      return
+    }
+
+    callback.onResult(uris)
   }
 
   private fun handleDirectoryChooserCallback(
