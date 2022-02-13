@@ -1,5 +1,5 @@
 package com.github.k1rakishou.fsaf.callback.directory
 
-import com.github.k1rakishou.fsaf.callback.ChooserCallback
+import com.github.k1rakishou.fsaf.callback.SingleItemChooserCallback
 
-abstract class DirectoryChooserCallback : ChooserCallback
+abstract class DirectoryChooserCallback : SingleItemChooserCallback

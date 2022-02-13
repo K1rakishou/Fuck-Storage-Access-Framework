@@ -8,11 +8,7 @@ import android.provider.DocumentsContract
 import android.util.Log
 import android.webkit.MimeTypeMap
 import androidx.documentfile.provider.DocumentFile
-import com.github.k1rakishou.fsaf.callback.ChooserCallback
-import com.github.k1rakishou.fsaf.callback.FSAFActivityCallbacks
-import com.github.k1rakishou.fsaf.callback.FileChooserCallback
-import com.github.k1rakishou.fsaf.callback.FileCreateCallback
-import com.github.k1rakishou.fsaf.callback.FileMultiSelectChooserCallback
+import com.github.k1rakishou.fsaf.callback.*
 import com.github.k1rakishou.fsaf.callback.directory.DirectoryChooserCallback
 import com.github.k1rakishou.fsaf.callback.directory.PermanentDirectoryChooserCallback
 import com.github.k1rakishou.fsaf.callback.directory.TemporaryDirectoryCallback
@@ -21,7 +17,7 @@ import com.github.k1rakishou.fsaf.extensions.getMimeFromFilename
 class FileChooser(
   private val appContext: Context
 ) {
-  private val callbacksMap = hashMapOf<Int, Any>()
+  private val callbacksMap = hashMapOf<Int, ChooserCallback>()
   private val mimeTypeMap = MimeTypeMap.getSingleton()
 
   private var requestCode = 10000
@@ -67,10 +63,7 @@ class FileChooser(
         callbacks.fsafStartActivityForResult(intent, nextRequestCode)
       } catch (e: Exception) {
         callbacksMap.remove(nextRequestCode)
-        directoryChooserCallback.onCancel(
-          e.message
-            ?: "openChooseDirectoryDialog() Unknown error"
-        )
+        directoryChooserCallback.onCancel(e.message ?: "openChooseDirectoryDialog() Unknown error")
       }
     }
   }
