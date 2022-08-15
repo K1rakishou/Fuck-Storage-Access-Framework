@@ -25,7 +25,7 @@ Samples
 Latest version:
 
 ```
-implementation 'com.github.K1rakishou:Fuck-Storage-Access-Framework:v1.1'
+implementation 'com.github.K1rakishou:Fuck-Storage-Access-Framework:v1.1.2'
 ```
 
 There are three main scenarios when dealing with files:
