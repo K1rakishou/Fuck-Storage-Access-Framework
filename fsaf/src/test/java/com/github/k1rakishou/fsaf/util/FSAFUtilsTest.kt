@@ -27,6 +27,16 @@ class FSAFUtilsTest {
   }
 
   @Test
+  fun `test ignore when there are bad symbols without bad symbols`() {
+    val result = FSAFUtils.checkBadSymbolsAndApplyResolutionStrategy(
+      BadPathSymbolResolutionStrategy.Ignore,
+      "123"
+    )
+
+    assertEquals("123", result)
+  }
+
+  @Test
   fun `test replace bad symbols with bad symbols`() {
     val result = FSAFUtils.checkBadSymbolsAndApplyResolutionStrategy(
       BadPathSymbolResolutionStrategy.ReplaceBadSymbols,
@@ -43,4 +53,15 @@ class FSAFUtilsTest {
       "1 2 3 .txt"
     )
   }
+
+  @Test
+  fun `test ignore bad symbols with bad symbols`() {
+    val result = FSAFUtils.checkBadSymbolsAndApplyResolutionStrategy(
+      BadPathSymbolResolutionStrategy.Ignore,
+      "1 2 3 .txt"
+    )
+
+    assertEquals("1 2 3 .txt", result)
+  }
+
 }

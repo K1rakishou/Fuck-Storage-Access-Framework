@@ -15,5 +15,10 @@ enum class BadPathSymbolResolutionStrategy {
    * behavior.
    * see [FSAFUtils.BAD_SYMBOLS_REPLACEMENTS]
    * */
-  ReplaceBadSymbols
+  ReplaceBadSymbols,
+
+  /**
+   * Bad symbols will be ignored. This may cause crashes and other weird behavior.
+   * */
+  Ignore
 }

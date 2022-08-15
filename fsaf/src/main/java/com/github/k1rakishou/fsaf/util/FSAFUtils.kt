@@ -165,6 +165,10 @@ object FSAFUtils {
     badSymbolResolutionStrategy: BadPathSymbolResolutionStrategy,
     inputString: String
   ): String {
+    if (badSymbolResolutionStrategy == BadPathSymbolResolutionStrategy.Ignore) {
+      return inputString
+    }
+
     val firstBadSymbol = returnFirstBadSymbolIndexOrMinusOne(inputString)
     if (firstBadSymbol == -1) {
       // No bad symbols

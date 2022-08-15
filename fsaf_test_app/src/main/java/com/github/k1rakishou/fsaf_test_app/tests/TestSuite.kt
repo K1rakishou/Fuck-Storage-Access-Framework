@@ -69,6 +69,7 @@ class TestSuite(
         CopyTestType.FromSafDirToRegularDir
       )
       FindTests("$TAG(SAF) FindTests").runTests(fileManager, baseDirSAF)
+      BadPathSymbolResolutionTest(context.applicationContext, "$TAG(SAF) BadPathSymbolResolutionTest").runTests(baseDirSAF)
     }
 
     println("$TAG runTestsWithSAFFiles took ${time}ms")
@@ -91,6 +92,7 @@ class TestSuite(
         CopyTestType.FromRegularDitToSafDir
       )
       FindTests("$TAG(Java) FindTests").runTests(fileManager, baseDirFile)
+      BadPathSymbolResolutionTest(context.applicationContext, "$TAG(Java) BadPathSymbolResolutionTest").runTests(baseDirSAF)
     }
 
     println("$TAG runTestsWithJavaFiles took ${time}ms")
